@@ -12,7 +12,7 @@ const std::string ksVerboseTag = "VERBOSE: ";
 const std::string ksWarningTag = "WARNING: ";
 const std::string ksErrorTag = "ERROR: ";
 
-void DebugHelper::Log(LogLevel logLevel, const std::string sTag, const std::string sText, ...)
+void DebugHelper::Log(const LogLevel& logLevel, const std::string& sTag, const std::string& sText, ...)
 {
 	char buffer[BUFFER_SIZE];
 	memset(buffer, 0, BUFFER_SIZE);
