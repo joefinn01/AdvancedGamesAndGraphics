@@ -17,12 +17,30 @@
     <Filter Include="Engine\Structure">
       <UniqueIdentifier>{1f719c85-e941-4019-8404-781842c7e498}</UniqueIdentifier>
     </Filter>
+    <Filter Include="Engine\Commons">
+      <UniqueIdentifier>{1b23d7d1-a2ce-44d1-a240-66dd3e2383b2}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Engine\Managers">
+      <UniqueIdentifier>{ee666808-f80b-4a64-af62-92c9936ced9d}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Engine\Helpers">
+      <UniqueIdentifier>{85c49a85-a6b0-480d-8868-d5f3f2e61178}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="Engine\Apps\D3DApp.cpp">
+    <ClCompile Include="Engine\Apps\App.cpp">
       <Filter>Engine\Apps</Filter>
     </ClCompile>
-    <ClCompile Include="main.cpp" />
+    <ClCompile Include="Engine\Commons\Timer.cpp">
+      <Filter>Engine\Commons</Filter>
+    </ClCompile>
+    <ClCompile Include="Main.cpp" />
+    <ClCompile Include="Engine\Helpers\DebugHelper.cpp">
+      <Filter>Engine\Helpers</Filter>
+    </ClCompile>
+    <ClCompile Include="Engine\Managers\WindowManager.cpp">
+      <Filter>Engine\Managers</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <FxCompile Include="Shaders\PixelShader.hlsl">
@@ -33,11 +51,20 @@
     </FxCompile>
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="Engine\Apps\D3DApp.h">
-      <Filter>Engine\Apps</Filter>
-    </ClInclude>
     <ClInclude Include="Engine\Structure\Singleton.h">
       <Filter>Engine\Structure</Filter>
+    </ClInclude>
+    <ClInclude Include="Engine\Apps\App.h">
+      <Filter>Engine\Apps</Filter>
+    </ClInclude>
+    <ClInclude Include="Engine\Commons\Timer.h">
+      <Filter>Engine\Commons</Filter>
+    </ClInclude>
+    <ClInclude Include="Engine\Helpers\DebugHelper.h">
+      <Filter>Engine\Helpers</Filter>
+    </ClInclude>
+    <ClInclude Include="Engine\Managers\WindowManager.h">
+      <Filter>Engine\Managers</Filter>
     </ClInclude>
   </ItemGroup>
 </Project>
