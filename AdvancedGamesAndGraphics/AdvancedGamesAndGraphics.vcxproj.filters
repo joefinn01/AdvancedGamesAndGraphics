@@ -1,0 +1,43 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup>
+    <Filter Include="Resource Files">
+      <UniqueIdentifier>{67DA6AB6-F800-4c08-8B7A-83BB121AAD01}</UniqueIdentifier>
+      <Extensions>rc;ico;cur;bmp;dlg;rc2;rct;bin;rgs;gif;jpg;jpeg;jpe;resx;tiff;tif;png;wav;mfcribbon-ms</Extensions>
+    </Filter>
+    <Filter Include="Shaders">
+      <UniqueIdentifier>{e1cb843b-9bb4-4bcf-a1ad-2c5a7ef8b9a8}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Engine">
+      <UniqueIdentifier>{f5db3e50-611b-403e-9136-9ac11085ebe9}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Engine\Apps">
+      <UniqueIdentifier>{29f8d1c7-c11c-49f1-9fc7-a97c03064c47}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Engine\Structure">
+      <UniqueIdentifier>{1f719c85-e941-4019-8404-781842c7e498}</UniqueIdentifier>
+    </Filter>
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="Engine\Apps\D3DApp.cpp">
+      <Filter>Engine\Apps</Filter>
+    </ClCompile>
+    <ClCompile Include="main.cpp" />
+  </ItemGroup>
+  <ItemGroup>
+    <FxCompile Include="Shaders\PixelShader.hlsl">
+      <Filter>Shaders</Filter>
+    </FxCompile>
+    <FxCompile Include="Shaders\VertexShader.hlsl">
+      <Filter>Shaders</Filter>
+    </FxCompile>
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="Engine\Apps\D3DApp.h">
+      <Filter>Engine\Apps</Filter>
+    </ClInclude>
+    <ClInclude Include="Engine\Structure\Singleton.h">
+      <Filter>Engine\Structure</Filter>
+    </ClInclude>
+  </ItemGroup>
+</Project>
