@@ -1,8 +1,8 @@
 #pragma once
 #include "Engine/Structure/Singleton.h"
 
-#include <dxgitype.h>
 #include <Windows.h>
+#include <dxgitype.h>
 
 typedef DXGI_MODE_DESC WindowSettings;
 
