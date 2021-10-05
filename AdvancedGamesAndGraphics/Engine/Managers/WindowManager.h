@@ -18,6 +18,7 @@ public:
 	void GetRefreshRate(UINT& uiNumerator, UINT& uiDenominator) const;
 
 	void SetWindowDimensions(UINT uiWidth, UINT uiHeight);
+	void UpdateWindowDimensions();
 
 	void SetWindowWidth(UINT uiWidth);
 	UINT GetWindowWidth() const;

@@ -28,6 +28,19 @@ void WindowManager::SetWindowDimensions(UINT uiWidth, UINT uiHeight)
 	m_WindowSettings.Height = uiHeight;
 }
 
+void WindowManager::UpdateWindowDimensions()
+{
+	RECT rect;
+	if (GetWindowRect(m_HWND, &rect))
+	{
+		UINT dpi = GetDpiForWindow(GetDesktopWindow());
+		float fDPIScale = dpi / 96.0f;
+
+		m_WindowSettings.Width = (rect.right - rect.left) * fDPIScale;
+		m_WindowSettings.Height = (rect.bottom - rect.top) * fDPIScale;
+	}
+}
+
 void WindowManager::SetWindowWidth(UINT uiWidth)
 {
 	m_WindowSettings.Width = uiWidth;

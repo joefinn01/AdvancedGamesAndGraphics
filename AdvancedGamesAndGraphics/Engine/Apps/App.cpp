@@ -261,8 +261,9 @@ LRESULT App::MsgProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam)
 
 		// WM_SIZE is sent when the user resizes the window.  
 	case WM_SIZE:
+	{
 		// Save the new client area dimensions.
-		WindowManager::GetInstance()->SetWindowDimensions(LOWORD(lParam), HIWORD(lParam));
+		WindowManager::GetInstance()->UpdateWindowDimensions();
 		if (m_pDevice)
 		{
 			if (wParam == SIZE_MINIMIZED)
@@ -311,6 +312,7 @@ LRESULT App::MsgProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam)
 		}
 
 		return 0;
+	}
 
 		// WM_EXITSIZEMOVE is sent when the user grabs the resize bars.
 	case WM_ENTERSIZEMOVE:
@@ -437,13 +439,16 @@ bool App::InitWindow()
 	int iWidth = R.right - R.left;
 	int iHeight = R.bottom - R.top;
 
+	UINT dpi = GetDpiForWindow(GetDesktopWindow());
+	float fDPIScale = dpi / 96.0f;
+
 	HWND window = CreateWindow(L"Main Window",
 		L"DirectX App",
 		WS_OVERLAPPEDWINDOW,
 		CW_USEDEFAULT,
 		CW_USEDEFAULT,
-		iWidth,
-		iHeight,
+		iWidth / fDPIScale,
+		iHeight / fDPIScale,
 		0,
 		0,
 		m_AppInstance,
@@ -459,6 +464,8 @@ bool App::InitWindow()
 	UpdateWindow(window);
 
 	WindowManager::GetInstance()->SetHWND(window);
+
+	WindowManager::GetInstance()->UpdateWindowDimensions();
 
 	return true;
 }
