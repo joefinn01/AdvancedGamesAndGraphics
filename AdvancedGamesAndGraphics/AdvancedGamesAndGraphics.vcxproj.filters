@@ -26,6 +26,15 @@
     <Filter Include="Engine\Helpers">
       <UniqueIdentifier>{85c49a85-a6b0-480d-8868-d5f3f2e61178}</UniqueIdentifier>
     </Filter>
+    <Filter Include="Engine\DirectX">
+      <UniqueIdentifier>{50badcfe-8f30-49e2-8121-3ccb75881771}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Engine\GameObjects">
+      <UniqueIdentifier>{62200be1-9e44-43f1-a44f-9e0053125c97}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Engine\Cameras">
+      <UniqueIdentifier>{cd8858e1-a4cd-4052-87c6-02b2553d2532}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="Engine\Apps\App.cpp">
@@ -40,6 +49,30 @@
     </ClCompile>
     <ClCompile Include="Engine\Managers\WindowManager.cpp">
       <Filter>Engine\Managers</Filter>
+    </ClCompile>
+    <ClCompile Include="Engine\Managers\ObjectManager.cpp">
+      <Filter>Engine\Managers</Filter>
+    </ClCompile>
+    <ClCompile Include="Engine\Helpers\MathHelper.cpp">
+      <Filter>Engine\Helpers</Filter>
+    </ClCompile>
+    <ClCompile Include="Engine\Cameras\Camera.cpp">
+      <Filter>Engine\Cameras</Filter>
+    </ClCompile>
+    <ClCompile Include="Engine\GameObjects\GameObject.cpp">
+      <Filter>Engine\GameObjects</Filter>
+    </ClCompile>
+    <ClCompile Include="Engine\GameObjects\VisibleGameObject.cpp">
+      <Filter>Engine\GameObjects</Filter>
+    </ClCompile>
+    <ClCompile Include="Engine\Cameras\DebugCamera.cpp">
+      <Filter>Engine\Cameras</Filter>
+    </ClCompile>
+    <ClCompile Include="Engine\Helpers\DirectXHelper.cpp">
+      <Filter>Engine\Helpers</Filter>
+    </ClCompile>
+    <ClCompile Include="Engine\Apps\BasicApp.cpp">
+      <Filter>Engine\Apps</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
@@ -65,6 +98,39 @@
     </ClInclude>
     <ClInclude Include="Engine\Managers\WindowManager.h">
       <Filter>Engine\Managers</Filter>
+    </ClInclude>
+    <ClInclude Include="Engine\DirectX\UploadBuffer.h">
+      <Filter>Engine\DirectX</Filter>
+    </ClInclude>
+    <ClInclude Include="Engine\Managers\ObjectManager.h">
+      <Filter>Engine\Managers</Filter>
+    </ClInclude>
+    <ClInclude Include="Engine\Helpers\MathHelper.h">
+      <Filter>Engine\Helpers</Filter>
+    </ClInclude>
+    <ClInclude Include="Engine\Cameras\Camera.h">
+      <Filter>Engine\Cameras</Filter>
+    </ClInclude>
+    <ClInclude Include="Engine\GameObjects\GameObject.h">
+      <Filter>Engine\GameObjects</Filter>
+    </ClInclude>
+    <ClInclude Include="Engine\DirectX\MeshGeometry.h">
+      <Filter>Engine\DirectX</Filter>
+    </ClInclude>
+    <ClInclude Include="Engine\GameObjects\VisibleGameObject.h">
+      <Filter>Engine\GameObjects</Filter>
+    </ClInclude>
+    <ClInclude Include="Engine\Cameras\DebugCamera.h">
+      <Filter>Engine\Cameras</Filter>
+    </ClInclude>
+    <ClInclude Include="Engine\DirectX\Vertices.h">
+      <Filter>Engine\DirectX</Filter>
+    </ClInclude>
+    <ClInclude Include="Engine\Helpers\DirectXHelper.h">
+      <Filter>Engine\Helpers</Filter>
+    </ClInclude>
+    <ClInclude Include="Engine\Apps\BasicApp.h">
+      <Filter>Engine\Apps</Filter>
     </ClInclude>
   </ItemGroup>
 </Project>
