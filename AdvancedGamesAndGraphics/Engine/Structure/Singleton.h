@@ -4,18 +4,21 @@ template<class T>
 class Singleton
 {
 public:
-	static T* GetInstance() const
+	static T* GetInstance()
 	{
-		if (m_pInstance == nullptr)
+		if (s_pInstance == nullptr)
 		{
-			m_pInstance = new T();
+			s_pInstance = new T();
 		}
 
-		return m_pInstance;
+		return s_pInstance;
 	}
 
 protected:
 
 private:
-	static T* m_pInstance;
+	static T* s_pInstance;
 };
+
+template <class T>
+T* Singleton<T>::s_pInstance = nullptr;
