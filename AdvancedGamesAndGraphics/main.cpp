@@ -1,9 +1,8 @@
 #include "Engine/Apps/App.h"
+#include "Engine/Apps/BasicApp.h"
 #include "Engine/Helpers/DebugHelper.h"
 
-#include <d3d12.h>
 #include <windows.h>
-#include <DirectXMath.h>
 
 using namespace DirectX;
 
@@ -24,7 +23,7 @@ int WINAPI WinMain(HINSTANCE hInstance,    //Main windows function
 	int nShowCmd)
 
 {
-	pApp = new App(hInstance);
+	pApp = new BasicApp(hInstance);
 
 	if (App::GetApp()->Init() == false)
 	{
