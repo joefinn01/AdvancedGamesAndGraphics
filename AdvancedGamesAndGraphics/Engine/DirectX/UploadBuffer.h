@@ -2,7 +2,7 @@
 
 #include "Engine/Helpers/DebugHelper.h"
 
-#include <d3d12.h>
+#include <DirectX/d3dx12.h>
 
 template<class T>
 class UploadBuffer
