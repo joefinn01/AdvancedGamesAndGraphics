@@ -388,6 +388,11 @@ void App::Set4xMSAAState(bool bState)
 	m_b4xMSAAState = bState;
 }
 
+ID3D12GraphicsCommandList4* App::GetGraphicsCommandList()
+{
+	return m_pGraphicsCommandList.Get();
+}
+
 App* App::GetApp()
 {
 	return m_pApp;

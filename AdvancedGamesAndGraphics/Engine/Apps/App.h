@@ -39,6 +39,8 @@ public:
 	bool Get4xMSAAState() const;
 	void Set4xMSAAState(bool bState);
 
+	ID3D12GraphicsCommandList4* GetGraphicsCommandList();
+
 	static App* GetApp();
 
 protected:
