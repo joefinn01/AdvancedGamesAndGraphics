@@ -1,7 +1,7 @@
 #pragma once
 
 #include <wrl/client.h>
-#include <d3d12.h>
+#include <DirectX\d3dx12.h>
 #include <string>
 #include <unordered_map>
 
@@ -24,8 +24,6 @@ struct MeshGeometry
 	//Uploaders
 	Microsoft::WRL::ComPtr<ID3D12Resource> m_pVertexBufferUploader = nullptr;
 	Microsoft::WRL::ComPtr<ID3D12Resource> m_pIndexBufferUploader = nullptr;
-
-	std::string m_sName = "";
 
 	//Data information
 	UINT m_uiVertexByteStride = 0;
