@@ -5,7 +5,7 @@
 
 #include <wrl.h>
 #include <Windows.h>
-#include <d3d12.h>
+#include <DirectX\d3dx12.h>
 #include <dxgi1_4.h>
 
 class Timer;
@@ -18,17 +18,10 @@ public:
 
 	virtual bool Init();
 
-	virtual void Update(const Timer& kTimer) = 0;
+	virtual void Update(const Timer& kTimer);
 	virtual void OnResize();
 
-	virtual void Draw() = 0;
-
-	virtual void OnMouseDown(WPARAM btnState, int x, int y) = 0;
-	virtual void OnMouseUp(WPARAM btnState, int x, int y) = 0;
-	virtual void OnMouseMove(WPARAM btnState, int x, int y) = 0;
-
-	virtual void OnKeyDown(WPARAM key) = 0;
-	virtual void OnKeyUp(WPARAM key) = 0;
+	virtual void Draw();
 
 	int Run();
 

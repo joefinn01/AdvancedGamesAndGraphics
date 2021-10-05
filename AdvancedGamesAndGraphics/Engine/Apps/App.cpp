@@ -2,10 +2,13 @@
 #include "Engine/Commons/Timer.h"
 #include "Engine/Helpers/DebugHelper.h"
 #include "Engine/Managers/WindowManager.h"
+#include "Engine/Managers/ObjectManager.h"
 
 #include <DirectX/d3dx12.h>
 #include <windowsx.h>
 #include <vector>
+
+App* App::m_pApp = nullptr;
 
 Tag tag = "App";
 
@@ -79,6 +82,11 @@ bool App::Init()
 	Load();
 
 	return true;
+}
+
+void App::Update(const Timer& kTimer)
+{
+	ObjectManager::GetInstance()->Update(kTimer);
 }
 
 void App::OnResize()
@@ -191,6 +199,11 @@ void App::OnResize()
 	m_Viewport.MaxDepth = 1.0f;
 
 	m_ScissorRect = { 0, 0, static_cast<long>(WindowManager::GetInstance()->GetWindowWidth()), static_cast<long>(WindowManager::GetInstance()->GetWindowHeight()) };
+}
+
+void App::Draw()
+{
+	ObjectManager::GetInstance()->Draw();
 }
 
 int App::Run()
@@ -339,19 +352,16 @@ LRESULT App::MsgProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam)
 	case WM_LBUTTONDOWN:
 	case WM_MBUTTONDOWN:
 	case WM_RBUTTONDOWN:
-		OnMouseDown(wParam, GET_X_LPARAM(lParam), GET_Y_LPARAM(lParam));
 
 		return 0;
 
 	case WM_LBUTTONUP:
 	case WM_MBUTTONUP:
 	case WM_RBUTTONUP:
-		OnMouseUp(wParam, GET_X_LPARAM(lParam), GET_Y_LPARAM(lParam));
 
 		return 0;
 
 	case WM_MOUSEMOVE:
-		OnMouseMove(wParam, GET_X_LPARAM(lParam), GET_Y_LPARAM(lParam));
 
 		return 0;
 
@@ -365,12 +375,9 @@ LRESULT App::MsgProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam)
 			Set4xMSAAState(!m_b4xMSAAState);
 		}
 
-		OnKeyUp(wParam);
-
 		return 0;
 
 	case WM_KEYDOWN:
-		OnKeyDown(wParam);
 
 		return 0;
 	}
@@ -523,7 +530,7 @@ bool App::InitDirectX3D()
 	queueDesc.Type = D3D12_COMMAND_LIST_TYPE_DIRECT;
 	queueDesc.Flags = D3D12_COMMAND_QUEUE_FLAG_NONE;
 
-	HRESULT hr = m_pDevice->CreateCommandQueue(&queueDesc, IID_PPV_ARGS(m_pCommandQueue.GetAddressOf()));
+	hr = m_pDevice->CreateCommandQueue(&queueDesc, IID_PPV_ARGS(m_pCommandQueue.GetAddressOf()));
 
 	if (FAILED(hr))
 	{
@@ -565,7 +572,7 @@ bool App::InitDirectX3D()
 	chainDesc.SwapEffect = DXGI_SWAP_EFFECT_FLIP_DISCARD;
 	chainDesc.SampleDesc.Count = 1;
 
-	HRESULT hr = m_pDXGIFactory->CreateSwapChainForHwnd(m_pCommandQueue.Get(), WindowManager::GetInstance()->GetHWND(), &chainDesc, nullptr, nullptr, m_pSwapChain.GetAddressOf());
+	hr = m_pDXGIFactory->CreateSwapChainForHwnd(m_pCommandQueue.Get(), WindowManager::GetInstance()->GetHWND(), &chainDesc, nullptr, nullptr, m_pSwapChain.GetAddressOf());
 
 	if (FAILED(hr))
 	{
@@ -581,7 +588,7 @@ bool App::InitDirectX3D()
 	RTVHeapDesc.Flags = D3D12_DESCRIPTOR_HEAP_FLAG_NONE;
 	RTVHeapDesc.NodeMask = 0;
 
-	HRESULT hr = m_pDevice->CreateDescriptorHeap(&RTVHeapDesc, IID_PPV_ARGS(m_pRTVHeap.GetAddressOf()));
+	hr = m_pDevice->CreateDescriptorHeap(&RTVHeapDesc, IID_PPV_ARGS(m_pRTVHeap.GetAddressOf()));
 
 	if (FAILED(hr))
 	{
@@ -707,7 +714,7 @@ void App::LogOutputInfo(IDXGIOutput* pOutput, DXGI_FORMAT format, bool bSaveSett
 
 	if (bSaveSettings)
 	{
-		WindowManager::GetInstance()->SetWindowSettings(modes[i - 1]);
+		WindowManager::GetInstance()->SetWindowSettings(modes[modes.size() - 1]);
 	}
 }
 
