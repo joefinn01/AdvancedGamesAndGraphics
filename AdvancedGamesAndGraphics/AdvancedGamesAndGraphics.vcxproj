@@ -93,7 +93,7 @@
     <Link>
       <SubSystem>Console</SubSystem>
       <GenerateDebugInformation>true</GenerateDebugInformation>
-      <AdditionalDependencies>d3d12.lib;dxgi.lib;d3dcompiler.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>d3d12.lib;dxgi.lib;d3dcompiler.lib;dxguid.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
@@ -111,7 +111,7 @@
       <EnableCOMDATFolding>true</EnableCOMDATFolding>
       <OptimizeReferences>true</OptimizeReferences>
       <GenerateDebugInformation>true</GenerateDebugInformation>
-      <AdditionalDependencies>d3d12.lib;dxgi.lib;d3dcompiler.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>d3d12.lib;dxgi.lib;d3dcompiler.lib;dxguid.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
@@ -125,7 +125,7 @@
     <Link>
       <SubSystem>Windows</SubSystem>
       <GenerateDebugInformation>true</GenerateDebugInformation>
-      <AdditionalDependencies>d3d12.lib;dxgi.lib;d3dcompiler.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>d3d12.lib;dxgi.lib;d3dcompiler.lib;dxguid.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
@@ -143,13 +143,21 @@
       <EnableCOMDATFolding>true</EnableCOMDATFolding>
       <OptimizeReferences>true</OptimizeReferences>
       <GenerateDebugInformation>true</GenerateDebugInformation>
-      <AdditionalDependencies>d3d12.lib;dxgi.lib;d3dcompiler.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>d3d12.lib;dxgi.lib;d3dcompiler.lib;dxguid.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClCompile Include="Engine\Apps\App.cpp" />
+    <ClCompile Include="Engine\Apps\BasicApp.cpp" />
+    <ClCompile Include="Engine\Cameras\Camera.cpp" />
+    <ClCompile Include="Engine\Cameras\DebugCamera.cpp" />
     <ClCompile Include="Engine\Commons\Timer.cpp" />
+    <ClCompile Include="Engine\GameObjects\GameObject.cpp" />
+    <ClCompile Include="Engine\GameObjects\VisibleGameObject.cpp" />
     <ClCompile Include="Engine\Helpers\DebugHelper.cpp" />
+    <ClCompile Include="Engine\Helpers\DirectXHelper.cpp" />
+    <ClCompile Include="Engine\Helpers\MathHelper.cpp" />
+    <ClCompile Include="Engine\Managers\ObjectManager.cpp" />
     <ClCompile Include="Engine\Managers\WindowManager.cpp" />
     <ClCompile Include="Main.cpp" />
   </ItemGroup>
@@ -169,8 +177,19 @@
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Engine\Apps\App.h" />
+    <ClInclude Include="Engine\Apps\BasicApp.h" />
+    <ClInclude Include="Engine\Cameras\Camera.h" />
+    <ClInclude Include="Engine\Cameras\DebugCamera.h" />
     <ClInclude Include="Engine\Commons\Timer.h" />
+    <ClInclude Include="Engine\DirectX\MeshGeometry.h" />
+    <ClInclude Include="Engine\DirectX\UploadBuffer.h" />
+    <ClInclude Include="Engine\DirectX\Vertices.h" />
+    <ClInclude Include="Engine\GameObjects\GameObject.h" />
+    <ClInclude Include="Engine\GameObjects\VisibleGameObject.h" />
     <ClInclude Include="Engine\Helpers\DebugHelper.h" />
+    <ClInclude Include="Engine\Helpers\DirectXHelper.h" />
+    <ClInclude Include="Engine\Helpers\MathHelper.h" />
+    <ClInclude Include="Engine\Managers\ObjectManager.h" />
     <ClInclude Include="Engine\Managers\WindowManager.h" />
     <ClInclude Include="Engine\Structure\Singleton.h" />
   </ItemGroup>
