@@ -40,6 +40,7 @@ public:
 	void Set4xMSAAState(bool bState);
 
 	ID3D12GraphicsCommandList4* GetGraphicsCommandList();
+	ID3D12Device4* GetDevice();
 
 	static App* GetApp();
 
