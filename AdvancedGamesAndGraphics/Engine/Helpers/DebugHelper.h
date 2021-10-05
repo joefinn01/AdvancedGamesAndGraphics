@@ -5,9 +5,9 @@
 
 enum class LogLevel
 {
-	VERBOSE = 0,
-	WARNING,
-	ERROR
+	VERBOSE_LOG = 0,
+	WARNING_LOG,
+	ERROR_LOG
 };
 
 #if _DEBUG
@@ -29,7 +29,7 @@ typedef const std::string Tag;
 class DebugHelper
 {
 public:
-	static void Log(const LogLevel& logLevel, const std::string& sTag, const std::string& sText, ...);
+	static void Log(LogLevel logLevel, std::string sTag, std::string sText, ...);
 protected:
 
 private:

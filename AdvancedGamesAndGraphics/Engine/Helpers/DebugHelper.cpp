@@ -12,7 +12,7 @@ const std::string ksVerboseTag = "VERBOSE: ";
 const std::string ksWarningTag = "WARNING: ";
 const std::string ksErrorTag = "ERROR: ";
 
-void DebugHelper::Log(const LogLevel& logLevel, const std::string& sTag, const std::string& sText, ...)
+void DebugHelper::Log(LogLevel logLevel, std::string sTag, std::string sText, ...)
 {
 	char buffer[BUFFER_SIZE];
 	memset(buffer, 0, BUFFER_SIZE);
@@ -23,15 +23,15 @@ void DebugHelper::Log(const LogLevel& logLevel, const std::string& sTag, const s
 
 	switch (logLevel)
 	{
-	case LogLevel::VERBOSE:
+	case LogLevel::VERBOSE_LOG:
 		ss << ksVerboseTag;
 		break;
 
-	case LogLevel::WARNING:
+	case LogLevel::WARNING_LOG:
 		ss << ksWarningTag;
 		break;
 
-	case LogLevel::ERROR:
+	case LogLevel::ERROR_LOG:
 		ss << ksErrorTag;
 		break;
 
