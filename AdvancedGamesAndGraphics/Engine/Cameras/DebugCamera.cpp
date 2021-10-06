@@ -39,7 +39,7 @@ void DebugCamera::Update(const Timer& kTimer)
 	}
 
 	//Toggle the mouse being locked to the screen if escape is pressed
-	if (GetAsyncKeyState(VK_ESCAPE))
+	if (GetAsyncKeyState(VK_CONTROL))
 	{
 		m_bLockMouse = !m_bLockMouse;
 
