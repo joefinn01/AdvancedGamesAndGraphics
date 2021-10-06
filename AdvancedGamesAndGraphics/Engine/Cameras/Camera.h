@@ -10,25 +10,25 @@ class Timer;
 class Camera
 {
 public:
-	Camera(DirectX::XMFLOAT4 position, DirectX::XMFLOAT4 at, DirectX::XMFLOAT4 up, float fNearDepth, float fFarDepth, std::string sName);
+	Camera(DirectX::XMFLOAT3 position, DirectX::XMFLOAT3 at, DirectX::XMFLOAT3 up, float fNearDepth, float fFarDepth, std::string sName);
 	Camera();
 	~Camera();
 
 	virtual void Update(const Timer& kTimer);
 
-	void SetPosition(DirectX::XMFLOAT4 position);
-	DirectX::XMFLOAT4 GetPosition() const;
+	void SetPosition(DirectX::XMFLOAT3 position);
+	DirectX::XMFLOAT3 GetPosition() const;
 
-	void Translate(DirectX::XMFLOAT4 vec);
+	void Translate(DirectX::XMFLOAT3 vec);
 
-	void SetLookAt(DirectX::XMFLOAT4 at);
-	DirectX::XMFLOAT4 GetLookAt() const;
+	void SetLookAt(DirectX::XMFLOAT3 at);
+	DirectX::XMFLOAT3 GetLookAt() const;
 
-	void SetUpVector(DirectX::XMFLOAT4 up);
-	DirectX::XMFLOAT4 GetUpVector() const;
+	void SetUpVector(DirectX::XMFLOAT3 up);
+	DirectX::XMFLOAT3 GetUpVector() const;
 
-	DirectX::XMFLOAT4 GetRightVector() const;
-	DirectX::XMFLOAT4 GetForwardVector() const;
+	DirectX::XMFLOAT3 GetRightVector() const;
+	DirectX::XMFLOAT3 GetForwardVector() const;
 
 	DirectX::XMFLOAT4X4 GetViewMatrix() const;
 	DirectX::XMFLOAT4X4 GetProjectionMatrix() const;
@@ -39,11 +39,11 @@ public:
 	void Reshape(float fNearDepth, float fFarDepth);
 
 protected:
-	DirectX::XMFLOAT4 m_Eye = DirectX::XMFLOAT4();
-	DirectX::XMFLOAT4 m_At = DirectX::XMFLOAT4();
+	DirectX::XMFLOAT3 m_Eye = DirectX::XMFLOAT3();
+	DirectX::XMFLOAT3 m_At = DirectX::XMFLOAT3();
 
-	DirectX::XMFLOAT4 m_Up = DirectX::XMFLOAT4(0, 1, 0, 0);
-	DirectX::XMFLOAT4 m_Forward = DirectX::XMFLOAT4(0, 0, 1, 0);
+	DirectX::XMFLOAT3 m_Up = DirectX::XMFLOAT3(0, 1, 0);
+	DirectX::XMFLOAT3 m_Forward = DirectX::XMFLOAT3(0, 0, 1);
 
 	DirectX::XMFLOAT4X4 m_RotationMatrix = MathHelper::Identity();
 

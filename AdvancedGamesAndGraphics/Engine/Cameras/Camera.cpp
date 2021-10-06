@@ -4,7 +4,7 @@
 
 using namespace DirectX;
 
-Camera::Camera(DirectX::XMFLOAT4 position, DirectX::XMFLOAT4 at, DirectX::XMFLOAT4 up, float fNearDepth, float fFarDepth, std::string sName)
+Camera::Camera(DirectX::XMFLOAT3 position, DirectX::XMFLOAT3 at, DirectX::XMFLOAT3 up, float fNearDepth, float fFarDepth, std::string sName)
 {
 	m_Eye = position;
 	m_At = at;
@@ -12,16 +12,16 @@ Camera::Camera(DirectX::XMFLOAT4 position, DirectX::XMFLOAT4 at, DirectX::XMFLOA
 
 	m_sName = sName;
 
-	XMStoreFloat4(&m_Forward, XMLoadFloat4(&m_At) - XMLoadFloat4(&m_Eye));
+	XMStoreFloat3(&m_Forward, XMLoadFloat3(&m_At) - XMLoadFloat3(&m_Eye));
 
-	XMStoreFloat4x4(&m_View, XMMatrixLookToLH(XMLoadFloat4(&m_Eye), XMLoadFloat4(&m_Forward), XMLoadFloat4(&m_Up)));
+	XMStoreFloat4x4(&m_View, XMMatrixLookToLH(XMLoadFloat3(&m_Eye), XMLoadFloat3(&m_Forward), XMLoadFloat3(&m_Up)));
 
 	Reshape(fNearDepth, fFarDepth);
 }
 
 Camera::Camera()
 {
-	XMStoreFloat4x4(&m_View, XMMatrixLookToLH(XMLoadFloat4(&m_Eye), XMLoadFloat4(&m_Forward), XMLoadFloat4(&m_Up)));
+	XMStoreFloat4x4(&m_View, XMMatrixLookToLH(XMLoadFloat3(&m_Eye), XMLoadFloat3(&m_Forward), XMLoadFloat3(&m_Up)));
 }
 
 Camera::~Camera()
@@ -30,54 +30,54 @@ Camera::~Camera()
 
 void Camera::Update(const Timer& kTimer)
 {
-	XMStoreFloat4x4(&m_View, XMMatrixLookToLH(XMLoadFloat4(&m_Eye), XMLoadFloat4(&m_Forward), XMLoadFloat4(&m_Up)));
+	XMStoreFloat4x4(&m_View, XMMatrixLookToLH(XMLoadFloat3(&m_Eye), XMLoadFloat3(&m_Forward), XMLoadFloat3(&m_Up)));
 }
 
-void Camera::SetPosition(DirectX::XMFLOAT4 position)
+void Camera::SetPosition(DirectX::XMFLOAT3 position)
 {
 	m_Eye = position;
 }
 
-DirectX::XMFLOAT4 Camera::GetPosition() const
+DirectX::XMFLOAT3 Camera::GetPosition() const
 {
 	return m_Eye;
 }
 
-void Camera::Translate(DirectX::XMFLOAT4 vec)
+void Camera::Translate(DirectX::XMFLOAT3 vec)
 {
-	XMStoreFloat4(&m_Eye, XMLoadFloat4(&m_Eye) + XMLoadFloat4(&vec));
+	XMStoreFloat3(&m_Eye, XMLoadFloat3(&m_Eye) + XMLoadFloat3(&vec));
 }
 
-void Camera::SetLookAt(DirectX::XMFLOAT4 at)
+void Camera::SetLookAt(DirectX::XMFLOAT3 at)
 {
 	m_At = at;
 }
 
-DirectX::XMFLOAT4 Camera::GetLookAt() const
+DirectX::XMFLOAT3 Camera::GetLookAt() const
 {
 	return m_At;
 }
 
-void Camera::SetUpVector(DirectX::XMFLOAT4 up)
+void Camera::SetUpVector(DirectX::XMFLOAT3 up)
 {
 	m_Up = up;
 }
 
-DirectX::XMFLOAT4 Camera::GetUpVector() const
+DirectX::XMFLOAT3 Camera::GetUpVector() const
 {
 	return m_Up;
 }
 
-DirectX::XMFLOAT4 Camera::GetRightVector() const
+DirectX::XMFLOAT3 Camera::GetRightVector() const
 {
-	XMFLOAT4 right;
+	XMFLOAT3 right;
 
-	XMStoreFloat4(&right, XMVector3Cross(XMLoadFloat4(&m_Forward), XMLoadFloat4(&m_Up)));
+	XMStoreFloat3(&right, XMVector3Cross(XMLoadFloat3(&m_Forward), XMLoadFloat3(&m_Up)));
 
 	return right;
 }
 
-DirectX::XMFLOAT4 Camera::GetForwardVector() const
+DirectX::XMFLOAT3 Camera::GetForwardVector() const
 {
 	return m_Forward;
 }
