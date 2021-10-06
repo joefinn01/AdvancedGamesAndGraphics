@@ -35,6 +35,12 @@
     <Filter Include="Engine\Cameras">
       <UniqueIdentifier>{cd8858e1-a4cd-4052-87c6-02b2553d2532}</UniqueIdentifier>
     </Filter>
+    <Filter Include="Engine\include">
+      <UniqueIdentifier>{8dc50359-3a73-4587-9e5f-536cdb5df6e2}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Engine\include\imgui">
+      <UniqueIdentifier>{94821517-45f4-456c-bdcf-5b0cc132741a}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="Engine\Apps\App.cpp">
@@ -73,6 +79,27 @@
     </ClCompile>
     <ClCompile Include="Engine\Apps\BasicApp.cpp">
       <Filter>Engine\Apps</Filter>
+    </ClCompile>
+    <ClCompile Include="Engine\include\imgui\imgui.cpp">
+      <Filter>Engine\include\imgui</Filter>
+    </ClCompile>
+    <ClCompile Include="Engine\include\imgui\imgui_demo.cpp">
+      <Filter>Engine\include\imgui</Filter>
+    </ClCompile>
+    <ClCompile Include="Engine\include\imgui\imgui_draw.cpp">
+      <Filter>Engine\include\imgui</Filter>
+    </ClCompile>
+    <ClCompile Include="Engine\include\imgui\imgui_impl_dx12.cpp">
+      <Filter>Engine\include\imgui</Filter>
+    </ClCompile>
+    <ClCompile Include="Engine\include\imgui\imgui_impl_win32.cpp">
+      <Filter>Engine\include\imgui</Filter>
+    </ClCompile>
+    <ClCompile Include="Engine\include\imgui\imgui_tables.cpp">
+      <Filter>Engine\include\imgui</Filter>
+    </ClCompile>
+    <ClCompile Include="Engine\include\imgui\imgui_widgets.cpp">
+      <Filter>Engine\include\imgui</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
@@ -131,6 +158,30 @@
     </ClInclude>
     <ClInclude Include="Engine\Apps\BasicApp.h">
       <Filter>Engine\Apps</Filter>
+    </ClInclude>
+    <ClInclude Include="Engine\include\imgui\imconfig.h">
+      <Filter>Engine\include\imgui</Filter>
+    </ClInclude>
+    <ClInclude Include="Engine\include\imgui\imgui.h">
+      <Filter>Engine\include\imgui</Filter>
+    </ClInclude>
+    <ClInclude Include="Engine\include\imgui\imgui_impl_dx12.h">
+      <Filter>Engine\include\imgui</Filter>
+    </ClInclude>
+    <ClInclude Include="Engine\include\imgui\imgui_impl_win32.h">
+      <Filter>Engine\include\imgui</Filter>
+    </ClInclude>
+    <ClInclude Include="Engine\include\imgui\imgui_internal.h">
+      <Filter>Engine\include\imgui</Filter>
+    </ClInclude>
+    <ClInclude Include="Engine\include\imgui\imstb_rectpack.h">
+      <Filter>Engine\include\imgui</Filter>
+    </ClInclude>
+    <ClInclude Include="Engine\include\imgui\imstb_textedit.h">
+      <Filter>Engine\include\imgui</Filter>
+    </ClInclude>
+    <ClInclude Include="Engine\include\imgui\imstb_truetype.h">
+      <Filter>Engine\include\imgui</Filter>
     </ClInclude>
   </ItemGroup>
 </Project>
