@@ -27,6 +27,8 @@ protected:
 	void ResetCommmandList();
 	void ExecuteCommandList();
 
+	void InitIMGUI();
+	void CreateIMGUIWindow();
 
 	Microsoft::WRL::ComPtr<ID3D12RootSignature> m_pRootSignature;
 
@@ -35,6 +37,9 @@ protected:
 	UploadBuffer<PerFrameCB>* m_pPerFrameCB;
 
 	Microsoft::WRL::ComPtr<ID3D12DescriptorHeap> m_pConstDescHeap = nullptr;
+	Microsoft::WRL::ComPtr<ID3D12DescriptorHeap> m_pIMGUIDescHeap = nullptr;
+
+	bool m_bShowDemoWindow = true;
 
 private:
 

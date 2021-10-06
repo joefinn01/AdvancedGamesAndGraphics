@@ -1,8 +1,13 @@
 #include "BasicApp.h"
 #include "Engine/Managers/ObjectManager.h"
+#include "Engine/Managers/WindowManager.h"
 #include "Engine/Helpers/DirectXHelper.h"
 #include "Engine/GameObjects/VisibleGameObject.h"
 #include "Engine/Cameras/DebugCamera.h"
+
+#include "imgui\imgui.h"
+#include "imgui\imgui_impl_win32.h"
+#include "imgui\imgui_impl_dx12.h"
 
 #include <DirectX/d3dx12.h>
 #include <d3dcompiler.h>
@@ -44,6 +49,17 @@ bool BasicApp::Init()
 
 		return false;
 	}
+	
+	hr = m_pDevice->CreateDescriptorHeap(&heapDescs, IID_PPV_ARGS(&m_pIMGUIDescHeap));
+
+	if (FAILED(hr))
+	{
+		LOG_ERROR(tag, L"Failed to create the imgui buffer heap!");
+
+		return false;
+	}
+
+	InitIMGUI();
 
 	//Create view to the constant buffer
 	m_pPerFrameCB = new UploadBuffer<PerFrameCB>(m_pDevice.Get(), 1, true);
@@ -185,6 +201,8 @@ void BasicApp::Draw()
 		return;
 	}
 
+	CreateIMGUIWindow();
+
 	m_pGraphicsCommandList->SetGraphicsRootSignature(m_pRootSignature.Get());
 	m_pGraphicsCommandList->RSSetViewports(1, &m_Viewport);
 	m_pGraphicsCommandList->RSSetScissorRects(1, &m_ScissorRect);
@@ -209,7 +227,12 @@ void BasicApp::Draw()
 
 	App::Draw();
 
-	// Indicate that the back buffer will now be used to present.
+	ID3D12DescriptorHeap* pIMGUIDescriptorHeaps[] = { m_pIMGUIDescHeap.Get() };
+	m_pGraphicsCommandList->SetDescriptorHeaps(_countof(pIMGUIDescriptorHeaps), pIMGUIDescriptorHeaps);
+
+	ImGui::Render();
+	ImGui_ImplDX12_RenderDrawData(ImGui::GetDrawData(), m_pGraphicsCommandList.Get());
+
 	m_pGraphicsCommandList->ResourceBarrier(1, &CD3DX12_RESOURCE_BARRIER::Transition(GetCurrentBackBuffer(), D3D12_RESOURCE_STATE_RENDER_TARGET, D3D12_RESOURCE_STATE_PRESENT));
 
 	hr = m_pGraphicsCommandList->Close();
@@ -269,4 +292,42 @@ void BasicApp::ExecuteCommandList()
 	m_pCommandQueue->ExecuteCommandLists(_countof(commandLists), commandLists);
 
 	FlushCommandQueue();
+}
+
+void BasicApp::InitIMGUI()
+{
+	IMGUI_CHECKVERSION();
+	ImGui::CreateContext();
+
+	ImGuiIO& io = ImGui::GetIO();
+
+	ImGui::StyleColorsDark();
+
+	ImGui_ImplWin32_Init(WindowManager::GetInstance()->GetHWND());
+	ImGui_ImplDX12_Init(m_pDevice.Get(),
+		s_kuiSwapChainBufferCount,
+		m_BackBufferFormat, m_pIMGUIDescHeap.Get(),
+		m_pIMGUIDescHeap->GetCPUDescriptorHandleForHeapStart(),
+		m_pIMGUIDescHeap->GetGPUDescriptorHandleForHeapStart());
+}
+
+void BasicApp::CreateIMGUIWindow()
+{
+	// Start the Dear ImGui frame
+	ImGui_ImplDX12_NewFrame();
+	ImGui_ImplWin32_NewFrame();
+	ImGui::NewFrame();
+
+	ImGui::Begin("Hello, world!");                          // Create a window called "Hello, world!" and append into it.
+
+	ImGui::Text("This is some useful text.");               // Display some text (you can use a format strings too)
+	ImGui::Checkbox("Demo Window", &m_bShowDemoWindow);      // Edit bools storing our window open/close state
+
+	ImGui::Text("Application average %.3f ms/frame (%.1f FPS)", 1000.0f / ImGui::GetIO().Framerate, ImGui::GetIO().Framerate);
+	ImGui::End();
+
+	if (m_bShowDemoWindow == true)
+	{
+		ImGui::ShowDemoWindow(&m_bShowDemoWindow);
+	}
 }
