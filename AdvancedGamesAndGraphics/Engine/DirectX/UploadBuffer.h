@@ -28,7 +28,7 @@ public:
 
 		if (FAILED(hr))
 		{
-			LOG_ERROR(tag, "Failed to create committed resource in upload buffer!");
+			LOG_ERROR(tag, L"Failed to create committed resource in upload buffer!");
 
 			return;
 		}
@@ -37,7 +37,7 @@ public:
 
 		if (FAILED(hr))
 		{
-			LOG_ERROR(tag, "Failed to map the upload buffer!");
+			LOG_ERROR(tag, L"Failed to map the upload buffer!");
 
 			return;
 		}
@@ -112,5 +112,5 @@ private:
 
 	BYTE* m_pMappedData = nullptr;
 
-	Tag tag = "UploadBuffer";
+	Tag tag = L"UploadBuffer";
 };

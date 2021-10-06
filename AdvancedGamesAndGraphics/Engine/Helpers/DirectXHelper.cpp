@@ -4,7 +4,7 @@
 #include <DirectX\d3dx12.h>
 #include <d3dcompiler.h>
 
-Tag tag = "DirectXHelper";
+Tag tag = L"DirectXHelper";
 
 Microsoft::WRL::ComPtr<ID3D12Resource> DirectXHelper::CreateDefaultBuffer(ID3D12Device4* pDevice, ID3D12GraphicsCommandList* pGraphicsCommandList, const void* pData, UINT64 uiByteSize, Microsoft::WRL::ComPtr<ID3D12Resource>& pUploadBuffer)
 {
@@ -19,7 +19,7 @@ Microsoft::WRL::ComPtr<ID3D12Resource> DirectXHelper::CreateDefaultBuffer(ID3D12
 
 	if (FAILED(hr))
 	{
-		LOG_ERROR(tag, "Failed to create the default buffer!");
+		LOG_ERROR(tag, L"Failed to create the default buffer!");
 
 		return nullptr;
 	}
@@ -88,7 +88,7 @@ Microsoft::WRL::ComPtr<ID3DBlob> DirectXHelper::CompileShader(const std::wstring
 
 	if (FAILED(hr))
 	{
-		LOG_ERROR(tag, "Failed to compile shader %S!", kwsFilename.c_str());
+		LOG_ERROR(tag, L"Failed to compile shader %S!", kwsFilename.c_str());
 
 		return nullptr;
 	}

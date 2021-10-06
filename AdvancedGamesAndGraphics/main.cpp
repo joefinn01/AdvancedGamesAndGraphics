@@ -13,7 +13,7 @@ struct Vertex
 	XMFLOAT2 texCoord;
 };
 
-Tag tag = "Main";
+Tag tag = L"Main";
 
 App* pApp = nullptr;
 
@@ -27,7 +27,7 @@ int WINAPI WinMain(HINSTANCE hInstance,    //Main windows function
 
 	if (App::GetApp()->Init() == false)
 	{
-		LOG_ERROR(tag, "Failed to Init D3DApp!");
+		LOG_ERROR(tag, L"Failed to Init D3DApp!");
 
 		return 0;
 	}

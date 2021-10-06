@@ -10,7 +10,7 @@
 
 App* App::m_pApp = nullptr;
 
-Tag tag = "App";
+Tag tag = L"App";
 
 LRESULT CALLBACK MainWndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam)
 {
@@ -21,7 +21,7 @@ App::App(HINSTANCE hInstance)
 {
 	if (m_pApp != nullptr)
 	{
-		LOG_ERROR(tag, "Tried to create new app when one already exists!");
+		LOG_ERROR(tag, L"Tried to create new app when one already exists!");
 
 		return;
 	}
@@ -46,7 +46,7 @@ bool App::Init()
 
 	if (FAILED(hr))
 	{
-		LOG_ERROR(tag, "Failed to create Debug controller!");
+		LOG_ERROR(tag, L"Failed to create Debug controller!");
 
 		uiDXGIFactoryFlags |= DXGI_CREATE_FACTORY_DEBUG;
 	}
@@ -59,7 +59,7 @@ bool App::Init()
 
 	if (FAILED(hr))
 	{
-		LOG_ERROR(tag, "Failed to create DXGIFactory!");
+		LOG_ERROR(tag, L"Failed to create DXGIFactory!");
 
 		return false;
 	}
@@ -97,7 +97,7 @@ void App::OnResize()
 
 	if (FAILED(hr))
 	{
-		LOG_ERROR(tag, "Failed to reset the graphics command list!");
+		LOG_ERROR(tag, L"Failed to reset the graphics command list!");
 
 		return;
 	}
@@ -122,7 +122,7 @@ void App::OnResize()
 
 		if (FAILED(hr))
 		{
-			LOG_ERROR(tag, "Failed to get swap chain buffer at index %u!", i);
+			LOG_ERROR(tag, L"Failed to get swap chain buffer at index %u!", i);
 
 			return;
 		}
@@ -158,7 +158,7 @@ void App::OnResize()
 
 	if (FAILED(hr))
 	{
-		LOG_ERROR(tag, "Failed to Create a committed resource when resizing screen!");
+		LOG_ERROR(tag, L"Failed to Create a committed resource when resizing screen!");
 
 		return;
 	}
@@ -179,7 +179,7 @@ void App::OnResize()
 
 	if (FAILED(hr))
 	{
-		LOG_ERROR(tag, "Failed to close the command list!");
+		LOG_ERROR(tag, L"Failed to close the command list!");
 
 		return;
 	}
@@ -482,7 +482,7 @@ bool App::InitDirectX3D()
 
 		if (FAILED(hr))
 		{
-			LOG_ERROR(tag, "Failed to enum warp adapters!");
+			LOG_ERROR(tag, L"Failed to enum warp adapters!");
 
 			return false;
 		}
@@ -491,7 +491,7 @@ bool App::InitDirectX3D()
 
 		if (FAILED(hr))
 		{
-			LOG_ERROR(tag, "Failed to create device using hardware and WARP adaptor!");
+			LOG_ERROR(tag, L"Failed to create device using hardware and WARP adaptor!");
 
 			return false;
 		}
@@ -502,7 +502,7 @@ bool App::InitDirectX3D()
 
 	if (FAILED(hr))
 	{
-		LOG_ERROR(tag, "Failed to create fence!");
+		LOG_ERROR(tag, L"Failed to create fence!");
 
 		return false;
 	}
@@ -523,7 +523,7 @@ bool App::InitDirectX3D()
 
 	if (FAILED(hr))
 	{
-		LOG_ERROR(tag, "Failed to get multisample quality level!");
+		LOG_ERROR(tag, L"Failed to get multisample quality level!");
 
 		return false;
 	}
@@ -541,7 +541,7 @@ bool App::InitDirectX3D()
 
 	if (FAILED(hr))
 	{
-		LOG_ERROR(tag, "Failed to create the command queue!");
+		LOG_ERROR(tag, L"Failed to create the command queue!");
 
 		return false;
 	}
@@ -550,7 +550,7 @@ bool App::InitDirectX3D()
 
 	if (FAILED(hr))
 	{
-		LOG_ERROR(tag, "Failed to create the command allocator!");
+		LOG_ERROR(tag, L"Failed to create the command allocator!");
 
 		return false;
 	}
@@ -559,7 +559,7 @@ bool App::InitDirectX3D()
 
 	if (FAILED(hr))
 	{
-		LOG_ERROR(tag, "Failed to create the graphics command list!");
+		LOG_ERROR(tag, L"Failed to create the graphics command list!");
 
 		return false;
 	}
@@ -583,7 +583,7 @@ bool App::InitDirectX3D()
 
 	if (FAILED(hr))
 	{
-		LOG_ERROR(tag, "Failed to create the swap chain!");
+		LOG_ERROR(tag, L"Failed to create the swap chain!");
 
 		return false;
 	}
@@ -599,7 +599,7 @@ bool App::InitDirectX3D()
 
 	if (FAILED(hr))
 	{
-		LOG_ERROR(tag, "Failed to create the RTV heap!");
+		LOG_ERROR(tag, L"Failed to create the RTV heap!");
 
 		return false;
 	}
@@ -615,7 +615,7 @@ bool App::InitDirectX3D()
 
 	if (FAILED(hr))
 	{
-		LOG_ERROR(tag, "Failed to create the DSV heap!");
+		LOG_ERROR(tag, L"Failed to create the DSV heap!");
 
 		return false;
 	}
@@ -633,7 +633,7 @@ void App::FlushCommandQueue()
 
 	if (FAILED(hr))
 	{
-		LOG_ERROR(tag, "Failed to create a new fence point!");
+		LOG_ERROR(tag, L"Failed to create a new fence point!");
 
 		return;
 	}
@@ -645,7 +645,7 @@ void App::FlushCommandQueue()
 
 		if (eventHandle == 0)
 		{
-			LOG_ERROR(tag, "Failed to create event when fence point it hit!");
+			LOG_ERROR(tag, L"Failed to create event when fence point it hit!");
 
 			return;
 		}
@@ -655,7 +655,7 @@ void App::FlushCommandQueue()
 
 		if (FAILED(hr))
 		{
-			LOG_ERROR(tag, "Failed to set event for when fence point it hit!");
+			LOG_ERROR(tag, L"Failed to set event for when fence point it hit!");
 
 			return;
 		}

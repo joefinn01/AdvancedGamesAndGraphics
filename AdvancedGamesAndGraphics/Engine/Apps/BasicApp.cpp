@@ -10,7 +10,7 @@
 using namespace DirectX;
 using namespace Microsoft::WRL;
 
-Tag tag = "BasicApp";
+Tag tag = L"BasicApp";
 
 BasicApp::BasicApp(HINSTANCE hInstance) : App(hInstance)
 {
@@ -26,7 +26,7 @@ bool BasicApp::Init()
 	ResetCommmandList();
 
 	//Create camera
-	Camera* pCamera = new DebugCamera(XMFLOAT4(0, 0, 0, 0), XMFLOAT4(0, 0, 1, 0), XMFLOAT4(0, 1, 0, 0), 0.1f, 1000.0f, "BasicCamera");
+	Camera* pCamera = new DebugCamera(XMFLOAT3(0, 0, 0), XMFLOAT3(0, 0, 1), XMFLOAT3(0, 1, 0), 0.1f, 1000.0f, "BasicCamera");
 	ObjectManager::GetInstance()->SetActiveCamera(pCamera);
 
 	//Create const buffer heap
@@ -40,7 +40,7 @@ bool BasicApp::Init()
 
 	if (FAILED(hr))
 	{
-		LOG_ERROR(tag, "Failed to create the const buffer heap!");
+		LOG_ERROR(tag, L"Failed to create the const buffer heap!");
 
 		return false;
 	}
@@ -76,7 +76,7 @@ bool BasicApp::Init()
 
 	if (FAILED(hr))
 	{
-		LOG_ERROR(tag, "Failed to create the serialize root signature!");
+		LOG_ERROR(tag, L"Failed to create the serialize root signature!");
 
 		return false;
 	}
@@ -85,7 +85,7 @@ bool BasicApp::Init()
 
 	if (FAILED(hr))
 	{
-		LOG_ERROR(tag, "Failed to create the root signature!");
+		LOG_ERROR(tag, L"Failed to create the root signature!");
 
 		return false;
 	}
@@ -139,7 +139,7 @@ bool BasicApp::Init()
 
 	if (FAILED(hr))
 	{
-		LOG_ERROR(tag, "Failed to create the pipeline state object!");
+		LOG_ERROR(tag, L"Failed to create the pipeline state object!");
 
 		return false;
 	}
@@ -171,7 +171,7 @@ void BasicApp::Draw()
 
 	if (FAILED(hr))
 	{
-		LOG_ERROR(tag, "Failed to reset the the command list allocator!");
+		LOG_ERROR(tag, L"Failed to reset the the command list allocator!");
 
 		return;
 	}
@@ -180,7 +180,7 @@ void BasicApp::Draw()
 
 	if (FAILED(hr))
 	{
-		LOG_ERROR(tag, "Failed to reset the the graphics command list!");
+		LOG_ERROR(tag, L"Failed to reset the the graphics command list!");
 
 		return;
 	}
@@ -216,7 +216,7 @@ void BasicApp::Draw()
 
 	if (FAILED(hr))
 	{
-		LOG_ERROR(tag, "Failed to close the graphics command list!");
+		LOG_ERROR(tag, L"Failed to close the graphics command list!");
 
 		return;
 	}
@@ -230,7 +230,7 @@ void BasicApp::Draw()
 
 	if (FAILED(hr))
 	{
-		LOG_ERROR(tag, "Failed to present the current frame!");
+		LOG_ERROR(tag, L"Failed to present the current frame!");
 
 		return;
 	}
@@ -251,7 +251,7 @@ void BasicApp::ResetCommmandList()
 
 	if (FAILED(hr))
 	{
-		LOG_ERROR(tag, "Failed to reset the graphics command list!");
+		LOG_ERROR(tag, L"Failed to reset the graphics command list!");
 	}
 }
 
@@ -262,7 +262,7 @@ void BasicApp::ExecuteCommandList()
 
 	if (FAILED(hr))
 	{
-		LOG_ERROR(tag, "Failed to close the graphics command list!");
+		LOG_ERROR(tag, L"Failed to close the graphics command list!");
 	}
 
 	ID3D12CommandList* commandLists[] = { m_pGraphicsCommandList.Get() };

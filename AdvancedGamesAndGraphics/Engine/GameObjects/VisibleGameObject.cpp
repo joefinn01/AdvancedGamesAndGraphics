@@ -12,7 +12,7 @@
 
 using namespace DirectX;
 
-Tag tag = "VisibleGameObject";
+Tag tag = L"VisibleGameObject";
 
 bool VisibleGameObject::Init(std::string sName, DirectX::XMFLOAT4 position, DirectX::XMFLOAT4 rotationQuat, DirectX::XMFLOAT4 scale)
 {
@@ -72,7 +72,7 @@ bool VisibleGameObject::Init(std::string sName, DirectX::XMFLOAT4 position, Dire
 
 	if (FAILED(hr))
 	{
-		LOG_ERROR(tag, "Failed to Create blob for the vertex buffer (CPU)!");
+		LOG_ERROR(tag, L"Failed to Create blob for the vertex buffer (CPU)!");
 
 		return false;
 	}
@@ -83,7 +83,7 @@ bool VisibleGameObject::Init(std::string sName, DirectX::XMFLOAT4 position, Dire
 
 	if (FAILED(hr))
 	{
-		LOG_ERROR(tag, "Failed to Create blob for the index buffer (CPU)!");
+		LOG_ERROR(tag, L"Failed to Create blob for the index buffer (CPU)!");
 
 		return false;
 	}

@@ -4,13 +4,13 @@
 #include "Engine/Helpers/DebugHelper.h"
 #include "Engine/Cameras/Camera.h"
 
-Tag tag = "ObjectManager";
+Tag tag = L"ObjectManager";
 
 bool ObjectManager::AddGameObject(GameObject* pGameObject)
 {
 	if (m_GameObjects.count(pGameObject->GetName()) == 1)
 	{
-		LOG_ERROR(tag, "Tried to add an object with the name %s but an object with that name already exists!", pGameObject->GetName());
+		LOG_ERROR(tag, L"Tried to add an object with the name %s but an object with that name already exists!", pGameObject->GetName());
 
 		return false;
 	}
@@ -24,7 +24,7 @@ bool ObjectManager::RemoveGameObject(const std::string& ksName)
 {
 	if (m_GameObjects.count(ksName) == 0)
 	{
-		LOG_ERROR(tag, "Tried to remove an object with the name %s but no object with that name exists!", ksName);
+		LOG_ERROR(tag, L"Tried to remove an object with the name %s but no object with that name exists!", ksName);
 
 		return false;
 	}
@@ -48,7 +48,7 @@ bool ObjectManager::AddCamera(Camera* pCamera)
 {
 	if (m_Cameras.count(pCamera->GetName()) == 1)
 	{
-		LOG_ERROR(tag, "Tried to add an object with the name %s but an object with that name already exists!", pCamera->GetName());
+		LOG_ERROR(tag, L"Tried to add an object with the name %s but an object with that name already exists!", pCamera->GetName());
 
 		return false;
 	}
@@ -62,7 +62,7 @@ bool ObjectManager::RemoveCamera(const std::string& ksName)
 {
 	if (m_Cameras.count(ksName) == 0)
 	{
-		LOG_ERROR(tag, "Tried to remove an object with the name %s but no object with that name exists!", ksName);
+		LOG_ERROR(tag, L"Tried to remove an object with the name %s but no object with that name exists!", ksName);
 
 		return false;
 	}

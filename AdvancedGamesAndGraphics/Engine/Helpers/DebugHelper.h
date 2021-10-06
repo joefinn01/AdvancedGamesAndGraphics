@@ -24,12 +24,12 @@ enum class LogLevel
 
 #endif
 
-typedef const std::string Tag;
+typedef const std::wstring Tag;
 
 class DebugHelper
 {
 public:
-	static void Log(LogLevel logLevel, std::string sTag, std::string sText, ...);
+	static void Log(LogLevel logLevel, std::wstring sTag, std::wstring sText, ...);
 protected:
 
 private:
