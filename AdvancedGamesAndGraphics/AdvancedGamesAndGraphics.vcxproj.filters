@@ -101,6 +101,9 @@
     <ClCompile Include="Engine\include\imgui\imgui_widgets.cpp">
       <Filter>Engine\include\imgui</Filter>
     </ClCompile>
+    <ClCompile Include="Engine\Managers\ShaderManager.cpp">
+      <Filter>Engine\Managers</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <FxCompile Include="Shaders\PixelShader.hlsl">
@@ -182,6 +185,15 @@
     </ClInclude>
     <ClInclude Include="Engine\include\imgui\imstb_truetype.h">
       <Filter>Engine\include\imgui</Filter>
+    </ClInclude>
+    <ClInclude Include="Engine\DirectX\ConstantBuffers.h">
+      <Filter>Engine\DirectX</Filter>
+    </ClInclude>
+    <ClInclude Include="Engine\Managers\ShaderManager.h">
+      <Filter>Engine\Managers</Filter>
+    </ClInclude>
+    <ClInclude Include="Engine\DirectX\Shader.h">
+      <Filter>Engine\DirectX</Filter>
     </ClInclude>
   </ItemGroup>
 </Project>

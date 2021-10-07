@@ -165,6 +165,7 @@
     <ClCompile Include="Engine\include\imgui\imgui_tables.cpp" />
     <ClCompile Include="Engine\include\imgui\imgui_widgets.cpp" />
     <ClCompile Include="Engine\Managers\ObjectManager.cpp" />
+    <ClCompile Include="Engine\Managers\ShaderManager.cpp" />
     <ClCompile Include="Engine\Managers\WindowManager.cpp" />
     <ClCompile Include="Main.cpp" />
   </ItemGroup>
@@ -188,7 +189,9 @@
     <ClInclude Include="Engine\Cameras\Camera.h" />
     <ClInclude Include="Engine\Cameras\DebugCamera.h" />
     <ClInclude Include="Engine\Commons\Timer.h" />
+    <ClInclude Include="Engine\DirectX\ConstantBuffers.h" />
     <ClInclude Include="Engine\DirectX\MeshGeometry.h" />
+    <ClInclude Include="Engine\DirectX\Shader.h" />
     <ClInclude Include="Engine\DirectX\UploadBuffer.h" />
     <ClInclude Include="Engine\DirectX\Vertices.h" />
     <ClInclude Include="Engine\GameObjects\GameObject.h" />
@@ -205,6 +208,7 @@
     <ClInclude Include="Engine\include\imgui\imstb_textedit.h" />
     <ClInclude Include="Engine\include\imgui\imstb_truetype.h" />
     <ClInclude Include="Engine\Managers\ObjectManager.h" />
+    <ClInclude Include="Engine\Managers\ShaderManager.h" />
     <ClInclude Include="Engine\Managers\WindowManager.h" />
     <ClInclude Include="Engine\Structure\Singleton.h" />
   </ItemGroup>
