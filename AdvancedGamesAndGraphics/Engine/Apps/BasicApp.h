@@ -1,13 +1,9 @@
 #pragma once
 #include "Engine\Apps\App.h"
 #include "Engine/DirectX/UploadBuffer.h"
+#include "Engine/DirectX/ConstantBuffers.h"
 
 #include <DirectXMath.h>
-
-struct PerFrameCB
-{
-	DirectX::XMMATRIX ViewProjection;
-};
 
 class Timer;
 

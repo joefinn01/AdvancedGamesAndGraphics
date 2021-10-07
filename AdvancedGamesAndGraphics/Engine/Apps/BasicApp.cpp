@@ -4,6 +4,7 @@
 #include "Engine/Helpers/DirectXHelper.h"
 #include "Engine/GameObjects/VisibleGameObject.h"
 #include "Engine/Cameras/DebugCamera.h"
+#include "Engine/Managers/ShaderManager.h"
 
 #include "imgui\imgui.h"
 #include "imgui\imgui_impl_win32.h"
@@ -117,8 +118,10 @@ bool BasicApp::Init()
 	UINT compileFlags = 0;
 #endif
 
-	pVertexShader = DirectXHelper::CompileShader(L"Shaders/VertexShader.hlsl", "VS", nullptr, "main", "vs_5_0");
-	pPixelShader = DirectXHelper::CompileShader(L"Shaders/PixelShader.hlsl", "PS", nullptr, "main", "ps_5_0");
+	UploadBuffer<VisibleGameObjectCB>* visibleCBUploadBuffer = new UploadBuffer<VisibleGameObjectCB>(m_pDevice.Get(), 1, true);
+
+	pVertexShader = ShaderManager::GetInstance()->CompileShader<VisibleGameObjectCB>(L"Shaders/VertexShader.hlsl", "VS", nullptr, "main", "vs_5_0", visibleCBUploadBuffer);
+	pPixelShader = ShaderManager::GetInstance()->CompileShader<VisibleGameObjectCB>(L"Shaders/PixelShader.hlsl", "PS", nullptr, "main", "ps_5_0", visibleCBUploadBuffer);
 
 	// Define the vertex input layout.
 	D3D12_INPUT_ELEMENT_DESC inputElementDescs[] =
@@ -127,20 +130,13 @@ bool BasicApp::Init()
 		{ "COLOR", 0, DXGI_FORMAT_R32G32B32A32_FLOAT, 0, 16, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0 }
 	};
 
-	//TEMPORARILY DISABLING CULLING AS OTHERWISE CAN'T SEE CUBE
-	D3D12_RASTERIZER_DESC rasterDesc;
-	ZeroMemory(&rasterDesc, sizeof(D3D12_RASTERIZER_DESC));
-	rasterDesc.FillMode = D3D12_FILL_MODE_SOLID;
-	rasterDesc.CullMode = D3D12_CULL_MODE_NONE;
-
 	// Create the pipeline state object
 	D3D12_GRAPHICS_PIPELINE_STATE_DESC psoDesc = {};
 	psoDesc.InputLayout = { inputElementDescs, _countof(inputElementDescs) };
 	psoDesc.pRootSignature = m_pRootSignature.Get();
-	psoDesc.VS = CD3DX12_SHADER_BYTECODE(pVertexShader.Get());
-	psoDesc.PS = CD3DX12_SHADER_BYTECODE(pPixelShader.Get());
-	//psoDesc.RasterizerState = CD3DX12_RASTERIZER_DESC(D3D12_DEFAULT);
-	psoDesc.RasterizerState = rasterDesc;
+	psoDesc.VS = CD3DX12_SHADER_BYTECODE(ShaderManager::GetInstance()->GetShader<VisibleGameObjectCB>("VS")->GetShaderBlob().Get());
+	psoDesc.PS = CD3DX12_SHADER_BYTECODE(ShaderManager::GetInstance()->GetShader<VisibleGameObjectCB>("PS")->GetShaderBlob().Get());
+	psoDesc.RasterizerState = CD3DX12_RASTERIZER_DESC(D3D12_DEFAULT);
 	psoDesc.BlendState = CD3DX12_BLEND_DESC(D3D12_DEFAULT);
 	psoDesc.DepthStencilState = CD3DX12_DEPTH_STENCIL_DESC(D3D12_DEFAULT);
 	psoDesc.SampleMask = UINT_MAX;
