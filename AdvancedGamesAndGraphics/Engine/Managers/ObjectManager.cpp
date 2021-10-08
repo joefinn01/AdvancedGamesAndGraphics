@@ -3,6 +3,7 @@
 #include "Engine/GameObjects/VisibleGameObject.h"
 #include "Engine/Helpers/DebugHelper.h"
 #include "Engine/Cameras/Camera.h"
+#include "Engine/Apps/App.h"
 
 Tag tag = L"ObjectManager";
 
@@ -42,6 +43,16 @@ bool ObjectManager::RemoveGameObject(GameObject* pGameObject)
 GameObject* ObjectManager::GetGameObject(const std::string& ksName)
 {
 	return m_GameObjects.at(ksName);
+}
+
+std::unordered_map<std::string, GameObject*>* ObjectManager::GetGameObjects()
+{
+	return &m_GameObjects;
+}
+
+int ObjectManager::GetNumGameObjects()
+{
+	return (int)m_GameObjects.size();
 }
 
 bool ObjectManager::AddCamera(Camera* pCamera)
@@ -90,35 +101,4 @@ Camera* ObjectManager::GetCamera(const std::string& ksName) const
 void ObjectManager::SetActiveCamera(Camera* pCamera)
 {
 	m_pActiveCamera = pCamera;
-}
-
-void ObjectManager::Update(const Timer& kTimer)
-{
-	for (std::unordered_map<std::string, GameObject*>::iterator it = m_GameObjects.begin(); it != m_GameObjects.end(); ++it)
-	{
-		it->second->Update(kTimer);
-	}
-
-	m_pActiveCamera->Update(kTimer);
-}
-
-void ObjectManager::Draw()
-{
-	for (std::unordered_map<std::string, GameObject*>::iterator it = m_GameObjects.begin(); it != m_GameObjects.end(); ++it)
-	{
-		switch (it->second->GetType())
-		{
-		case GameObjectType::VISIBLE:
-		{
-			VisibleGameObject* pVisibleGameObject = (VisibleGameObject*)it->second;
-
-			pVisibleGameObject->Draw();
-
-			break;
-		}
-
-		default:
-			break;
-		}
-	}
 }

@@ -21,6 +21,10 @@ public:
 
 	GameObject* GetGameObject(const std::string& ksName);
 
+	std::unordered_map<std::string, GameObject*>* GetGameObjects();
+
+	int GetNumGameObjects();
+
 	//Camera methods
 	bool AddCamera(Camera* pCamera);
 
@@ -31,12 +35,6 @@ public:
 	void SetActiveCamera(Camera* pCamera);
 
 	Camera* GetCamera(const std::string& ksName) const;
-
-	void Update(const Timer& kTimer);
-
-	void Draw();
-
-
 
 protected:
 
