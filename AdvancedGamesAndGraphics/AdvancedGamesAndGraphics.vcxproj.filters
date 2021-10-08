@@ -196,4 +196,7 @@
       <Filter>Engine\DirectX</Filter>
     </ClInclude>
   </ItemGroup>
+  <ItemGroup>
+    <None Include="packages.config" />
+  </ItemGroup>
 </Project>
