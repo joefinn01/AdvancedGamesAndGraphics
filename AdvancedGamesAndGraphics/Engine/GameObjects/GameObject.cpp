@@ -11,18 +11,17 @@ GameObject::~GameObject()
 {
 }
 
-bool GameObject::Init(std::string sName, DirectX::XMFLOAT4 position, DirectX::XMFLOAT4 rotationQuat, DirectX::XMFLOAT4 scale)
+bool GameObject::Init(std::string sName, DirectX::XMFLOAT4 position, DirectX::XMFLOAT3 rotation, DirectX::XMFLOAT4 scale)
 {
 	m_sName = sName;
 
 	m_Position = position;
 
-	XMStoreFloat4x4(&m_RotationMatrix, XMMatrixRotationQuaternion(XMLoadFloat4(&rotationQuat)));
+	Rotate(rotation.x, rotation.y, rotation.z);
+
 	m_Scale = scale;
 
 	m_eType = GameObjectType::BASE;
-
-	UpdateAxisVectors();
 
 	ObjectManager::GetInstance()->AddGameObject(this);
 
@@ -50,82 +49,81 @@ GameObjectType GameObject::GetType() const
 
 void GameObject::SetRotation(const DirectX::XMFLOAT4X4& rotationMatrix)
 {
-	m_RotationMatrix = rotationMatrix;
+	XMStoreFloat4(&m_Rotation, XMQuaternionNormalize(XMQuaternionRotationMatrix(XMLoadFloat4x4(&rotationMatrix))));
 
 	UpdateAxisVectors();
 }
 
 void GameObject::SetRotation(const DirectX::XMFLOAT4& rotationQuat)
 {
-	XMStoreFloat4x4(&m_RotationMatrix, XMMatrixRotationQuaternion(XMLoadFloat4(&rotationQuat)));
+	XMStoreFloat4(&m_Rotation, XMQuaternionNormalize(XMLoadFloat4(&rotationQuat)));
 
 	UpdateAxisVectors();
 }
 
 void GameObject::SetRotation(float fRoll, float fPitch, float fYaw)
 {
-	XMStoreFloat4x4(&m_RotationMatrix, XMMatrixRotationRollPitchYaw(fRoll, fYaw, fPitch));
+	XMStoreFloat4(&m_Rotation, XMQuaternionNormalize(XMQuaternionRotationRollPitchYaw((fPitch * XM_PI) / 180.0f, (fYaw * XM_PI) / 180.0f, (fRoll * XM_PI) / 180.0f)));
 
 	UpdateAxisVectors();
 }
 
 void GameObject::Rotate(const DirectX::XMFLOAT4X4& rotationMatrix)
 {
-	//Convert both the rotation matrices to quaternions before multiplying them
-	XMStoreFloat4x4(&m_RotationMatrix, XMMatrixRotationQuaternion(XMQuaternionMultiply(XMQuaternionRotationMatrix(XMLoadFloat4x4(&m_RotationMatrix)), XMQuaternionRotationMatrix(XMLoadFloat4x4(&rotationMatrix)))));
+	XMStoreFloat4(&m_Rotation, XMQuaternionNormalize(XMQuaternionMultiply(XMLoadFloat4(&m_Rotation), XMQuaternionRotationMatrix(XMLoadFloat4x4(&rotationMatrix)))));
 
 	UpdateAxisVectors();
 }
 
 void GameObject::Rotate(const DirectX::XMFLOAT4& rotationQuat)
 {
-	XMStoreFloat4x4(&m_RotationMatrix, XMMatrixRotationQuaternion(XMQuaternionMultiply(XMQuaternionRotationMatrix(XMLoadFloat4x4(&m_RotationMatrix)), XMLoadFloat4(&rotationQuat))));
+	XMStoreFloat4(&m_Rotation, XMQuaternionNormalize(XMQuaternionMultiply(XMLoadFloat4(&m_Rotation), XMLoadFloat4(&rotationQuat))));
 
 	UpdateAxisVectors();
 }
 
-void GameObject::Rotate(float fRoll, float fPitch, float fYaw)
+void GameObject::Rotate(float fX, float fY, float fZ)
 {
-	XMStoreFloat4x4(&m_RotationMatrix, XMMatrixRotationQuaternion(XMQuaternionMultiply(XMQuaternionRotationMatrix(XMLoadFloat4x4(&m_RotationMatrix)), XMQuaternionRotationRollPitchYaw(fPitch, fYaw, fRoll))));
+	XMStoreFloat4(&m_Rotation, XMQuaternionNormalize(XMQuaternionMultiply(XMLoadFloat4(&m_Rotation), XMQuaternionRotationRollPitchYaw((fX * XM_PI) / 180.0f, (fY * XM_PI) / 180.0f, (fZ * XM_PI) / 180.0f))));
 
 	UpdateAxisVectors();
 }
 
 DirectX::XMFLOAT3 GameObject::GetEulerAngles() const
 {
+	XMFLOAT4X4 rotationMatrix;
+	XMStoreFloat4x4(&rotationMatrix, XMMatrixRotationQuaternion(XMLoadFloat4(&m_Rotation)));
+
 	float Roll;
 	float Pitch;
 	float Yaw;
 
-	if (m_RotationMatrix._11 == 1.0f)
+	if (rotationMatrix._11 == 1.0f)
 	{
-		Yaw = atan2f(m_RotationMatrix._13, m_RotationMatrix._34);
+		Yaw = atan2f(rotationMatrix._13, rotationMatrix._34);
 		Pitch = 0.0f;
 		Roll = 0.0f;
 
 	}
-	else if (m_RotationMatrix._11 == -1.0f)
+	else if (rotationMatrix._11 == -1.0f)
 	{
-		Yaw = atan2f(m_RotationMatrix._13, m_RotationMatrix._34);
+		Yaw = atan2f(rotationMatrix._13, rotationMatrix._34);
 		Pitch = 0.0f;
 		Roll = 0.0f;
 	}
 	else
 	{
 
-		Yaw = atan2f(-m_RotationMatrix._31, m_RotationMatrix._11);
-		Pitch = asinf(m_RotationMatrix._21);
-		Roll = atan2f(-m_RotationMatrix._23, m_RotationMatrix._22);
+		Yaw = atan2f(-rotationMatrix._31, rotationMatrix._11);
+		Pitch = asinf(rotationMatrix._21);
+		Roll = atan2f(-rotationMatrix._23, rotationMatrix._22);
 	}
 	return XMFLOAT3(Pitch, Yaw, Roll);
 }
 
 DirectX::XMFLOAT4 GameObject::GetOrientation() const
 {
-	XMFLOAT4 quat;
-	XMStoreFloat4(&quat, XMQuaternionRotationMatrix(XMLoadFloat4x4(&m_RotationMatrix)));
-
-	return quat;
+	return m_Rotation;
 }
 
 void GameObject::SetPosition(DirectX::XMFLOAT4 position)
@@ -196,8 +194,17 @@ DirectX::XMFLOAT4 GameObject::GetRightVector() const
 	return m_Right;
 }
 
+DirectX::XMFLOAT4X4 GameObject::GetWorldMatrix() const
+{
+	XMFLOAT4X4 world;
+
+	XMStoreFloat4x4(&world, XMMatrixScaling(m_Scale.x, m_Scale.y, m_Scale.z) * XMMatrixRotationQuaternion(XMLoadFloat4(&m_Rotation)) * XMMatrixTranslation(m_Position.x, m_Position.y, m_Position.z));
+
+	return world;
+}
+
 void GameObject::UpdateAxisVectors()
 {
-	XMStoreFloat4(&m_Up, XMVector3TransformNormal(XMVectorSet(0, 1, 0, 0), XMLoadFloat4x4(&m_RotationMatrix)));
-	XMStoreFloat4(&m_Right, XMVector3TransformNormal(XMVectorSet(1, 0, 0, 0), XMLoadFloat4x4(&m_RotationMatrix)));
+	XMStoreFloat4(&m_Up, XMVector3TransformNormal(XMVectorSet(0, 1, 0, 0), XMMatrixRotationQuaternion(XMLoadFloat4(&m_Rotation))));
+	XMStoreFloat4(&m_Right, XMVector3TransformNormal(XMVectorSet(1, 0, 0, 0), XMMatrixRotationQuaternion(XMLoadFloat4(&m_Rotation))));
 }

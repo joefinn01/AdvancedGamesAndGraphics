@@ -6,7 +6,7 @@ struct MeshGeometry;
 class VisibleGameObject : public GameObject
 {
 public:
-	virtual bool Init(std::string sName, DirectX::XMFLOAT4 position, DirectX::XMFLOAT4 rotationQuat, DirectX::XMFLOAT4 scale) override;
+	virtual bool Init(std::string sName, DirectX::XMFLOAT4 position, DirectX::XMFLOAT3 rotation, DirectX::XMFLOAT4 scale) override;
 
 	virtual void Draw();
 

@@ -14,9 +14,9 @@ using namespace DirectX;
 
 Tag tag = L"VisibleGameObject";
 
-bool VisibleGameObject::Init(std::string sName, DirectX::XMFLOAT4 position, DirectX::XMFLOAT4 rotationQuat, DirectX::XMFLOAT4 scale)
+bool VisibleGameObject::Init(std::string sName, DirectX::XMFLOAT4 position, DirectX::XMFLOAT3 rotation, DirectX::XMFLOAT4 scale)
 {
-	if (GameObject::Init(sName, position, rotationQuat, scale) == false)
+	if (GameObject::Init(sName, position, rotation, scale) == false)
 	{
 		return false;
 	}
