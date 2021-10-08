@@ -3,6 +3,8 @@
 #include "Engine/Structure/Singleton.h"
 #include "Engine/Commons/Timer.h"
 
+//#define PIX 1
+
 #include <wrl.h>
 #include <Windows.h>
 #include <DirectX\d3dx12.h>
@@ -18,10 +20,14 @@ public:
 
 	virtual bool Init();
 
-	virtual void Update(const Timer& kTimer);
+#if PIX
+	static std::wstring GetPixGpuCapturePath();
+#endif
+
+	virtual void Update(const Timer& kTimer) = 0;
 	virtual void OnResize();
 
-	virtual void Draw();
+	virtual void Draw() = 0;
 
 	int Run();
 
@@ -77,6 +83,7 @@ protected:
 
 	Microsoft::WRL::ComPtr<ID3D12DescriptorHeap> m_pRTVHeap = nullptr;
 	Microsoft::WRL::ComPtr<ID3D12DescriptorHeap> m_pDSVHeap = nullptr;
+	Microsoft::WRL::ComPtr<ID3D12DescriptorHeap> m_pConstDescHeap = nullptr;
 
 	Microsoft::WRL::ComPtr<ID3D12Resource> m_pSwapChainBuffer[s_kuiSwapChainBufferCount];
 	Microsoft::WRL::ComPtr<ID3D12Resource> m_pDepthStencilBuffer;
@@ -97,7 +104,7 @@ protected:
 	DXGI_FORMAT m_DepthStencilFormat = DXGI_FORMAT_D24_UNORM_S8_UINT;
 
 #if _DEBUG
-	Microsoft::WRL::ComPtr<ID3D12Debug> m_pDebug = nullptr;
+	Microsoft::WRL::ComPtr<ID3D12Debug1> m_pDebug = nullptr;
 #endif
 
 private:

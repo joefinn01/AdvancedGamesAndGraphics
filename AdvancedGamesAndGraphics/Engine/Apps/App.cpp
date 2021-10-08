@@ -4,6 +4,13 @@
 #include "Engine/Managers/WindowManager.h"
 #include "Engine/Managers/ObjectManager.h"
 
+#if PIX
+#include "pix3.h"
+
+#include <shlobj.h>
+#include <strsafe.h>
+#endif
+
 #include <DirectX/d3dx12.h>
 #include <windowsx.h>
 #include <vector>
@@ -40,7 +47,16 @@ bool App::Init()
 	UINT uiDXGIFactoryFlags = 0;
 	HRESULT hr;
 
-#if _DEBUG
+#if PIX
+	// Check to see if a copy of WinPixGpuCapturer.dll has already been injected into the application.
+	// This may happen if the application is launched through the PIX UI. 
+	if (GetModuleHandle(L"WinPixGpuCapturer.dll") == 0)
+	{
+		LoadLibrary(GetPixGpuCapturePath().c_str());
+	}
+#endif
+
+#if _DEBUG //&& !PIX
 	//Create debug controller
 	hr = D3D12GetDebugInterface(IID_PPV_ARGS(m_pDebug.GetAddressOf()));
 
@@ -84,10 +100,50 @@ bool App::Init()
 	return true;
 }
 
-void App::Update(const Timer& kTimer)
+#if PIX
+std::wstring App::GetPixGpuCapturePath()
 {
-	ObjectManager::GetInstance()->Update(kTimer);
+	LPWSTR programFilesPath = nullptr;
+	SHGetKnownFolderPath(FOLDERID_ProgramFiles, KF_FLAG_DEFAULT, NULL, &programFilesPath);
+
+	std::wstring pixSearchPath = programFilesPath + std::wstring(L"\\Microsoft PIX\\*");
+
+	WIN32_FIND_DATA findData;
+	bool foundPixInstallation = false;
+	wchar_t newestVersionFound[MAX_PATH];
+
+	HANDLE hFind = FindFirstFile(pixSearchPath.c_str(), &findData);
+	if (hFind != INVALID_HANDLE_VALUE)
+	{
+		do
+		{
+			if (((findData.dwFileAttributes & FILE_ATTRIBUTE_DIRECTORY) == FILE_ATTRIBUTE_DIRECTORY) &&
+				(findData.cFileName[0] != '.'))
+			{
+				if (!foundPixInstallation || wcscmp(newestVersionFound, findData.cFileName) <= 0)
+				{
+					foundPixInstallation = true;
+					StringCchCopy(newestVersionFound, _countof(newestVersionFound), findData.cFileName);
+				}
+			}
+		} while (FindNextFile(hFind, &findData) != 0);
+	}
+
+	FindClose(hFind);
+
+	if (!foundPixInstallation)
+	{
+		// TODO: Error, no PIX installation found
+	}
+
+	wchar_t output[MAX_PATH];
+	StringCchCopy(output, pixSearchPath.length(), pixSearchPath.data());
+	StringCchCat(output, MAX_PATH, &newestVersionFound[0]);
+	StringCchCat(output, MAX_PATH, L"\\WinPixGpuCapturer.dll");
+
+	return &output[0];
 }
+#endif
 
 void App::OnResize()
 {
@@ -199,11 +255,6 @@ void App::OnResize()
 	m_Viewport.MaxDepth = 1.0f;
 
 	m_ScissorRect = { 0, 0, static_cast<long>(WindowManager::GetInstance()->GetWindowWidth()), static_cast<long>(WindowManager::GetInstance()->GetWindowHeight()) };
-}
-
-void App::Draw()
-{
-	ObjectManager::GetInstance()->Draw();
 }
 
 int App::Run()
