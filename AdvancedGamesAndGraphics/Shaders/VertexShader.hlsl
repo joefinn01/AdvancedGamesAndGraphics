@@ -15,12 +15,16 @@ cbuffer PerFrameCB : register(b0)
 	float4x4 viewProjection;
 };
 
+cbuffer PerObjectCB : register(b1)
+{
+	float4x4 world;
+}
+
 VS_OUTPUT main(VS_INPUT input)
 {
 	VS_OUTPUT result;
 
-	result.PosH = mul(float4(input.PosL.xyz, 1.0f), viewProjection);
-	//result.PosH = float4(input.PosL.xyz, 1.0f);
+	result.PosH = mul(mul(float4(input.PosL.xyz, 1.0f), world), viewProjection);
 	result.Color = input.Color;
 
 	return result;
