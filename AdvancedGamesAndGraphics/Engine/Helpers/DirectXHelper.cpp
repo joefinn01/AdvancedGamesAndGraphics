@@ -57,3 +57,8 @@ Microsoft::WRL::ComPtr<ID3D12Resource> DirectXHelper::CreateDefaultBuffer(ID3D12
 
 	return pDefaultBuffer;
 }
+
+UINT DirectXHelper::CalculatePaddedConstantBufferSize(UINT uiSize)
+{
+	return (uiSize + 255) & ~255;
+}
