@@ -1,6 +1,7 @@
 #pragma once
 
 #include "Engine/Helpers/DebugHelper.h"
+#include "Engine/Helpers/DirectXHelper.h"
 
 #include <DirectX/d3dx12.h>
 
@@ -16,7 +17,7 @@ public:
 		//Ensuring always a multiple of 255 by adding 255 and masking bits
 		if (bIsConstant)
 		{
-			m_uiByteSize = (m_uiByteSize + 255) & ~255;
+			m_uiByteSize = DirectXHelper::CalculatePaddedConstantBufferSize(m_uiByteSize);
 		}
 
 		HRESULT hr = pDevice->CreateCommittedResource(&CD3DX12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_UPLOAD),
@@ -55,11 +56,11 @@ public:
 		}
 
 		HRESULT hr = pDevice->CreateCommittedResource(&CD3DX12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_UPLOAD),
-			D3D12_HEAP_FLAG_NONE,
-			&CD3DX12_RESOURCE_DESC::Buffer(m_uiByteSize * uiCount),
-			D3D12_RESOURCE_STATE_GENERIC_READ,
-			nullptr,
-			IID_PPV_ARGS(m_pUploadBuffer.GetAddressOf()));
+																			D3D12_HEAP_FLAG_NONE,
+																			&CD3DX12_RESOURCE_DESC::Buffer(m_uiByteSize * uiCount),
+																			D3D12_RESOURCE_STATE_GENERIC_READ,
+																			nullptr,
+																			IID_PPV_ARGS(m_pUploadBuffer.GetAddressOf()));
 
 		if (FAILED(hr))
 		{
