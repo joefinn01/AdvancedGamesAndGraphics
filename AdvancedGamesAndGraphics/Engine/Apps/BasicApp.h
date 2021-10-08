@@ -23,6 +23,8 @@ protected:
 	void ResetCommmandList();
 	void ExecuteCommandList();
 
+	void CreateGameObjects();
+
 	void InitIMGUI();
 	void CreateIMGUIWindow();
 
@@ -32,7 +34,6 @@ protected:
 
 	UploadBuffer<PerFrameCB>* m_pPerFrameCB;
 
-	Microsoft::WRL::ComPtr<ID3D12DescriptorHeap> m_pConstDescHeap = nullptr;
 	Microsoft::WRL::ComPtr<ID3D12DescriptorHeap> m_pIMGUIDescHeap = nullptr;
 
 	bool m_bShowDemoWindow = true;
