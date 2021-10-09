@@ -241,7 +241,7 @@ void BasicApp::CreateGameObjects()
 	ObjectManager::GetInstance()->SetActiveCamera(pCamera);
 
 	VisibleGameObject* pGameObject = new VisibleGameObject();
-	pGameObject->Init("Box1", XMFLOAT4(0, 0, 10, 1), XMFLOAT3(5, 21, 11), XMFLOAT4(0.2, 0.2, 0.2, 1));
+	pGameObject->Init("Box1", XMFLOAT4(0, 0, 10, 1), XMFLOAT3(5, 21, 11), XMFLOAT4(0.2f, 0.2f, 0.2f, 1.0f));
 
 	pGameObject = new VisibleGameObject();
 	pGameObject->Init("Box2", XMFLOAT4(-5, 0, 10, 1), XMFLOAT3(75, 44, 0), XMFLOAT4(3, 2, 1, 1));
@@ -292,7 +292,7 @@ bool BasicApp::CreateRootSignature()
 	CD3DX12_DESCRIPTOR_RANGE range2;
 	range2.Init(D3D12_DESCRIPTOR_RANGE_TYPE_CBV, 1, 1);
 
-	CD3DX12_ROOT_PARAMETER slotRootParameter[2];
+	CD3DX12_ROOT_PARAMETER slotRootParameter[2] = {};
 
 	slotRootParameter[0].InitAsConstantBufferView(0);	//Per frame CB
 	slotRootParameter[1].InitAsConstantBufferView(1);	//Per object CB

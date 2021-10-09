@@ -38,7 +38,7 @@ protected:
 
 	Microsoft::WRL::ComPtr<ID3D12PipelineState> m_pPipelineState = nullptr;
 
-	UploadBuffer<PerFrameCB>* m_pPerFrameCB;
+	UploadBuffer<PerFrameCB>* m_pPerFrameCB = nullptr;
 
 	Microsoft::WRL::ComPtr<ID3D12DescriptorHeap> m_pIMGUIDescHeap = nullptr;
 
