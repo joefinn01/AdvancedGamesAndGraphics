@@ -4,6 +4,8 @@
 #include "Engine/Managers/WindowManager.h"
 #include "Engine/Managers/ObjectManager.h"
 
+#include "imgui\imgui.h"
+
 #if PIX
 #include "pix3.h"
 
@@ -289,6 +291,8 @@ int App::Run()
 	return (int)msg.wParam;
 }
 
+extern IMGUI_IMPL_API LRESULT ImGui_ImplWin32_WndProcHandler(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam);
+
 LRESULT App::MsgProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam)
 {
 	switch (msg)
@@ -405,17 +409,21 @@ LRESULT App::MsgProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam)
 	case WM_LBUTTONDOWN:
 	case WM_MBUTTONDOWN:
 	case WM_RBUTTONDOWN:
-
+		ImGui_ImplWin32_WndProcHandler(hwnd, msg, wParam, lParam);
 		return 0;
 
 	case WM_LBUTTONUP:
 	case WM_MBUTTONUP:
 	case WM_RBUTTONUP:
-
+		ImGui_ImplWin32_WndProcHandler(hwnd, msg, wParam, lParam);
 		return 0;
 
 	case WM_MOUSEMOVE:
+		ImGui_ImplWin32_WndProcHandler(hwnd, msg, wParam, lParam);
+		return 0;
 
+	case WM_MOUSEWHEEL:
+		ImGui_ImplWin32_WndProcHandler(hwnd, msg, wParam, lParam);
 		return 0;
 
 	case WM_KEYUP:
