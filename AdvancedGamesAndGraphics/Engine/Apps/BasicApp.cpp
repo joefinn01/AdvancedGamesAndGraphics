@@ -33,115 +33,36 @@ bool BasicApp::Init()
 		return false;
 	}
 
-	ResetCommmandList();
-
-	CreateGameObjects();
-
-	D3D12_DESCRIPTOR_HEAP_DESC IMGUIheapDescs;
-	IMGUIheapDescs.NumDescriptors = 1;
-	IMGUIheapDescs.Type = D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV;
-	IMGUIheapDescs.Flags = D3D12_DESCRIPTOR_HEAP_FLAG_SHADER_VISIBLE;
-	IMGUIheapDescs.NodeMask = 0;
-
-	HRESULT hr = m_pDevice->CreateDescriptorHeap(&IMGUIheapDescs, IID_PPV_ARGS(&m_pIMGUIDescHeap));
+	// Reset the command list
+	HRESULT hr = m_pGraphicsCommandList->Reset(m_pCommandAllocator.Get(), nullptr);
 
 	if (FAILED(hr))
 	{
-		LOG_ERROR(tag, L"Failed to create the imgui buffer heap!");
+		LOG_ERROR(tag, L"Failed to reset the graphics command list!");
+	}
 
+	CreateGameObjects();
+
+	if (CreateDescriptorHeaps() == false)
+	{
+		return false;
+	}
+
+	if (CreateRootSignature() == false)
+	{
+		return false;
+	}
+
+	CreateShadersAndUploadBuffers();
+
+	CreateInputDescriptions();
+
+	if (CreatePSOs() == false)
+	{
 		return false;
 	}
 
 	InitIMGUI();
-
-	//Create the root signature
-	CD3DX12_DESCRIPTOR_RANGE range1;
-	range1.Init(D3D12_DESCRIPTOR_RANGE_TYPE_CBV, 1, 0);
-
-	CD3DX12_DESCRIPTOR_RANGE range2;
-	range2.Init(D3D12_DESCRIPTOR_RANGE_TYPE_CBV, 1, 1);
-
-	CD3DX12_ROOT_PARAMETER slotRootParameter[2];
-
-	slotRootParameter[0].InitAsConstantBufferView(0);	//Per frame CB
-	slotRootParameter[1].InitAsConstantBufferView(1);	//Per object CB
-
-	CD3DX12_ROOT_SIGNATURE_DESC rootSignatureDesc;
-	rootSignatureDesc.Init((UINT)2, slotRootParameter, 0, nullptr, D3D12_ROOT_SIGNATURE_FLAG_ALLOW_INPUT_ASSEMBLER_INPUT_LAYOUT);
-
-	ComPtr<ID3DBlob> signature;
-	ComPtr<ID3DBlob> error;
-
-	hr = D3D12SerializeRootSignature(&rootSignatureDesc, D3D_ROOT_SIGNATURE_VERSION_1, signature.GetAddressOf(), error.GetAddressOf());
-
-	if (FAILED(hr))
-	{
-		LOG_ERROR(tag, L"Failed to create the serialize root signature!");
-
-		return false;
-	}
-
-	hr = m_pDevice->CreateRootSignature(0, signature->GetBufferPointer(), signature->GetBufferSize(), IID_PPV_ARGS(m_pRootSignature.GetAddressOf()));
-
-	if (FAILED(hr))
-	{
-		LOG_ERROR(tag, L"Failed to create the root signature!");
-
-		return false;
-	}
-
-	//Compile shaders
-	ComPtr<ID3DBlob> pVertexShader;
-	ComPtr<ID3DBlob> pPixelShader;
-
-#if _DEBUG
-	// Enable better shader debugging with the graphics debugging tools.
-	UINT compileFlags = D3DCOMPILE_DEBUG | D3DCOMPILE_SKIP_OPTIMIZATION;
-#else
-	UINT compileFlags = 0;
-#endif
-
-	//Create upload buffers
-	UploadBuffer<VisibleGameObjectCB>* visibleCBUploadBuffer = new UploadBuffer<VisibleGameObjectCB>(m_pDevice.Get(), ObjectManager::GetInstance()->GetNumGameObjects(), true);
-	
-	m_pPerFrameCB = new UploadBuffer<PerFrameCB>(m_pDevice.Get(), 1, true);
-
-	//Compile shaders
-	pVertexShader = ShaderManager::GetInstance()->CompileShader<VisibleGameObjectCB>(L"Shaders/VertexShader.hlsl", "VS", nullptr, "main", "vs_5_0", visibleCBUploadBuffer);
-	pPixelShader = ShaderManager::GetInstance()->CompileShader<VisibleGameObjectCB>(L"Shaders/PixelShader.hlsl", "PS", nullptr, "main", "ps_5_0", visibleCBUploadBuffer);
-
-	// Define the vertex input layout.
-	D3D12_INPUT_ELEMENT_DESC inputElementDescs[] =
-	{
-		{ "POSITION", 0, DXGI_FORMAT_R32G32B32A32_FLOAT, 0, 0, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0 },
-		{ "COLOR", 0, DXGI_FORMAT_R32G32B32A32_FLOAT, 0, 16, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0 }
-	};
-
-	// Create the pipeline state object
-	D3D12_GRAPHICS_PIPELINE_STATE_DESC psoDesc = {};
-	psoDesc.InputLayout = { inputElementDescs, _countof(inputElementDescs) };
-	psoDesc.pRootSignature = m_pRootSignature.Get();
-	psoDesc.VS = CD3DX12_SHADER_BYTECODE(ShaderManager::GetInstance()->GetShader<VisibleGameObjectCB>("VS")->GetShaderBlob().Get());
-	psoDesc.PS = CD3DX12_SHADER_BYTECODE(ShaderManager::GetInstance()->GetShader<VisibleGameObjectCB>("PS")->GetShaderBlob().Get());
-	psoDesc.RasterizerState = CD3DX12_RASTERIZER_DESC(D3D12_DEFAULT);
-	psoDesc.BlendState = CD3DX12_BLEND_DESC(D3D12_DEFAULT);
-	psoDesc.DepthStencilState = CD3DX12_DEPTH_STENCIL_DESC(D3D12_DEFAULT);
-	psoDesc.SampleMask = UINT_MAX;
-	psoDesc.PrimitiveTopologyType = D3D12_PRIMITIVE_TOPOLOGY_TYPE_TRIANGLE;
-	psoDesc.NumRenderTargets = 1;
-	psoDesc.RTVFormats[0] = m_BackBufferFormat;
-	psoDesc.SampleDesc.Count = m_b4xMSAAState ? 4 : 1;
-	psoDesc.SampleDesc.Quality = m_b4xMSAAState ? (m_uiMSAAQuality - 1) : 0;
-	psoDesc.DSVFormat = m_DepthStencilFormat;
-
-	hr = m_pDevice->CreateGraphicsPipelineState(&psoDesc, IID_PPV_ARGS(m_pPipelineState.GetAddressOf()));
-
-	if (FAILED(hr))
-	{
-		LOG_ERROR(tag, L"Failed to create the pipeline state object!");
-
-		return false;
-	}
 
 	ExecuteCommandList();
 
@@ -297,17 +218,6 @@ void BasicApp::Load()
 {
 }
 
-void BasicApp::ResetCommmandList()
-{
-	// Reset the command list
-	HRESULT hr = m_pGraphicsCommandList->Reset(m_pCommandAllocator.Get(), nullptr);
-
-	if (FAILED(hr))
-	{
-		LOG_ERROR(tag, L"Failed to reset the graphics command list!");
-	}
-}
-
 void BasicApp::ExecuteCommandList()
 {
 	//Execute Init command
@@ -338,6 +248,131 @@ void BasicApp::CreateGameObjects()
 
 	pGameObject = new VisibleGameObject();
 	pGameObject->Init("Box3", XMFLOAT4(5, 0, 10, 1), XMFLOAT3(45, 45, 45), XMFLOAT4(1, 1, 1, 1));
+}
+
+void BasicApp::CreateShadersAndUploadBuffers()
+{
+	//Compile shaders
+	ComPtr<ID3DBlob> pVertexShader;
+	ComPtr<ID3DBlob> pPixelShader;
+
+#if _DEBUG
+	// Enable better shader debugging with the graphics debugging tools.
+	UINT compileFlags = D3DCOMPILE_DEBUG | D3DCOMPILE_SKIP_OPTIMIZATION;
+#else
+	UINT compileFlags = 0;
+#endif
+
+	//Create upload buffers
+	UploadBuffer<VisibleGameObjectCB>* visibleCBUploadBuffer = new UploadBuffer<VisibleGameObjectCB>(m_pDevice.Get(), ObjectManager::GetInstance()->GetNumGameObjects(), true);
+
+	m_pPerFrameCB = new UploadBuffer<PerFrameCB>(m_pDevice.Get(), 1, true);
+
+	//Compile shaders
+	pVertexShader = ShaderManager::GetInstance()->CompileShader<VisibleGameObjectCB>(L"Shaders/VertexShader.hlsl", "VS", nullptr, "main", "vs_5_0", visibleCBUploadBuffer);
+	pPixelShader = ShaderManager::GetInstance()->CompileShader<VisibleGameObjectCB>(L"Shaders/PixelShader.hlsl", "PS", nullptr, "main", "ps_5_0", visibleCBUploadBuffer);
+}
+
+void BasicApp::CreateInputDescriptions()
+{
+	// Define the vertex input layout.
+	m_VertexInputLayoutDesc =
+	{
+		{ "POSITION", 0, DXGI_FORMAT_R32G32B32A32_FLOAT, 0, 0, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0 },
+		{ "COLOR", 0, DXGI_FORMAT_R32G32B32A32_FLOAT, 0, 16, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0 }
+	};
+}
+
+bool BasicApp::CreateRootSignature()
+{
+	//Create the root signature
+	CD3DX12_DESCRIPTOR_RANGE range1;
+	range1.Init(D3D12_DESCRIPTOR_RANGE_TYPE_CBV, 1, 0);
+
+	CD3DX12_DESCRIPTOR_RANGE range2;
+	range2.Init(D3D12_DESCRIPTOR_RANGE_TYPE_CBV, 1, 1);
+
+	CD3DX12_ROOT_PARAMETER slotRootParameter[2];
+
+	slotRootParameter[0].InitAsConstantBufferView(0);	//Per frame CB
+	slotRootParameter[1].InitAsConstantBufferView(1);	//Per object CB
+
+	CD3DX12_ROOT_SIGNATURE_DESC rootSignatureDesc;
+	rootSignatureDesc.Init((UINT)2, slotRootParameter, 0, nullptr, D3D12_ROOT_SIGNATURE_FLAG_ALLOW_INPUT_ASSEMBLER_INPUT_LAYOUT);
+
+	ComPtr<ID3DBlob> signature;
+	ComPtr<ID3DBlob> error;
+
+	HRESULT hr = D3D12SerializeRootSignature(&rootSignatureDesc, D3D_ROOT_SIGNATURE_VERSION_1, signature.GetAddressOf(), error.GetAddressOf());
+
+	if (FAILED(hr))
+	{
+		LOG_ERROR(tag, L"Failed to create the serialize root signature!");
+
+		return false;
+	}
+
+	hr = m_pDevice->CreateRootSignature(0, signature->GetBufferPointer(), signature->GetBufferSize(), IID_PPV_ARGS(m_pRootSignature.GetAddressOf()));
+
+	if (FAILED(hr))
+	{
+		LOG_ERROR(tag, L"Failed to create the root signature!");
+
+		return false;
+	}
+
+	return true;
+}
+
+bool BasicApp::CreateDescriptorHeaps()
+{
+	D3D12_DESCRIPTOR_HEAP_DESC IMGUIheapDescs;
+	IMGUIheapDescs.NumDescriptors = 1;
+	IMGUIheapDescs.Type = D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV;
+	IMGUIheapDescs.Flags = D3D12_DESCRIPTOR_HEAP_FLAG_SHADER_VISIBLE;
+	IMGUIheapDescs.NodeMask = 0;
+
+	HRESULT hr = m_pDevice->CreateDescriptorHeap(&IMGUIheapDescs, IID_PPV_ARGS(&m_pIMGUIDescHeap));
+
+	if (FAILED(hr))
+	{
+		LOG_ERROR(tag, L"Failed to create the imgui buffer heap!");
+
+		return false;
+	}
+
+	return true;
+}
+
+bool BasicApp::CreatePSOs()
+{
+	// Create the pipeline state object
+	D3D12_GRAPHICS_PIPELINE_STATE_DESC psoDesc = {};
+	psoDesc.InputLayout = { m_VertexInputLayoutDesc.data(), (UINT)m_VertexInputLayoutDesc.size() };
+	psoDesc.pRootSignature = m_pRootSignature.Get();
+	psoDesc.VS = CD3DX12_SHADER_BYTECODE(ShaderManager::GetInstance()->GetShader<VisibleGameObjectCB>("VS")->GetShaderBlob().Get());
+	psoDesc.PS = CD3DX12_SHADER_BYTECODE(ShaderManager::GetInstance()->GetShader<VisibleGameObjectCB>("PS")->GetShaderBlob().Get());
+	psoDesc.RasterizerState = CD3DX12_RASTERIZER_DESC(D3D12_DEFAULT);
+	psoDesc.BlendState = CD3DX12_BLEND_DESC(D3D12_DEFAULT);
+	psoDesc.DepthStencilState = CD3DX12_DEPTH_STENCIL_DESC(D3D12_DEFAULT);
+	psoDesc.SampleMask = UINT_MAX;
+	psoDesc.PrimitiveTopologyType = D3D12_PRIMITIVE_TOPOLOGY_TYPE_TRIANGLE;
+	psoDesc.NumRenderTargets = 1;
+	psoDesc.RTVFormats[0] = m_BackBufferFormat;
+	psoDesc.SampleDesc.Count = m_b4xMSAAState ? 4 : 1;
+	psoDesc.SampleDesc.Quality = m_b4xMSAAState ? (m_uiMSAAQuality - 1) : 0;
+	psoDesc.DSVFormat = m_DepthStencilFormat;
+
+	HRESULT hr = m_pDevice->CreateGraphicsPipelineState(&psoDesc, IID_PPV_ARGS(m_pPipelineState.GetAddressOf()));
+
+	if (FAILED(hr))
+	{
+		LOG_ERROR(tag, L"Failed to create the pipeline state object!");
+
+		return false;
+	}
+
+	return true;
 }
 
 void BasicApp::InitIMGUI()

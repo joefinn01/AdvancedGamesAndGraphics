@@ -4,6 +4,7 @@
 #include "Engine/DirectX/ConstantBuffers.h"
 
 #include <DirectXMath.h>
+#include <vector>
 
 class Timer;
 
@@ -20,10 +21,15 @@ public:
 	virtual void Load() override;
 
 protected:
-	void ResetCommmandList();
 	void ExecuteCommandList();
 
 	void CreateGameObjects();
+	void CreateShadersAndUploadBuffers();
+	void CreateInputDescriptions();
+
+	bool CreateRootSignature();
+	bool CreateDescriptorHeaps();
+	bool CreatePSOs();
 
 	void InitIMGUI();
 	void CreateIMGUIWindow();
@@ -35,6 +41,8 @@ protected:
 	UploadBuffer<PerFrameCB>* m_pPerFrameCB;
 
 	Microsoft::WRL::ComPtr<ID3D12DescriptorHeap> m_pIMGUIDescHeap = nullptr;
+
+	std::vector<D3D12_INPUT_ELEMENT_DESC> m_VertexInputLayoutDesc;
 
 	bool m_bShowDemoWindow = true;
 
