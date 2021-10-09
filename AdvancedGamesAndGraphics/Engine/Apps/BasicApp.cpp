@@ -37,29 +37,13 @@ bool BasicApp::Init()
 
 	CreateGameObjects();
 
-	//Create const buffer heap
-	D3D12_DESCRIPTOR_HEAP_DESC heapDescs;
-	heapDescs.NumDescriptors = ObjectManager::GetInstance()->GetNumGameObjects() + 1;	//Need to add 1 for the per frame constant buffer
-	heapDescs.Type = D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV;
-	heapDescs.Flags = D3D12_DESCRIPTOR_HEAP_FLAG_SHADER_VISIBLE;
-	heapDescs.NodeMask = 0;
-
-	HRESULT hr = m_pDevice->CreateDescriptorHeap(&heapDescs, IID_PPV_ARGS(&m_pConstDescHeap));
-
-	if (FAILED(hr))
-	{
-		LOG_ERROR(tag, L"Failed to create the const buffer heap!");
-
-		return false;
-	}
-
 	D3D12_DESCRIPTOR_HEAP_DESC IMGUIheapDescs;
 	IMGUIheapDescs.NumDescriptors = 1;
 	IMGUIheapDescs.Type = D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV;
 	IMGUIheapDescs.Flags = D3D12_DESCRIPTOR_HEAP_FLAG_SHADER_VISIBLE;
 	IMGUIheapDescs.NodeMask = 0;
 
-	hr = m_pDevice->CreateDescriptorHeap(&IMGUIheapDescs, IID_PPV_ARGS(&m_pIMGUIDescHeap));
+	HRESULT hr = m_pDevice->CreateDescriptorHeap(&IMGUIheapDescs, IID_PPV_ARGS(&m_pIMGUIDescHeap));
 
 	if (FAILED(hr))
 	{
@@ -79,11 +63,11 @@ bool BasicApp::Init()
 
 	CD3DX12_ROOT_PARAMETER slotRootParameter[2];
 
-	slotRootParameter[0].InitAsDescriptorTable(1, &range1);
-	slotRootParameter[1].InitAsDescriptorTable(1, &range2);
+	slotRootParameter[0].InitAsConstantBufferView(0);	//Per frame CB
+	slotRootParameter[1].InitAsConstantBufferView(1);	//Per object CB
 
 	CD3DX12_ROOT_SIGNATURE_DESC rootSignatureDesc;
-	rootSignatureDesc.Init(static_cast<uint32_t>(2), slotRootParameter, 0, nullptr, D3D12_ROOT_SIGNATURE_FLAG_ALLOW_INPUT_ASSEMBLER_INPUT_LAYOUT);
+	rootSignatureDesc.Init((UINT)2, slotRootParameter, 0, nullptr, D3D12_ROOT_SIGNATURE_FLAG_ALLOW_INPUT_ASSEMBLER_INPUT_LAYOUT);
 
 	ComPtr<ID3DBlob> signature;
 	ComPtr<ID3DBlob> error;
@@ -117,46 +101,14 @@ bool BasicApp::Init()
 	UINT compileFlags = 0;
 #endif
 
-	UploadBuffer<VisibleGameObjectCB>* visibleCBUploadBuffer = new UploadBuffer<VisibleGameObjectCB>(m_pDevice.Get(), 1, true);
-
-	pVertexShader = ShaderManager::GetInstance()->CompileShader<VisibleGameObjectCB>(L"Shaders/VertexShader.hlsl", "VS", nullptr, "main", "vs_5_0", visibleCBUploadBuffer);
-	pPixelShader = ShaderManager::GetInstance()->CompileShader<VisibleGameObjectCB>(L"Shaders/PixelShader.hlsl", "PS", nullptr, "main", "ps_5_0", visibleCBUploadBuffer);
-
-	//Create views to the constant buffer
-
-	UINT uiPerObjCBSize = DirectXHelper::CalculatePaddedConstantBufferSize(sizeof(VisibleGameObjectCB));
-
-	for (UINT i = 0; i < ObjectManager::GetInstance()->GetNumGameObjects(); ++i)	//Create the per object constant buffer views first
-	{
-		D3D12_GPU_VIRTUAL_ADDRESS gpuAddress = ShaderManager::GetInstance()->GetShaderConstantUploadBuffer<VisibleGameObjectCB>("VS")->Get()->GetGPUVirtualAddress();
-
-		gpuAddress += (UINT64)i * (UINT64)uiPerObjCBSize;
-
-		CD3DX12_CPU_DESCRIPTOR_HANDLE descHandle = CD3DX12_CPU_DESCRIPTOR_HANDLE(m_pConstDescHeap->GetCPUDescriptorHandleForHeapStart());
-		descHandle.Offset(i, m_uiCBVSRVDescSize);
-
-		D3D12_CONSTANT_BUFFER_VIEW_DESC cbvDesc;
-		cbvDesc.BufferLocation = gpuAddress;
-		cbvDesc.SizeInBytes = uiPerObjCBSize;
-
-		m_pDevice->CreateConstantBufferView(&cbvDesc, descHandle);
-	}
-
-	//Now create the per frame constant buffer at the end of the heap
+	//Create upload buffers
+	UploadBuffer<VisibleGameObjectCB>* visibleCBUploadBuffer = new UploadBuffer<VisibleGameObjectCB>(m_pDevice.Get(), ObjectManager::GetInstance()->GetNumGameObjects(), true);
+	
 	m_pPerFrameCB = new UploadBuffer<PerFrameCB>(m_pDevice.Get(), 1, true);
 
-	UINT uiPerFrameCBSize = DirectXHelper::CalculatePaddedConstantBufferSize(sizeof(PerFrameCB));
-
-	D3D12_GPU_VIRTUAL_ADDRESS gpuAddress = m_pPerFrameCB->Get()->GetGPUVirtualAddress();
-
-	CD3DX12_CPU_DESCRIPTOR_HANDLE descHandle = CD3DX12_CPU_DESCRIPTOR_HANDLE(m_pConstDescHeap->GetCPUDescriptorHandleForHeapStart());
-	descHandle.Offset(ObjectManager::GetInstance()->GetNumGameObjects(), m_uiCBVSRVDescSize);
-
-	D3D12_CONSTANT_BUFFER_VIEW_DESC cbvDesc;
-	cbvDesc.BufferLocation = gpuAddress;
-	cbvDesc.SizeInBytes = uiPerFrameCBSize;
-
-	m_pDevice->CreateConstantBufferView(&cbvDesc, descHandle);
+	//Compile shaders
+	pVertexShader = ShaderManager::GetInstance()->CompileShader<VisibleGameObjectCB>(L"Shaders/VertexShader.hlsl", "VS", nullptr, "main", "vs_5_0", visibleCBUploadBuffer);
+	pPixelShader = ShaderManager::GetInstance()->CompileShader<VisibleGameObjectCB>(L"Shaders/PixelShader.hlsl", "PS", nullptr, "main", "ps_5_0", visibleCBUploadBuffer);
 
 	// Define the vertex input layout.
 	D3D12_INPUT_ELEMENT_DESC inputElementDescs[] =
@@ -267,29 +219,21 @@ void BasicApp::Draw()
 	m_pGraphicsCommandList->ClearDepthStencilView(GetDepthStencilView(), D3D12_CLEAR_FLAG_DEPTH | D3D12_CLEAR_FLAG_STENCIL, 1.0f, 0, 0, nullptr);
 	m_pGraphicsCommandList->ClearRenderTargetView(GetCurrentBackBufferView(), clearColor, 0, nullptr);
 
-	ID3D12DescriptorHeap* pDescriptorHeaps[] = { m_pConstDescHeap.Get() };
-	m_pGraphicsCommandList->SetDescriptorHeaps(_countof(pDescriptorHeaps), pDescriptorHeaps);
-
 	m_pGraphicsCommandList->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
 
 	//Set the per frame constant buffer
-	CD3DX12_GPU_DESCRIPTOR_HANDLE perFrameCBOffset = CD3DX12_GPU_DESCRIPTOR_HANDLE(m_pConstDescHeap->GetGPUDescriptorHandleForHeapStart());
-	perFrameCBOffset.Offset(ObjectManager::GetInstance()->GetNumGameObjects(), m_uiCBVSRVDescSize);
-	m_pGraphicsCommandList->SetGraphicsRootDescriptorTable(0, perFrameCBOffset);
+	m_pGraphicsCommandList->SetGraphicsRootConstantBufferView(0, m_pPerFrameCB->Get()->GetGPUVirtualAddress());
 
 	std::unordered_map<std::string, GameObject*>* pGameObjects = ObjectManager::GetInstance()->GetGameObjects();
 
 	//Draw the gameobjects
-	UINT uiCount = 0;
-	D3D12_GPU_DESCRIPTOR_HANDLE constDescHeapHandle = m_pConstDescHeap->GetGPUDescriptorHandleForHeapStart();
+	UINT uiPerObjByteSize = DirectXHelper::CalculatePaddedConstantBufferSize(sizeof(VisibleGameObjectCB));
+	D3D12_GPU_VIRTUAL_ADDRESS perObjCBAddress = ShaderManager::GetInstance()->GetShaderConstantUploadBuffer<VisibleGameObjectCB>("VS")->Get()->GetGPUVirtualAddress();;
 
 	for (std::unordered_map<std::string, GameObject*>::iterator it = pGameObjects->begin(); it != pGameObjects->end(); ++it)
 	{
-		// Offset to the CBV in the descriptor heap for this object and for this frame resource.
-		CD3DX12_GPU_DESCRIPTOR_HANDLE handle = CD3DX12_GPU_DESCRIPTOR_HANDLE(constDescHeapHandle);
-		handle.Offset(uiCount, m_uiCBVSRVDescSize);
-
-		m_pGraphicsCommandList->SetGraphicsRootDescriptorTable(1, handle);
+		//Set the per object constant buffer
+		m_pGraphicsCommandList->SetGraphicsRootConstantBufferView(1, perObjCBAddress);
 
 		switch (it->second->GetType())
 		{
@@ -306,7 +250,7 @@ void BasicApp::Draw()
 			break;
 		}
 
-		uiCount++;
+		perObjCBAddress += uiPerObjByteSize;
 	}
 
 	ID3D12DescriptorHeap* pIMGUIDescriptorHeaps[] = { m_pIMGUIDescHeap.Get() };
@@ -387,7 +331,13 @@ void BasicApp::CreateGameObjects()
 	ObjectManager::GetInstance()->SetActiveCamera(pCamera);
 
 	VisibleGameObject* pGameObject = new VisibleGameObject();
-	pGameObject->Init("Box", XMFLOAT4(10, 0, 0, 1), XMFLOAT3(0, 90, 0), XMFLOAT4(2, 1, 1, 1));
+	pGameObject->Init("Box1", XMFLOAT4(0, 0, 10, 1), XMFLOAT3(5, 21, 11), XMFLOAT4(0.2, 0.2, 0.2, 1));
+
+	pGameObject = new VisibleGameObject();
+	pGameObject->Init("Box2", XMFLOAT4(-5, 0, 10, 1), XMFLOAT3(75, 44, 0), XMFLOAT4(3, 2, 1, 1));
+
+	pGameObject = new VisibleGameObject();
+	pGameObject->Init("Box3", XMFLOAT4(5, 0, 10, 1), XMFLOAT3(45, 45, 45), XMFLOAT4(1, 1, 1, 1));
 }
 
 void BasicApp::InitIMGUI()

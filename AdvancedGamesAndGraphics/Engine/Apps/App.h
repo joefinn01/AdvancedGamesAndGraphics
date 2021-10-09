@@ -81,7 +81,6 @@ protected:
 
 	Microsoft::WRL::ComPtr<ID3D12DescriptorHeap> m_pRTVHeap = nullptr;
 	Microsoft::WRL::ComPtr<ID3D12DescriptorHeap> m_pDSVHeap = nullptr;
-	Microsoft::WRL::ComPtr<ID3D12DescriptorHeap> m_pConstDescHeap = nullptr;
 
 	Microsoft::WRL::ComPtr<ID3D12Resource> m_pSwapChainBuffer[s_kuiSwapChainBufferCount];
 	Microsoft::WRL::ComPtr<ID3D12Resource> m_pDepthStencilBuffer;
