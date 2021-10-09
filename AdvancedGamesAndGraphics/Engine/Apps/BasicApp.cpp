@@ -199,7 +199,7 @@ void BasicApp::Draw()
 	}
 
 #if PIX
-	PIXBeginEvent(m_pGraphicsCommandList.Get(), PIX_COLOR(50, 50, 50), "TEST");
+	PIXBeginEvent(m_pGraphicsCommandList.Get(), PIX_COLOR(50, 50, 50), "Draw GameObjects");
 #endif
 
 	CreateIMGUIWindow();
