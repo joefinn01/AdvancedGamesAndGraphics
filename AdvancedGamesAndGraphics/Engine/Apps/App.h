@@ -3,8 +3,6 @@
 #include "Engine/Structure/Singleton.h"
 #include "Engine/Commons/Timer.h"
 
-//#define PIX 1
-
 #include <wrl.h>
 #include <Windows.h>
 #include <DirectX\d3dx12.h>
