@@ -27,7 +27,7 @@ int WINAPI WinMain(HINSTANCE hInstance,    //Main windows function
 
 	if (App::GetApp()->Init() == false)
 	{
-		LOG_ERROR(tag, L"Failed to Init D3DApp!");
+		LOG_ERROR(tag, L"Failed to Init App!");
 
 		return 0;
 	}
