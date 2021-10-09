@@ -78,6 +78,9 @@ void BasicApp::Update(const Timer& kTimer)
 
 	VisibleGameObjectCB visibleGameObjectCB;
 
+	GameObject* pGameObject = ObjectManager::GetInstance()->GetGameObject("Box2");
+	pGameObject->Rotate(0.0f, 10.0f * kTimer.DeltaTime(), 0.0f);
+
 	for (std::unordered_map<std::string, GameObject*>::iterator it = ObjectManager::GetInstance()->GetGameObjects()->begin(); it != ObjectManager::GetInstance()->GetGameObjects()->end(); ++it)
 	{
 		it->second->Update(kTimer);
@@ -379,8 +382,6 @@ void BasicApp::InitIMGUI()
 {
 	IMGUI_CHECKVERSION();
 	ImGui::CreateContext();
-
-	ImGuiIO& io = ImGui::GetIO();
 
 	ImGui::StyleColorsDark();
 
