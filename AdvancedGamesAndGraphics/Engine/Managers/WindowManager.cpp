@@ -31,7 +31,7 @@ void WindowManager::SetWindowDimensions(UINT uiWidth, UINT uiHeight)
 void WindowManager::UpdateWindowDimensions()
 {
 	RECT rect;
-	if (GetWindowRect(m_HWND, &rect))
+	if (GetClientRect(m_HWND, &rect))
 	{
 		UINT dpi = GetDpiForWindow(GetDesktopWindow());
 		float fDPIScale = dpi / 96.0f;
