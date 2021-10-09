@@ -240,18 +240,23 @@ static void ImGui_ImplWin32_UpdateMousePos()
     if (mouse_window == NULL)
         return;
 
+	UINT dpi = GetDpiForWindow(GetDesktopWindow());
+	float fDPIScale = dpi / 96.0f;
+
     // Set OS mouse position from Dear ImGui if requested (rarely used, only when ImGuiConfigFlags_NavEnableSetMousePos is enabled by user)
     if (io.WantSetMousePos)
     {
         POINT pos = { (int)mouse_pos_prev.x, (int)mouse_pos_prev.y };
         if (::ClientToScreen(bd->hWnd, &pos))
-            ::SetCursorPos(pos.x, pos.y);
+            ::SetCursorPos(pos.x * fDPIScale, pos.y * fDPIScale);
     }
+
+
 
     // Set Dear ImGui mouse position from OS position
     POINT pos;
     if (::GetCursorPos(&pos) && ::ScreenToClient(mouse_window, &pos))
-        io.MousePos = ImVec2((float)pos.x, (float)pos.y);
+        io.MousePos = ImVec2((float)pos.x * fDPIScale, (float)pos.y * fDPIScale);
 }
 
 // Gamepad navigation mapping
@@ -311,9 +316,12 @@ void    ImGui_ImplWin32_NewFrame()
     IM_ASSERT(bd != NULL && "Did you call ImGui_ImplWin32_Init()?");
 
     // Setup display size (every frame to accommodate for window resizing)
+	UINT dpi = GetDpiForWindow(GetDesktopWindow());
+	float fDPIScale = dpi / 96.0f;
+
     RECT rect = { 0, 0, 0, 0 };
     ::GetClientRect(bd->hWnd, &rect);
-    io.DisplaySize = ImVec2((float)(rect.right - rect.left), (float)(rect.bottom - rect.top));
+    io.DisplaySize = ImVec2((float)(rect.right - rect.left) * fDPIScale, (float)(rect.bottom - rect.top) * fDPIScale);
 
     // Setup time step
     INT64 current_time = 0;
