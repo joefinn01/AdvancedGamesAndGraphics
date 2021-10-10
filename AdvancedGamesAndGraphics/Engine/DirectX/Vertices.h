@@ -4,10 +4,10 @@
 
 struct Vertex
 {
-	DirectX::XMFLOAT4 position;
+	DirectX::XMFLOAT3 position;
 	DirectX::XMFLOAT4 color;
 
-	Vertex(DirectX::XMFLOAT4 pos, DirectX::XMFLOAT4 col)
+	Vertex(DirectX::XMFLOAT3 pos, DirectX::XMFLOAT4 col)
 	{
 		position = pos;
 		color = col;

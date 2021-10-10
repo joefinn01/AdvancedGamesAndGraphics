@@ -1,6 +1,6 @@
 struct VS_INPUT
 {
-	float4 PosL  : POSITION;
+	float3 PosL  : POSITION;
 	float4 Color : COLOR;
 };
 
@@ -24,7 +24,7 @@ VS_OUTPUT main(VS_INPUT input)
 {
 	VS_OUTPUT result;
 
-	result.PosH = mul(mul(float4(input.PosL.xyz, 1.0f), world), viewProjection);
+	result.PosH = mul(mul(float4(input.PosL, 1.0f), world), viewProjection);
 	result.Color = input.Color;
 
 	return result;

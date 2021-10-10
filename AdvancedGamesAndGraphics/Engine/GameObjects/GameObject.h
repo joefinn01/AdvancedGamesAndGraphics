@@ -19,7 +19,7 @@ public:
 	GameObject();
 	~GameObject();
 
-	virtual bool Init(std::string sName, DirectX::XMFLOAT4 position, DirectX::XMFLOAT3 rotationQuat, DirectX::XMFLOAT4 scale);
+	virtual bool Init(std::string sName, DirectX::XMFLOAT3 position, DirectX::XMFLOAT3 rotationQuat, DirectX::XMFLOAT3 scale);
 	virtual void Update(const Timer& kTimer);
 	virtual void Destroy();
 
@@ -38,19 +38,19 @@ public:
 	DirectX::XMFLOAT3 GetEulerAngles() const;
 	DirectX::XMFLOAT4 GetOrientation() const;
 
-	void SetPosition(DirectX::XMFLOAT4 position);
+	void SetPosition(DirectX::XMFLOAT3 position);
 	void SetPosition(float fX, float fY, float fZ);
-	void Translate(DirectX::XMFLOAT4 translation);
+	void Translate(DirectX::XMFLOAT3 translation);
 	void Translate(float fX, float fY, float fZ);
 
-	DirectX::XMFLOAT4 GetPosition() const;
+	DirectX::XMFLOAT3 GetPosition() const;
 
-	void SetScale(DirectX::XMFLOAT4 scale);
+	void SetScale(DirectX::XMFLOAT3 scale);
 	void SetScale(float fX, float fY, float fZ);
-	void AdjustScale(DirectX::XMFLOAT4 scaleDifference);
+	void AdjustScale(DirectX::XMFLOAT3 scaleDifference);
 	void AdjustScale(float fX, float fY, float fZ);
 
-	DirectX::XMFLOAT4 GetScale() const;
+	DirectX::XMFLOAT3 GetScale() const;
 
 	DirectX::XMFLOAT4 GetUpVector() const;
 	DirectX::XMFLOAT4 GetForwardVector() const;
@@ -66,9 +66,9 @@ private:
 
 	std::string m_sName = "";
 
-	DirectX::XMFLOAT4 m_Position = DirectX::XMFLOAT4();
+	DirectX::XMFLOAT3 m_Position = DirectX::XMFLOAT3();
 	DirectX::XMFLOAT4 m_Rotation = DirectX::XMFLOAT4(0, 0, 0, 1);
-	DirectX::XMFLOAT4 m_Scale = DirectX::XMFLOAT4(1, 1, 1, 0);
+	DirectX::XMFLOAT3 m_Scale = DirectX::XMFLOAT3(1, 1, 1);
 
 	DirectX::XMFLOAT4 m_Up = DirectX::XMFLOAT4(0, 1, 0, 0);
 	DirectX::XMFLOAT4 m_Right = DirectX::XMFLOAT4(1, 0, 0, 0);

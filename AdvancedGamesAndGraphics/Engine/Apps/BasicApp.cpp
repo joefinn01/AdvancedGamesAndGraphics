@@ -244,13 +244,13 @@ void BasicApp::CreateGameObjects()
 	ObjectManager::GetInstance()->SetActiveCamera(pCamera);
 
 	VisibleGameObject* pGameObject = new VisibleGameObject();
-	pGameObject->Init("Box1", XMFLOAT4(0, 0, 10, 1), XMFLOAT3(5, 21, 11), XMFLOAT4(0.2f, 0.2f, 0.2f, 1.0f));
+	pGameObject->Init("Box1", XMFLOAT3(0, 0, 10), XMFLOAT3(5, 21, 11), XMFLOAT3(0.2f, 0.2f, 0.2f));
 
 	pGameObject = new VisibleGameObject();
-	pGameObject->Init("Box2", XMFLOAT4(-5, 0, 10, 1), XMFLOAT3(75, 44, 0), XMFLOAT4(3, 2, 1, 1));
+	pGameObject->Init("Box2", XMFLOAT3(-5, 0, 10), XMFLOAT3(75, 44, 0), XMFLOAT3(3, 2, 1));
 
 	pGameObject = new VisibleGameObject();
-	pGameObject->Init("Box3", XMFLOAT4(5, 0, 10, 1), XMFLOAT3(45, 45, 45), XMFLOAT4(1, 1, 1, 1));
+	pGameObject->Init("Box3", XMFLOAT3(5, 0, 10), XMFLOAT3(45, 45, 45), XMFLOAT3(1, 1, 1));
 }
 
 void BasicApp::CreateShadersAndUploadBuffers()
@@ -282,7 +282,7 @@ void BasicApp::CreateInputDescriptions()
 	m_VertexInputLayoutDesc =
 	{
 		{ "POSITION", 0, DXGI_FORMAT_R32G32B32A32_FLOAT, 0, 0, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0 },
-		{ "COLOR", 0, DXGI_FORMAT_R32G32B32A32_FLOAT, 0, 16, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0 }
+		{ "COLOR", 0, DXGI_FORMAT_R32G32B32A32_FLOAT, 0, 12, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0 }
 	};
 }
 

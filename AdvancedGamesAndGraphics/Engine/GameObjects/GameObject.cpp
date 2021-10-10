@@ -11,7 +11,7 @@ GameObject::~GameObject()
 {
 }
 
-bool GameObject::Init(std::string sName, DirectX::XMFLOAT4 position, DirectX::XMFLOAT3 rotation, DirectX::XMFLOAT4 scale)
+bool GameObject::Init(std::string sName, DirectX::XMFLOAT3 position, DirectX::XMFLOAT3 rotation, DirectX::XMFLOAT3 scale)
 {
 	m_sName = sName;
 
@@ -126,52 +126,52 @@ DirectX::XMFLOAT4 GameObject::GetOrientation() const
 	return m_Rotation;
 }
 
-void GameObject::SetPosition(DirectX::XMFLOAT4 position)
+void GameObject::SetPosition(DirectX::XMFLOAT3 position)
 {
 	m_Position = position;
 }
 
 void GameObject::SetPosition(float fX, float fY, float fZ)
 {
-	m_Position = XMFLOAT4(fX, fY, fZ, 1);
+	m_Position = XMFLOAT3(fX, fY, fZ);
 }
 
-void GameObject::Translate(DirectX::XMFLOAT4 translation)
+void GameObject::Translate(DirectX::XMFLOAT3 translation)
 {
-	XMStoreFloat4(&m_Position, XMLoadFloat4(&m_Position) + XMLoadFloat4(&translation));
+	XMStoreFloat3(&m_Position, XMLoadFloat3(&m_Position) + XMLoadFloat3(&translation));
 }
 
 void GameObject::Translate(float fX, float fY, float fZ)
 {
-	XMStoreFloat4(&m_Position, XMLoadFloat4(&m_Position) + XMVectorSet(fX, fY, fZ, 0));
+	XMStoreFloat3(&m_Position, XMLoadFloat3(&m_Position) + XMVectorSet(fX, fY, fZ, 0));
 }
 
-DirectX::XMFLOAT4 GameObject::GetPosition() const
+DirectX::XMFLOAT3 GameObject::GetPosition() const
 {
 	return m_Position;
 }
 
-void GameObject::SetScale(DirectX::XMFLOAT4 scale)
+void GameObject::SetScale(DirectX::XMFLOAT3 scale)
 {
 	m_Scale = scale;
 }
 
 void GameObject::SetScale(float fX, float fY, float fZ)
 {
-	m_Scale = XMFLOAT4(fX, fY, fZ, 1);
+	m_Scale = XMFLOAT3(fX, fY, fZ);
 }
 
-void GameObject::AdjustScale(DirectX::XMFLOAT4 scaleDifference)
+void GameObject::AdjustScale(DirectX::XMFLOAT3 scaleDifference)
 {
-	XMStoreFloat4(&m_Scale, XMLoadFloat4(&m_Scale) + XMLoadFloat4(&scaleDifference));
+	XMStoreFloat3(&m_Scale, XMLoadFloat3(&m_Scale) + XMLoadFloat3(&scaleDifference));
 }
 
 void GameObject::AdjustScale(float fX, float fY, float fZ)
 {
-	XMStoreFloat4(&m_Scale, XMLoadFloat4(&m_Scale) + XMVectorSet(fX, fY, fZ, 0));
+	XMStoreFloat3(&m_Scale, XMLoadFloat3(&m_Scale) + XMVectorSet(fX, fY, fZ, 0));
 }
 
-DirectX::XMFLOAT4 GameObject::GetScale() const
+DirectX::XMFLOAT3 GameObject::GetScale() const
 {
 	return m_Scale;
 }

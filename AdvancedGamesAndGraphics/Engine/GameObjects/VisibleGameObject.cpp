@@ -14,7 +14,7 @@ using namespace DirectX;
 
 Tag tag = L"VisibleGameObject";
 
-bool VisibleGameObject::Init(std::string sName, DirectX::XMFLOAT4 position, DirectX::XMFLOAT3 rotation, DirectX::XMFLOAT4 scale)
+bool VisibleGameObject::Init(std::string sName, DirectX::XMFLOAT3 position, DirectX::XMFLOAT3 rotation, DirectX::XMFLOAT3 scale)
 {
 	if (GameObject::Init(sName, position, rotation, scale) == false)
 	{
@@ -26,14 +26,14 @@ bool VisibleGameObject::Init(std::string sName, DirectX::XMFLOAT4 position, Dire
 
 	std::array<Vertex, 8> vertices =
 	{
-		Vertex({ XMFLOAT4(-1.0f, -1.0f, -1.0f, 1), XMFLOAT4(DirectX::Colors::White) }),
-		Vertex({ XMFLOAT4(-1.0f, +1.0f, -1.0f, 1), XMFLOAT4(DirectX::Colors::Black) }),
-		Vertex({ XMFLOAT4(+1.0f, +1.0f, -1.0f, 1), XMFLOAT4(DirectX::Colors::Red) }),
-		Vertex({ XMFLOAT4(+1.0f, -1.0f, -1.0f, 1), XMFLOAT4(DirectX::Colors::Green) }),
-		Vertex({ XMFLOAT4(-1.0f, -1.0f, +1.0f, 1), XMFLOAT4(DirectX::Colors::Blue) }),
-		Vertex({ XMFLOAT4(-1.0f, +1.0f, +1.0f, 1), XMFLOAT4(DirectX::Colors::Yellow) }),
-		Vertex({ XMFLOAT4(+1.0f, +1.0f, +1.0f, 1), XMFLOAT4(DirectX::Colors::Cyan) }),
-		Vertex({ XMFLOAT4(+1.0f, -1.0f, +1.0f, 1), XMFLOAT4(DirectX::Colors::Magenta) })
+		Vertex({ XMFLOAT3(-1.0f, -1.0f, -1.0f), XMFLOAT4(DirectX::Colors::White) }),
+		Vertex({ XMFLOAT3(-1.0f, +1.0f, -1.0f), XMFLOAT4(DirectX::Colors::Black) }),
+		Vertex({ XMFLOAT3(+1.0f, +1.0f, -1.0f), XMFLOAT4(DirectX::Colors::Red) }),
+		Vertex({ XMFLOAT3(+1.0f, -1.0f, -1.0f), XMFLOAT4(DirectX::Colors::Green) }),
+		Vertex({ XMFLOAT3(-1.0f, -1.0f, +1.0f), XMFLOAT4(DirectX::Colors::Blue) }),
+		Vertex({ XMFLOAT3(-1.0f, +1.0f, +1.0f), XMFLOAT4(DirectX::Colors::Yellow) }),
+		Vertex({ XMFLOAT3(+1.0f, +1.0f, +1.0f), XMFLOAT4(DirectX::Colors::Cyan) }),
+		Vertex({ XMFLOAT3(+1.0f, -1.0f, +1.0f), XMFLOAT4(DirectX::Colors::Magenta) })
 	};
 
 	std::array<std::uint16_t, 36> indices =
