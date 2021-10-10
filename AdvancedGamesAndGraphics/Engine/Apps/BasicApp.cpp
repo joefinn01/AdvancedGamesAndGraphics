@@ -97,8 +97,18 @@ void BasicApp::Update(const Timer& kTimer)
 	//Update per frame constant buffer
 	PerFrameCB constants;
 
+	XMMATRIX viewProj = XMLoadFloat4x4(&ObjectManager::GetInstance()->GetActiveCamera()->GetViewProjectionMatrix());
+
 	//transpose the matrix to ensure it's in the right major
-	constants.ViewProjection = XMMatrixTranspose(XMLoadFloat4x4(&ObjectManager::GetInstance()->GetActiveCamera()->GetViewProjectionMatrix()));
+	constants.ViewProjection = XMMatrixTranspose(viewProj);
+
+	//Zero out the translation component so it doesn't cause issues when transforming the normal
+	viewProj.r[3] = XMVectorSet(0, 0, 0, 1);
+
+	constants.InvTransposeViewProjection = XMMatrixTranspose(XMMatrixInverse(&XMMatrixDeterminant(viewProj), viewProj));
+
+	XMMatrixInverse(&XMMatrixDeterminant(viewProj), viewProj);
+
 	m_pPerFrameCB->CopyData(0, constants);
 }
 

@@ -5,6 +5,7 @@
 struct PerFrameCB
 {
 	DirectX::XMMATRIX ViewProjection;
+	DirectX::XMMATRIX InvTransposeViewProjection;
 };
 
 struct GameObjectCB
