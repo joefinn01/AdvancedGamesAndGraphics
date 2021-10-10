@@ -2,6 +2,7 @@
 #include "Engine\Apps\App.h"
 #include "Engine/DirectX/UploadBuffer.h"
 #include "Engine/DirectX/ConstantBuffers.h"
+#include "Engine/DirectX/Material.h"
 
 #include <DirectXMath.h>
 #include <vector>
@@ -24,6 +25,8 @@ protected:
 	void ExecuteCommandList();
 
 	void CreateGameObjects();
+	void CreateMaterials();
+	void CreateMaterialsUploadBuffer();
 	void CreateShadersAndUploadBuffers();
 	void CreateInputDescriptions();
 
@@ -39,6 +42,7 @@ protected:
 	Microsoft::WRL::ComPtr<ID3D12PipelineState> m_pPipelineState = nullptr;
 
 	UploadBuffer<PerFrameCB>* m_pPerFrameCB = nullptr;
+	UploadBuffer<MaterialConstants>* m_pMaterialCB = nullptr;
 
 	Microsoft::WRL::ComPtr<ID3D12DescriptorHeap> m_pIMGUIDescHeap = nullptr;
 

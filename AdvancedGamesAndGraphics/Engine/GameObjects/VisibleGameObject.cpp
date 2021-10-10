@@ -4,6 +4,7 @@
 #include "Engine/DirectX/MeshGeometry.h"
 #include "Engine/Helpers/DebugHelper.h"
 #include "Engine/Helpers/DirectXHelper.h"
+#include "Engine/Managers/MaterialManager.h"
 
 #include <DirectX\d3dx12.h>
 #include <DirectXColors.h>
@@ -14,9 +15,16 @@ using namespace DirectX;
 
 Tag tag = L"VisibleGameObject";
 
-bool VisibleGameObject::Init(std::string sName, DirectX::XMFLOAT3 position, DirectX::XMFLOAT3 rotation, DirectX::XMFLOAT3 scale)
+bool VisibleGameObject::Init(std::string sName, DirectX::XMFLOAT3 position, DirectX::XMFLOAT3 rotation, DirectX::XMFLOAT3 scale, std::string sMatName)
 {
 	if (GameObject::Init(sName, position, rotation, scale) == false)
+	{
+		return false;
+	}
+
+	m_pMaterial = MaterialManager::GetInstance()->GetMaterial(sMatName);
+
+	if (m_pMaterial == nullptr)
 	{
 		return false;
 	}
@@ -159,4 +167,9 @@ void VisibleGameObject::Draw()
 	{
 		pCommandList->DrawIndexedInstanced(it->second.m_uiIndexCount, 1, it->second.m_uiStartIndexLocation, 0, it->second.m_uiStartVertexLocation);
 	}
+}
+
+Material* VisibleGameObject::GetMaterial()
+{
+	return m_pMaterial;
 }

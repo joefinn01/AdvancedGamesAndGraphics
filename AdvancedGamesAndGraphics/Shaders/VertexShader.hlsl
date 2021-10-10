@@ -21,6 +21,13 @@ cbuffer PerObjectCB : register(b1)
 	float4x4 world;
 }
 
+cbuffer MaterialCB : register(b2)
+{
+	float4 diffuse;
+	float3 fresnel;
+	float roughness;
+}
+
 VS_OUTPUT main(VS_INPUT input)
 {
 	VS_OUTPUT result;

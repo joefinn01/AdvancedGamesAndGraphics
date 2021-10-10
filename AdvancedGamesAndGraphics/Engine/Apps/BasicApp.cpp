@@ -5,6 +5,7 @@
 #include "Engine/GameObjects/VisibleGameObject.h"
 #include "Engine/Cameras/DebugCamera.h"
 #include "Engine/Managers/ShaderManager.h"
+#include "Engine/Managers/MaterialManager.h"
 
 #if PIX
 #include "pix3.h"
@@ -41,7 +42,11 @@ bool BasicApp::Init()
 		LOG_ERROR(tag, L"Failed to reset the graphics command list!");
 	}
 
+	CreateMaterials();
+
 	CreateGameObjects();
+
+	CreateMaterialsUploadBuffer();
 
 	if (CreateDescriptorHeaps() == false)
 	{
@@ -162,7 +167,10 @@ void BasicApp::Draw()
 
 	//Draw the gameobjects
 	UINT uiPerObjByteSize = DirectXHelper::CalculatePaddedConstantBufferSize(sizeof(VisibleGameObjectCB));
-	D3D12_GPU_VIRTUAL_ADDRESS perObjCBAddress = ShaderManager::GetInstance()->GetShaderConstantUploadBuffer<VisibleGameObjectCB>("VS")->Get()->GetGPUVirtualAddress();;
+	D3D12_GPU_VIRTUAL_ADDRESS perObjCBAddress = ShaderManager::GetInstance()->GetShaderConstantUploadBuffer<VisibleGameObjectCB>("VS")->Get()->GetGPUVirtualAddress();
+
+	UINT uiMatByteSize = DirectXHelper::CalculatePaddedConstantBufferSize(sizeof(MaterialConstants));
+	D3D12_GPU_VIRTUAL_ADDRESS matCBAdress;
 
 	for (std::unordered_map<std::string, GameObject*>::iterator it = pGameObjects->begin(); it != pGameObjects->end(); ++it)
 	{
@@ -174,6 +182,11 @@ void BasicApp::Draw()
 		case GameObjectType::VISIBLE:
 		{
 			VisibleGameObject* pVisibleGameObject = (VisibleGameObject*)it->second;
+
+			matCBAdress = m_pMaterialCB->Get()->GetGPUVirtualAddress() + uiMatByteSize * pVisibleGameObject->GetMaterial()->CBIndex;
+
+			//Set the material constant buffer
+			m_pGraphicsCommandList->SetGraphicsRootConstantBufferView(2, perObjCBAddress);
 
 			pVisibleGameObject->Draw();
 
@@ -254,13 +267,46 @@ void BasicApp::CreateGameObjects()
 	ObjectManager::GetInstance()->SetActiveCamera(pCamera);
 
 	VisibleGameObject* pGameObject = new VisibleGameObject();
-	pGameObject->Init("Box1", XMFLOAT3(0, 0, 10), XMFLOAT3(5, 21, 11), XMFLOAT3(0.2f, 0.2f, 0.2f));
+	pGameObject->Init("Box1", XMFLOAT3(0, 0, 10), XMFLOAT3(5, 21, 11), XMFLOAT3(0.2f, 0.2f, 0.2f), "test");
 
 	pGameObject = new VisibleGameObject();
-	pGameObject->Init("Box2", XMFLOAT3(-5, 0, 10), XMFLOAT3(75, 44, 0), XMFLOAT3(3, 2, 1));
+	pGameObject->Init("Box2", XMFLOAT3(-5, 0, 10), XMFLOAT3(75, 44, 0), XMFLOAT3(3, 2, 1), "test");
 
 	pGameObject = new VisibleGameObject();
-	pGameObject->Init("Box3", XMFLOAT3(5, 0, 10), XMFLOAT3(45, 45, 45), XMFLOAT3(1, 1, 1));
+	pGameObject->Init("Box3", XMFLOAT3(5, 0, 10), XMFLOAT3(45, 45, 45), XMFLOAT3(1, 1, 1), "test");
+}
+
+void BasicApp::CreateMaterials()
+{
+	Material* pMat = new Material();
+	pMat->name = "test";
+	pMat->diffuse = XMFLOAT4(0.6f, 0.0f, 0.0f, 1.0f);
+	pMat->fresnel = XMFLOAT3(0.2f, 0.2f, 0.2f);
+	pMat->roughness = 0.4f;
+
+	MaterialManager::GetInstance()->AddMaterial(pMat);
+}
+
+void BasicApp::CreateMaterialsUploadBuffer()
+{
+	m_pMaterialCB = new UploadBuffer<MaterialConstants>(m_pDevice.Get(), MaterialManager::GetInstance()->GetMaterials()->size(), true);
+
+	UINT uiCount = 0;
+
+	MaterialConstants mat;
+
+	for (std::unordered_map<std::string, Material*>::iterator it = MaterialManager::GetInstance()->GetMaterials()->begin(); it != MaterialManager::GetInstance()->GetMaterials()->end(); ++it)
+	{
+		it->second->CBIndex = uiCount;
+
+		mat.diffuse = it->second->diffuse;
+		mat.fresnel = it->second->fresnel;
+		mat.roughness = it->second->roughness;
+
+		m_pMaterialCB->CopyData(uiCount, mat);
+
+		uiCount++;
+	}
 }
 
 void BasicApp::CreateShadersAndUploadBuffers()
@@ -299,20 +345,14 @@ void BasicApp::CreateInputDescriptions()
 
 bool BasicApp::CreateRootSignature()
 {
-	//Create the root signature
-	CD3DX12_DESCRIPTOR_RANGE range1;
-	range1.Init(D3D12_DESCRIPTOR_RANGE_TYPE_CBV, 1, 0);
-
-	CD3DX12_DESCRIPTOR_RANGE range2;
-	range2.Init(D3D12_DESCRIPTOR_RANGE_TYPE_CBV, 1, 1);
-
-	CD3DX12_ROOT_PARAMETER slotRootParameter[2] = {};
+	CD3DX12_ROOT_PARAMETER slotRootParameter[3] = {};
 
 	slotRootParameter[0].InitAsConstantBufferView(0);	//Per frame CB
 	slotRootParameter[1].InitAsConstantBufferView(1);	//Per object CB
+	slotRootParameter[2].InitAsConstantBufferView(2);	//Material CB
 
 	CD3DX12_ROOT_SIGNATURE_DESC rootSignatureDesc;
-	rootSignatureDesc.Init((UINT)2, slotRootParameter, 0, nullptr, D3D12_ROOT_SIGNATURE_FLAG_ALLOW_INPUT_ASSEMBLER_INPUT_LAYOUT);
+	rootSignatureDesc.Init((UINT)3, slotRootParameter, 0, nullptr, D3D12_ROOT_SIGNATURE_FLAG_ALLOW_INPUT_ASSEMBLER_INPUT_LAYOUT);
 
 	ComPtr<ID3DBlob> signature;
 	ComPtr<ID3DBlob> error;
