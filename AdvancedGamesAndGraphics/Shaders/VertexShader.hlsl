@@ -2,6 +2,7 @@ struct VS_INPUT
 {
 	float3 PosL  : POSITION;
 	float4 Color : COLOR;
+	float3 Normal : NORMAL;
 };
 
 struct VS_OUTPUT

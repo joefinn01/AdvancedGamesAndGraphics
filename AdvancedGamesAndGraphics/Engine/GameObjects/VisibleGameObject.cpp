@@ -63,6 +63,35 @@ bool VisibleGameObject::Init(std::string sName, DirectX::XMFLOAT3 position, Dire
 		4, 3, 7
 	};
 
+	Vertex vertex;
+	XMFLOAT3 triNormal;
+
+	std::uint16_t index0;
+	std::uint16_t index1;
+	std::uint16_t index2;
+
+	//Calculate normal for all faces and add all together
+	for (UINT i = 0; i < 12; ++i)
+	{
+		index0 = indices[i * 3];
+		index1 = indices[i * 3 + 1];
+		index2 = indices[i * 3 + 2];
+
+		vertex = vertices[index0];
+
+		XMStoreFloat3(&triNormal, XMVector3Cross(XMLoadFloat3(&vertices[index1].position) - XMLoadFloat3(&vertex.position), XMLoadFloat3(&vertices[index2].position) - XMLoadFloat3(&vertex.position)));
+
+		XMStoreFloat3(&vertices[index0].normal, XMLoadFloat3(&vertices[index0].normal) + XMLoadFloat3(&triNormal));
+		XMStoreFloat3(&vertices[index1].normal, XMLoadFloat3(&vertices[index1].normal) + XMLoadFloat3(&triNormal));
+		XMStoreFloat3(&vertices[index2].normal, XMLoadFloat3(&vertices[index2].normal) + XMLoadFloat3(&triNormal));
+	}
+
+	//Normalize all the vectors to average the normal
+	for (UINT i = 0; i < 8; ++i)
+	{
+		XMStoreFloat3(&vertices[i].normal, XMVector3Normalize(XMLoadFloat3(&vertices[i].normal)));
+	}
+
 	const UINT uiVertexBufferByteSize = (UINT)vertices.size() * sizeof(Vertex);
 	const UINT uiIndexBufferByteSize = (UINT)indices.size() * sizeof(std::uint16_t);
 
