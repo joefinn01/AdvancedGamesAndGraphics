@@ -204,6 +204,9 @@
     <ClInclude Include="Engine\Managers\MaterialManager.h">
       <Filter>Engine\Managers</Filter>
     </ClInclude>
+    <ClInclude Include="Engine\DirectX\Light.h">
+      <Filter>Engine\DirectX</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <None Include="packages.config" />
