@@ -18,8 +18,7 @@ struct VisibleGameObjectCB
 	DirectX::XMMATRIX World;
 };
 
-//Have a second struct which holds only the needed information
-struct MaterialConstants
+struct MaterialCB
 {
 	DirectX::XMFLOAT4 diffuse;
 	DirectX::XMFLOAT3 fresnel;

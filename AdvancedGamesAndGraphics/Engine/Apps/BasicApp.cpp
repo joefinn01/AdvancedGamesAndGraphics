@@ -169,7 +169,7 @@ void BasicApp::Draw()
 	UINT uiPerObjByteSize = DirectXHelper::CalculatePaddedConstantBufferSize(sizeof(VisibleGameObjectCB));
 	D3D12_GPU_VIRTUAL_ADDRESS perObjCBAddress = ShaderManager::GetInstance()->GetShaderConstantUploadBuffer<VisibleGameObjectCB>("VS")->Get()->GetGPUVirtualAddress();
 
-	UINT uiMatByteSize = DirectXHelper::CalculatePaddedConstantBufferSize(sizeof(MaterialConstants));
+	UINT uiMatByteSize = DirectXHelper::CalculatePaddedConstantBufferSize(sizeof(MaterialCB));
 	D3D12_GPU_VIRTUAL_ADDRESS matCBAdress;
 
 	for (std::unordered_map<std::string, GameObject*>::iterator it = pGameObjects->begin(); it != pGameObjects->end(); ++it)
@@ -289,11 +289,11 @@ void BasicApp::CreateMaterials()
 
 void BasicApp::CreateMaterialsUploadBuffer()
 {
-	m_pMaterialCB = new UploadBuffer<MaterialConstants>(m_pDevice.Get(), MaterialManager::GetInstance()->GetMaterials()->size(), true);
+	m_pMaterialCB = new UploadBuffer<MaterialCB>(m_pDevice.Get(), MaterialManager::GetInstance()->GetMaterials()->size(), true);
 
 	UINT uiCount = 0;
 
-	MaterialConstants mat;
+	MaterialCB mat;
 
 	for (std::unordered_map<std::string, Material*>::iterator it = MaterialManager::GetInstance()->GetMaterials()->begin(); it != MaterialManager::GetInstance()->GetMaterials()->end(); ++it)
 	{
