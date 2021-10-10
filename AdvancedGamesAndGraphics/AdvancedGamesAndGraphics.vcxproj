@@ -294,6 +294,7 @@
     <ClCompile Include="Engine\include\imgui\imgui_impl_win32.cpp" />
     <ClCompile Include="Engine\include\imgui\imgui_tables.cpp" />
     <ClCompile Include="Engine\include\imgui\imgui_widgets.cpp" />
+    <ClCompile Include="Engine\Managers\MaterialManager.cpp" />
     <ClCompile Include="Engine\Managers\ObjectManager.cpp" />
     <ClCompile Include="Engine\Managers\ShaderManager.cpp" />
     <ClCompile Include="Engine\Managers\WindowManager.cpp" />
@@ -346,6 +347,7 @@
     <ClInclude Include="Engine\include\imgui\imstb_rectpack.h" />
     <ClInclude Include="Engine\include\imgui\imstb_textedit.h" />
     <ClInclude Include="Engine\include\imgui\imstb_truetype.h" />
+    <ClInclude Include="Engine\Managers\MaterialManager.h" />
     <ClInclude Include="Engine\Managers\ObjectManager.h" />
     <ClInclude Include="Engine\Managers\ShaderManager.h" />
     <ClInclude Include="Engine\Managers\WindowManager.h" />

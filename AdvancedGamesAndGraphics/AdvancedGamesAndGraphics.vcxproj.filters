@@ -104,6 +104,9 @@
     <ClCompile Include="Engine\Managers\ShaderManager.cpp">
       <Filter>Engine\Managers</Filter>
     </ClCompile>
+    <ClCompile Include="Engine\Managers\MaterialManager.cpp">
+      <Filter>Engine\Managers</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <FxCompile Include="Shaders\PixelShader.hlsl">
@@ -197,6 +200,9 @@
     </ClInclude>
     <ClInclude Include="Engine\DirectX\Material.h">
       <Filter>Engine\DirectX</Filter>
+    </ClInclude>
+    <ClInclude Include="Engine\Managers\MaterialManager.h">
+      <Filter>Engine\Managers</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
