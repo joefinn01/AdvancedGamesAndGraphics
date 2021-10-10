@@ -328,6 +328,7 @@
     <ClInclude Include="Engine\Cameras\DebugCamera.h" />
     <ClInclude Include="Engine\Commons\Timer.h" />
     <ClInclude Include="Engine\DirectX\ConstantBuffers.h" />
+    <ClInclude Include="Engine\DirectX\Material.h" />
     <ClInclude Include="Engine\DirectX\MeshGeometry.h" />
     <ClInclude Include="Engine\DirectX\Shader.h" />
     <ClInclude Include="Engine\DirectX\UploadBuffer.h" />
