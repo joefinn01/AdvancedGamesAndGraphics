@@ -9,6 +9,10 @@ class MaterialManager : public Singleton<MaterialManager>
 public:
 	bool AddMaterial(Material* pMat);
 
+	Material* GetMaterial(std::string sName);
+
+	std::unordered_map<std::string, Material*>* GetMaterials();
+
 protected:
 
 private:
