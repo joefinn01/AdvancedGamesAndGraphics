@@ -87,7 +87,7 @@ bool VisibleGameObject::Init(std::string sName, DirectX::XMFLOAT3 position, Dire
 
 		vertex = vertices[index0];
 
-		XMStoreFloat3(&triNormal, XMVector3Cross(XMLoadFloat3(&vertices[index1].position) - XMLoadFloat3(&vertex.position), XMLoadFloat3(&vertices[index2].position) - XMLoadFloat3(&vertex.position)));
+		XMStoreFloat3(&triNormal, XMVector3Normalize(XMVector3Cross(XMVector3Normalize(XMLoadFloat3(&vertices[index1].position) - XMLoadFloat3(&vertex.position)), XMLoadFloat3(&vertices[index2].position) - XMLoadFloat3(&vertex.position))));
 
 		XMStoreFloat3(&vertices[index0].normal, XMLoadFloat3(&vertices[index0].normal) + XMLoadFloat3(&triNormal));
 		XMStoreFloat3(&vertices[index1].normal, XMLoadFloat3(&vertices[index1].normal) + XMLoadFloat3(&triNormal));

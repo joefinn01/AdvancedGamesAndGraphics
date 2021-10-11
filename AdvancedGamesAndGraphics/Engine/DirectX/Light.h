@@ -34,8 +34,8 @@ struct Light
 	DirectX::XMFLOAT3 Position;
 	float SpotLightPower;
 
-	bool InUse;
-	LightType Type;
+	int InUse;
+	int Type;
 	DirectX::XMFLOAT2 pad;
 };
 
@@ -48,7 +48,7 @@ struct PointLight : Light
 		FallOffStart = fFallOffStart;
 		FallOffEnd = fFallOffEnd;
 		InUse = true;
-		Type = LightType::POINT;
+		Type = (int)LightType::POINT;
 	}
 };
 
@@ -63,7 +63,7 @@ struct SpotLight : Light
 		Direction = direction;
 		SpotLightPower = fSpotLightPower;
 		InUse = true;
-		Type = LightType::SPOT;
+		Type = (int)LightType::SPOT;
 	}
 };
 
@@ -75,6 +75,6 @@ struct DirectionalLight : Light
 		Color = color;
 		Direction = direction;
 		InUse = true;
-		Type = LightType::DIRECTIONAL;
+		Type = (int)LightType::DIRECTIONAL;
 	}
 };

@@ -59,7 +59,7 @@ float4 PSMain(VS_OUTPUT input) : SV_TARGET
 	// Indirect lighting.
 	float4 ambient = Ambient * Diffuse;
 
-	//Material material = { Diffuse, Fresnel, Roughness };
+	Material material = { Diffuse, Fresnel, Roughness };
 
 	Light light;
 	light.Position = float3(0, 0, 0);
@@ -67,10 +67,10 @@ float4 PSMain(VS_OUTPUT input) : SV_TARGET
 	light.FallOffEnd = 60.0f;
 	light.Color = float3(0.0f, 1.0f, 0.0f);
 
-	Material material = {float4(0.6f, 0.0f, 0.0f, 1.0f), float3(0.2f, 0.2f, 0.2f), 0.4f};
+	//Material material = {float4(0.6f, 0.0f, 0.0f, 1.0f), float3(0.2f, 0.2f, 0.2f), 0.4f};
 
-	//float4 directLight = CalculateLighting(Lights, material, input.PosW, input.NormalW.xyz, toEyeW);
-	float4 directLight = float4(CalculatePoint(light, material, input.PosW, input.NormalW.xyz, toEyeW), 1.0f);
+	float4 directLight = CalculateLighting(Lights, material, input.PosW, input.NormalW.xyz, toEyeW);
+	//float4 directLight = float4(CalculatePoint(light, material, input.PosW, input.NormalW.xyz, toEyeW), 1.0f);
 
 	float4 litColor = Ambient * 0.1f + directLight;
 
