@@ -21,7 +21,7 @@ Material* MaterialManager::GetMaterial(std::string sName)
 	{
 		LOG_ERROR(tag, L"Tried to get material called %s but one with that name doesn't exist!", sName);
 
-		return false;
+		return nullptr;
 	}
 
 	return m_Materials[sName];
