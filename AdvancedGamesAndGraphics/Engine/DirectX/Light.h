@@ -2,8 +2,29 @@
 
 #include <DirectXMath.h>
 
+enum class LightType
+{
+	SPOT = 0,
+	POINT,
+	DIRECTIONAL
+};
+
 struct Light
 {
+	Light()
+	{
+		Direction = DirectX::XMFLOAT3();
+		FallOffStart = 0;
+
+		Color = DirectX::XMFLOAT3();
+		FallOffEnd = 0;
+
+		Position = DirectX::XMFLOAT3();
+		SpotLightPower = 0;
+
+		InUse = false;
+	}
+
 	DirectX::XMFLOAT3 Direction;
 	float FallOffStart;
 
@@ -12,6 +33,10 @@ struct Light
 
 	DirectX::XMFLOAT3 Position;
 	float SpotLightPower;
+
+	DirectX::XMFLOAT2 pad;
+	bool InUse;
+	LightType Type;
 };
 
 struct PointLight : Light
@@ -22,6 +47,8 @@ struct PointLight : Light
 		Color = color;
 		FallOffStart = fFallOffStart;
 		FallOffEnd = fFallOffEnd;
+		InUse = true;
+		Type = LightType::POINT;
 	}
 };
 
@@ -35,6 +62,8 @@ struct SpotLight : Light
 		FallOffEnd = fFallOffEnd;
 		Direction = direction;
 		SpotLightPower = fSpotLightPower;
+		InUse = true;
+		Type = LightType::SPOT;
 	}
 };
 
@@ -45,5 +74,7 @@ struct DirectionalLight : Light
 		Position = position;
 		Color = color;
 		Direction = direction;
+		InUse = true;
+		Type = LightType::DIRECTIONAL;
 	}
 };

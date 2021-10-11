@@ -9,6 +9,8 @@
 
 class Timer;
 
+struct Light;
+
 class BasicApp : public App
 {
 public:

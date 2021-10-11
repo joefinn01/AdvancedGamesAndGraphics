@@ -6,6 +6,8 @@
 #include "Engine/Cameras/DebugCamera.h"
 #include "Engine/Managers/ShaderManager.h"
 #include "Engine/Managers/MaterialManager.h"
+#include "Engine/Managers/LightManager.h"
+#include "Engine/DirectX/Light.h"
 
 #if PIX
 #include "pix3.h"
@@ -80,7 +82,6 @@ void BasicApp::Update(const Timer& kTimer)
 
 	UINT uiCount = 0;
 
-
 	VisibleGameObjectCB visibleGameObjectCB;
 
 	GameObject* pGameObject = ObjectManager::GetInstance()->GetGameObject("Box2");
@@ -113,6 +114,17 @@ void BasicApp::Update(const Timer& kTimer)
 	constants.InvTransposeViewProjection = XMMatrixTranspose(XMMatrixInverse(&XMMatrixDeterminant(viewProj), viewProj));
 
 	XMMatrixInverse(&XMMatrixDeterminant(viewProj), viewProj);
+
+	Light* pLight = nullptr;
+
+	//Update the light constant buffer
+	for (int i = 0; i < MAX_LIGHTS; ++i)
+	{
+		constants.Lights[i] = *LightManager::GetInstance()->GetLight(i);
+	}
+
+	constants.Ambient = XMFLOAT4(1, 0, 0, 1);
+	constants.EyePosition = ObjectManager::GetInstance()->GetActiveCamera()->GetPosition();
 
 	m_pPerFrameCB->CopyData(0, constants);
 }
@@ -328,8 +340,8 @@ void BasicApp::CreateShadersAndUploadBuffers()
 	m_pPerFrameCB = new UploadBuffer<PerFrameCB>(m_pDevice.Get(), 1, true);
 
 	//Compile shaders
-	pVertexShader = ShaderManager::GetInstance()->CompileShader<VisibleGameObjectCB>(L"Shaders/VertexShader.hlsl", "VS", nullptr, "main", "vs_5_0", visibleCBUploadBuffer);
-	pPixelShader = ShaderManager::GetInstance()->CompileShader<VisibleGameObjectCB>(L"Shaders/PixelShader.hlsl", "PS", nullptr, "main", "ps_5_0", visibleCBUploadBuffer);
+	pVertexShader = ShaderManager::GetInstance()->CompileShader<VisibleGameObjectCB>(L"Shaders/VertexShader.hlsl", "VS", nullptr, "VSMain", "vs_5_0", visibleCBUploadBuffer);
+	pPixelShader = ShaderManager::GetInstance()->CompileShader<VisibleGameObjectCB>(L"Shaders/VertexShader.hlsl", "PS", nullptr, "PSMain", "ps_5_0", visibleCBUploadBuffer);
 }
 
 void BasicApp::CreateInputDescriptions()
@@ -338,18 +350,18 @@ void BasicApp::CreateInputDescriptions()
 	m_VertexInputLayoutDesc =
 	{
 		{ "POSITION", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, 0, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0 },
-		{ "COLOR", 0, DXGI_FORMAT_R32G32B32A32_FLOAT, 0, 12, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0 },
-		{ "NORMAL", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, 28, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0}
+		{ "NORMAL", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, 12, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0}
 	};
 }
 
 bool BasicApp::CreateRootSignature()
 {
-	CD3DX12_ROOT_PARAMETER slotRootParameter[3] = {};
+	CD3DX12_ROOT_PARAMETER slotRootParameter[4] = {};
 
 	slotRootParameter[0].InitAsConstantBufferView(0);	//Per frame CB
 	slotRootParameter[1].InitAsConstantBufferView(1);	//Per object CB
 	slotRootParameter[2].InitAsConstantBufferView(2);	//Material CB
+	slotRootParameter[3].InitAsConstantBufferView(3);	//Light CB
 
 	CD3DX12_ROOT_SIGNATURE_DESC rootSignatureDesc;
 	rootSignatureDesc.Init((UINT)3, slotRootParameter, 0, nullptr, D3D12_ROOT_SIGNATURE_FLAG_ALLOW_INPUT_ASSEMBLER_INPUT_LAYOUT);

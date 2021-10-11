@@ -34,14 +34,14 @@ bool VisibleGameObject::Init(std::string sName, DirectX::XMFLOAT3 position, Dire
 
 	std::array<Vertex, 8> vertices =
 	{
-		Vertex({ XMFLOAT3(-1.0f, -1.0f, -1.0f), XMFLOAT4(DirectX::Colors::White) }),
-		Vertex({ XMFLOAT3(-1.0f, +1.0f, -1.0f), XMFLOAT4(DirectX::Colors::Black) }),
-		Vertex({ XMFLOAT3(+1.0f, +1.0f, -1.0f), XMFLOAT4(DirectX::Colors::Red) }),
-		Vertex({ XMFLOAT3(+1.0f, -1.0f, -1.0f), XMFLOAT4(DirectX::Colors::Green) }),
-		Vertex({ XMFLOAT3(-1.0f, -1.0f, +1.0f), XMFLOAT4(DirectX::Colors::Blue) }),
-		Vertex({ XMFLOAT3(-1.0f, +1.0f, +1.0f), XMFLOAT4(DirectX::Colors::Yellow) }),
-		Vertex({ XMFLOAT3(+1.0f, +1.0f, +1.0f), XMFLOAT4(DirectX::Colors::Cyan) }),
-		Vertex({ XMFLOAT3(+1.0f, -1.0f, +1.0f), XMFLOAT4(DirectX::Colors::Magenta) })
+		Vertex({ XMFLOAT3(-1.0f, -1.0f, -1.0f) }),
+		Vertex({ XMFLOAT3(-1.0f, +1.0f, -1.0f) }),
+		Vertex({ XMFLOAT3(+1.0f, +1.0f, -1.0f) }),
+		Vertex({ XMFLOAT3(+1.0f, -1.0f, -1.0f) }),
+		Vertex({ XMFLOAT3(-1.0f, -1.0f, +1.0f) }),
+		Vertex({ XMFLOAT3(-1.0f, +1.0f, +1.0f) }),
+		Vertex({ XMFLOAT3(+1.0f, +1.0f, +1.0f) }),
+		Vertex({ XMFLOAT3(+1.0f, -1.0f, +1.0f) })
 	};
 
 	std::array<std::uint16_t, 36> indices =

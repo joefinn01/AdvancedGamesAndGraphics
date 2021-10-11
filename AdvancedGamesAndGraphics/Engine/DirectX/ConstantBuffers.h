@@ -1,11 +1,21 @@
 #pragma once
 
+#include "Engine/Managers/LightManager.h"
+#include "Engine/DirectX/Light.h"
+
 #include <DirectXMath.h>
 
 struct PerFrameCB
 {
 	DirectX::XMMATRIX ViewProjection;
 	DirectX::XMMATRIX InvTransposeViewProjection;
+
+	Light Lights[MAX_LIGHTS];
+
+	DirectX::XMFLOAT4 Ambient;
+
+	DirectX::XMFLOAT3 EyePosition;
+	float pad;
 };
 
 struct GameObjectCB
