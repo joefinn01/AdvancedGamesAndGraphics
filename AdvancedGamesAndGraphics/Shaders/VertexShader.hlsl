@@ -10,7 +10,7 @@ struct VS_OUTPUT
 {
 	float4 PosH    : SV_POSITION;
 	float3 PosW    : POSITION;
-	float3 NormalW : NORMAL;
+	float4 NormalW : NORMAL;
 };
 
 cbuffer PerFrameCB : register(b0)
@@ -18,16 +18,17 @@ cbuffer PerFrameCB : register(b0)
 	float4x4 ViewProjection;
 	float4x4 InvTransposeViewProjection;
 
-	Light Lights[MaxLights];
+	Light Lights[MAX_LIGHTS];
 
 	float4 Ambient;
 
 	float3 EyePosW;
+	float pad;
 };
 
 cbuffer PerObjectCB : register(b1)
 {
-	float4x4 world;
+	float4x4 World;
 }
 
 cbuffer MaterialCB : register(b2)
@@ -41,10 +42,10 @@ VS_OUTPUT VSMain(VS_INPUT input)
 {
 	VS_OUTPUT result;
 
-	result.PosW = mul(float4(input.PosL, 1.0f), world);
-	result.PosH = mul(result.PosW, ViewProjection);
+	result.PosW = mul(float4(input.PosL, 1.0f), World).xyz;
+	result.PosH = mul(float4(result.PosW, 1.0f), ViewProjection);
 
-	result.NormalW = mul(float4(input.NormalL, InvTransposeViewProjection));
+	result.NormalW = mul(float4(input.NormalL, 1.0f), InvTransposeViewProjection);
 
 	return result;
 }
@@ -58,13 +59,22 @@ float4 PSMain(VS_OUTPUT input) : SV_TARGET
 	// Indirect lighting.
 	float4 ambient = Ambient * Diffuse;
 
-	Material material = { Diffuse, Fresnel, Roughness };
+	//Material material = { Diffuse, Fresnel, Roughness };
 
-	float4 directLight = ComputeLighting(Lights, material, input.PosW, input.NormalW, toEyeW);
+	Light light;
+	light.Position = float3(0, 0, 0);
+	light.FallOffStart = 20.0f;
+	light.FallOffEnd = 60.0f;
+	light.Color = float3(0.0f, 1.0f, 0.0f);
 
-	float4 litColor = ambient + directLight;
+	Material material = {float4(0.6f, 0.0f, 0.0f, 1.0f), float3(0.2f, 0.2f, 0.2f), 0.4f};
+
+	//float4 directLight = CalculateLighting(Lights, material, input.PosW, input.NormalW.xyz, toEyeW);
+	float4 directLight = float4(CalculatePoint(light, material, input.PosW, input.NormalW.xyz, toEyeW), 1.0f);
+
+	float4 litColor = Ambient * 0.1f + directLight;
 
 	litColor.a = Diffuse.a;
 
-	return litColor;
+	return directLight;
 }

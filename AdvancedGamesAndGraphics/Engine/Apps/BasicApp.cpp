@@ -123,7 +123,7 @@ void BasicApp::Update(const Timer& kTimer)
 		constants.Lights[i] = *LightManager::GetInstance()->GetLight(i);
 	}
 
-	constants.Ambient = XMFLOAT4(1, 0, 0, 1);
+	constants.Ambient = XMFLOAT4(1, 1, 1, 1);
 	constants.EyePosition = ObjectManager::GetInstance()->GetActiveCamera()->GetPosition();
 
 	m_pPerFrameCB->CopyData(0, constants);
@@ -286,6 +286,9 @@ void BasicApp::CreateGameObjects()
 
 	pGameObject = new VisibleGameObject();
 	pGameObject->Init("Box3", XMFLOAT3(5, 0, 10), XMFLOAT3(45, 45, 45), XMFLOAT3(1, 1, 1), "test");
+
+	Light* pPointLight = new PointLight(XMFLOAT3(), XMFLOAT3(0.0f, 1.0f, 0.0f), 10.0f, 50.0f);
+	LightManager::GetInstance()->AddLight(pPointLight);
 }
 
 void BasicApp::CreateMaterials()
@@ -361,7 +364,6 @@ bool BasicApp::CreateRootSignature()
 	slotRootParameter[0].InitAsConstantBufferView(0);	//Per frame CB
 	slotRootParameter[1].InitAsConstantBufferView(1);	//Per object CB
 	slotRootParameter[2].InitAsConstantBufferView(2);	//Material CB
-	slotRootParameter[3].InitAsConstantBufferView(3);	//Light CB
 
 	CD3DX12_ROOT_SIGNATURE_DESC rootSignatureDesc;
 	rootSignatureDesc.Init((UINT)3, slotRootParameter, 0, nullptr, D3D12_ROOT_SIGNATURE_FLAG_ALLOW_INPUT_ASSEMBLER_INPUT_LAYOUT);

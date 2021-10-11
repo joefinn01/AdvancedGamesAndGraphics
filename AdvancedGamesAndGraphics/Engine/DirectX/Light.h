@@ -34,9 +34,9 @@ struct Light
 	DirectX::XMFLOAT3 Position;
 	float SpotLightPower;
 
-	DirectX::XMFLOAT2 pad;
 	bool InUse;
 	LightType Type;
+	DirectX::XMFLOAT2 pad;
 };
 
 struct PointLight : Light

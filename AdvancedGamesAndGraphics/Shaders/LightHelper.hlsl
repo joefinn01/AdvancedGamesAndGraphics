@@ -20,11 +20,12 @@ struct Light
 	float FallOffEnd;
 	float3 Position;
 	float SpotLightPower;
-	bool InUse;
+	int InUse;
 	int Type;
+	float2 pad;
 };
 
-float Schlick(float fFresnel, float3 normal, float3 lightDir)
+float3 Schlick(float3 fFresnel, float3 normal, float3 lightDir)
 {
 	float fValue = 1.0f - saturate(dot(normal, lightDir));
 
@@ -97,13 +98,13 @@ float3 CalculateDirectional(Light light, Material material, float3 normal, float
 	return BlinnPhong(color, lightDir, normal, toEye, material);
 }
 
-float4 CalculateLight(Light lights[MAX_LIGHTS], Material material, float3 position, float3 normal, float3 toEye)
+float4 CalculateLighting(Light lights[MAX_LIGHTS], Material material, float3 position, float3 normal, float3 toEye)
 {
 	float3 result = 0.0f;
 
 	for (int i = 0; i < MAX_LIGHTS; ++i)
 	{
-		if (lights[i].InUse == false)
+		if (lights[i].InUse == 0)
 		{
 			continue;
 		}
@@ -122,5 +123,5 @@ float4 CalculateLight(Light lights[MAX_LIGHTS], Material material, float3 positi
 		}
 	}
 
-	return float4(result, 0.0f);
+	return float4(result, 1.0f);
 }
