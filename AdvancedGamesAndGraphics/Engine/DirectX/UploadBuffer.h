@@ -52,7 +52,7 @@ public:
 		//Ensuring always a multiple of 255 by adding 255 and masking bits
 		if (bIsConstant)
 		{
-			m_uiByteSize = MathHelper::CalculatePackedBufferSize(m_uiByteSize);
+			m_uiByteSize = DirectXHelper::CalculatePackedBufferSize(m_uiByteSize);
 		}
 
 		HRESULT hr = pDevice->CreateCommittedResource(&CD3DX12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_UPLOAD),
