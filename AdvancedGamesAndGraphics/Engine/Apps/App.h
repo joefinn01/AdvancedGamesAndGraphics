@@ -37,7 +37,7 @@ public:
 	void Set4xMSAAState(bool bState);
 
 	ID3D12GraphicsCommandList4* GetGraphicsCommandList();
-	ID3D12Device4* GetDevice();
+	ID3D12Device* GetDevice();
 
 	static App* GetApp();
 
@@ -67,7 +67,7 @@ protected:
 	HINSTANCE m_AppInstance = nullptr;
 
 	Microsoft::WRL::ComPtr<IDXGIFactory4> m_pDXGIFactory = nullptr;
-	Microsoft::WRL::ComPtr<ID3D12Device4> m_pDevice = nullptr;
+	Microsoft::WRL::ComPtr<ID3D12Device> m_pDevice = nullptr;
 	Microsoft::WRL::ComPtr<ID3D12Fence> m_pFence = nullptr;
 
 	Microsoft::WRL::ComPtr<IDXGISwapChain1> m_pSwapChain = nullptr;

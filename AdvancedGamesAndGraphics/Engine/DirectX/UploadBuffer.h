@@ -9,7 +9,7 @@ template<class T>
 class UploadBuffer
 {
 public:
-	UploadBuffer(ID3D12Device4* pDevice, UINT uiCount, bool bIsConstant)
+	UploadBuffer(ID3D12Device* pDevice, UINT uiCount, bool bIsConstant)
 	{
 		m_bIsConstant = bIsConstant;
 		m_uiByteSize = sizeof(T);
@@ -44,7 +44,7 @@ public:
 		}
 	}
 
-	UploadBuffer(ID3D12Device4* pDevice, UINT uiCount, bool bIsConstant, UINT uiByteSize)
+	UploadBuffer(ID3D12Device* pDevice, UINT uiCount, bool bIsConstant, UINT uiByteSize)
 	{
 		m_bIsConstant = bIsConstant;
 		m_uiByteSize = uiByteSize;

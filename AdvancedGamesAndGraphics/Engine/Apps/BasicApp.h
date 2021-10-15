@@ -6,6 +6,7 @@
 
 #include <DirectXMath.h>
 #include <vector>
+#include <array>
 
 class Timer;
 
@@ -28,12 +29,16 @@ protected:
 
 	void CreateGameObjects();
 	void CreateMaterials();
+	void CreateTextures();
 	void CreateMaterialsUploadBuffer();
 	void CreateShadersAndUploadBuffers();
 	void CreateInputDescriptions();
 
+	std::array<const CD3DX12_STATIC_SAMPLER_DESC, 6> GetStaticSamplers();
+
 	bool CreateRootSignature();
 	bool CreateDescriptorHeaps();
+	void PopulateTextureHeap();
 	bool CreatePSOs();
 
 	void InitIMGUI();
@@ -47,6 +52,7 @@ protected:
 	UploadBuffer<MaterialCB>* m_pMaterialCB = nullptr;
 
 	Microsoft::WRL::ComPtr<ID3D12DescriptorHeap> m_pIMGUIDescHeap = nullptr;
+	Microsoft::WRL::ComPtr<ID3D12DescriptorHeap> m_pTextureDescHeap = nullptr;
 
 	std::vector<D3D12_INPUT_ELEMENT_DESC> m_VertexInputLayoutDesc;
 

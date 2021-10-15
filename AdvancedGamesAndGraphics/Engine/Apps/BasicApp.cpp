@@ -7,6 +7,7 @@
 #include "Engine/Managers/ShaderManager.h"
 #include "Engine/Managers/MaterialManager.h"
 #include "Engine/Managers/LightManager.h"
+#include "Engine/Managers/TextureManager.h"
 #include "Engine/DirectX/Light.h"
 
 #if PIX
@@ -45,7 +46,7 @@ bool BasicApp::Init()
 	}
 
 	CreateMaterials();
-
+	CreateTextures();
 	CreateGameObjects();
 
 	CreateMaterialsUploadBuffer();
@@ -54,6 +55,8 @@ bool BasicApp::Init()
 	{
 		return false;
 	}
+
+	PopulateTextureHeap();
 
 	if (CreateRootSignature() == false)
 	{
@@ -172,6 +175,9 @@ void BasicApp::Draw()
 	// Bind the depth buffer
 	m_pGraphicsCommandList->OMSetRenderTargets(1, &GetCurrentBackBufferView(), FALSE, &GetDepthStencilView());
 
+	ID3D12DescriptorHeap* descriptorHeaps[] = { m_pTextureDescHeap.Get() };
+	m_pGraphicsCommandList->SetDescriptorHeaps(_countof(descriptorHeaps), descriptorHeaps);
+
 	const float clearColor[] = { 0.5f, 0.3f, 0.7f, 1.0f };
 
 	m_pGraphicsCommandList->ClearDepthStencilView(GetDepthStencilView(), D3D12_CLEAR_FLAG_DEPTH | D3D12_CLEAR_FLAG_STENCIL, 1.0f, 0, 0, nullptr);
@@ -191,6 +197,8 @@ void BasicApp::Draw()
 	UINT uiMatByteSize = DirectXHelper::CalculatePaddedConstantBufferSize(sizeof(MaterialCB));
 	D3D12_GPU_VIRTUAL_ADDRESS matCBAdress;
 
+	CD3DX12_GPU_DESCRIPTOR_HANDLE textureAddress;
+
 	for (std::unordered_map<std::string, GameObject*>::iterator it = pGameObjects->begin(); it != pGameObjects->end(); ++it)
 	{
 		//Set the per object constant buffer
@@ -206,6 +214,11 @@ void BasicApp::Draw()
 
 			//Set the material constant buffer
 			m_pGraphicsCommandList->SetGraphicsRootConstantBufferView(2, matCBAdress);
+
+			textureAddress = m_pTextureDescHeap->GetGPUDescriptorHandleForHeapStart();
+			textureAddress.Offset(pVisibleGameObject->GetTexture()->HeapIndex, m_uiCBVSRVDescSize);
+
+			m_pGraphicsCommandList->SetGraphicsRootDescriptorTable(3, textureAddress);
 
 			pVisibleGameObject->Draw();
 
@@ -287,7 +300,7 @@ void BasicApp::CreateGameObjects()
 
 	VisibleGameObject* pGameObject = new VisibleGameObject();
 	//pGameObject->Init("Box1", XMFLOAT3(0, 0, 10), XMFLOAT3(5, 21, 11), XMFLOAT3(0.2f, 0.2f, 0.2f), "test");
-	pGameObject->Init("Box1", XMFLOAT3(0, 0, 10), XMFLOAT3(0, 0, 0), XMFLOAT3(3, 3, 3), "test");
+	pGameObject->Init("Box1", XMFLOAT3(0, 0, 10), XMFLOAT3(0, 0, 0), XMFLOAT3(3, 3, 3), "test", "test");
 
 	//pGameObject = new VisibleGameObject();
 	//pGameObject->Init("Box2", XMFLOAT3(-5, 0, 10), XMFLOAT3(75, 44, 0), XMFLOAT3(3, 2, 1), "test");
@@ -296,12 +309,12 @@ void BasicApp::CreateGameObjects()
 	//pGameObject->Init("Box3", XMFLOAT3(5, 0, 10), XMFLOAT3(45, 45, 45), XMFLOAT3(1, 1, 1), "test");
 
 	pGameObject = new VisibleGameObject();
-	pGameObject->Init("Box4", XMFLOAT3(0, 0, 0), XMFLOAT3(0, 0, 0), XMFLOAT3(0.2f, 0.2f, 0.2f), "test");
+	pGameObject->Init("Box4", XMFLOAT3(0, 0, 0), XMFLOAT3(0, 0, 0), XMFLOAT3(0.2f, 0.2f, 0.2f), "test", "test");
 
 	Light* pPointLight = new PointLight(XMFLOAT3(), XMFLOAT3(0.2f, 0.2f, 0.2f), XMFLOAT3(1.0f, 1.0f, 1.0f), XMFLOAT4(0.5f, 0.5f, 0.5f, 10.0f), XMFLOAT3(0.2f, 0.09f, 0.0f), 1000.0f);
 	Light* pSpotLight = new SpotLight(XMFLOAT3(), XMFLOAT3(0.2f, 0.2f, 0.2f), XMFLOAT3(1.0f, 1.0f, 1.0f), XMFLOAT4(0.5f, 0.5f, 0.5f, 10.0f), XMFLOAT3(0.2f, 0.09f, 0.0f), 1000.0f, XMFLOAT4(0, 0, 1, 1), 45.0f);
 	Light* pDirectionalLight = new DirectionalLight(XMFLOAT3(0.1f, 0.1f, 0.1f), XMFLOAT3(0.75f, 0.75f, 0.75f), XMFLOAT4(0.5f, 0.5f, 0.5f, 10), XMFLOAT4(0, -0.707f, 0.707f, 1));
-	LightManager::GetInstance()->AddLight(pDirectionalLight);
+	LightManager::GetInstance()->AddLight(pSpotLight);
 	//LightManager::GetInstance()->AddLight(pPointLight);
 }
 
@@ -314,6 +327,11 @@ void BasicApp::CreateMaterials()
 	pMat->Specular = XMFLOAT4(0.5f, 0.5f, 0.5f, 10.0f);
 
 	MaterialManager::GetInstance()->AddMaterial(pMat);
+}
+
+void BasicApp::CreateTextures()
+{
+	TextureManager::GetInstance()->AddTexture("test", L"Textures/color.dds");
 }
 
 void BasicApp::CreateMaterialsUploadBuffer()
@@ -342,7 +360,6 @@ void BasicApp::CreateShadersAndUploadBuffers()
 {
 	//Compile shaders
 	ComPtr<ID3DBlob> pVertexShader;
-	ComPtr<ID3DBlob> pGeometryShader;
 	ComPtr<ID3DBlob> pPixelShader;
 
 #if _DEBUG
@@ -359,8 +376,7 @@ void BasicApp::CreateShadersAndUploadBuffers()
 
 	//Compile shaders
 	pVertexShader = ShaderManager::GetInstance()->CompileShader<VisibleGameObjectCB>(L"Shaders/VertexShader.hlsl", "VS", nullptr, "VSMain", "vs_5_0", visibleCBUploadBuffer);
-	pGeometryShader = ShaderManager::GetInstance()->CompileShader<VisibleGameObjectCB>(L"Shaders/VertexShader.hlsl", "PS", nullptr, "PSMain", "ps_5_0", visibleCBUploadBuffer);
-	pPixelShader = ShaderManager::GetInstance()->CompileShader<VisibleGameObjectCB>(L"Shaders/VertexShader.hlsl", "GS", nullptr, "GSMain", "gs_5_0", visibleCBUploadBuffer);
+	pPixelShader = ShaderManager::GetInstance()->CompileShader<VisibleGameObjectCB>(L"Shaders/VertexShader.hlsl", "PS", nullptr, "PSMain", "ps_5_0", visibleCBUploadBuffer);
 }
 
 void BasicApp::CreateInputDescriptions()
@@ -369,20 +385,83 @@ void BasicApp::CreateInputDescriptions()
 	m_VertexInputLayoutDesc =
 	{
 		{ "POSITION", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, 0, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0 },
-		{ "NORMAL", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, 12, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0}
+		{ "NORMAL", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, 12, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0},
+		{ "TEXCOORD", 0, DXGI_FORMAT_R32G32_FLOAT, 0, 24, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0}
 	};
+}
+
+std::array<const CD3DX12_STATIC_SAMPLER_DESC, 6> BasicApp::GetStaticSamplers()
+{
+	const CD3DX12_STATIC_SAMPLER_DESC pointWrap(
+		0, // shaderRegister
+		D3D12_FILTER_MIN_MAG_MIP_POINT, // filter
+		D3D12_TEXTURE_ADDRESS_MODE_WRAP,  // addressU
+		D3D12_TEXTURE_ADDRESS_MODE_WRAP,  // addressV
+		D3D12_TEXTURE_ADDRESS_MODE_WRAP); // addressW
+
+	const CD3DX12_STATIC_SAMPLER_DESC pointClamp(
+		1, // shaderRegister
+		D3D12_FILTER_MIN_MAG_MIP_POINT, // filter
+		D3D12_TEXTURE_ADDRESS_MODE_CLAMP,  // addressU
+		D3D12_TEXTURE_ADDRESS_MODE_CLAMP,  // addressV
+		D3D12_TEXTURE_ADDRESS_MODE_CLAMP); // addressW
+
+	const CD3DX12_STATIC_SAMPLER_DESC linearWrap(
+		2, // shaderRegister
+		D3D12_FILTER_MIN_MAG_MIP_LINEAR, // filter
+		D3D12_TEXTURE_ADDRESS_MODE_WRAP,  // addressU
+		D3D12_TEXTURE_ADDRESS_MODE_WRAP,  // addressV
+		D3D12_TEXTURE_ADDRESS_MODE_WRAP); // addressW
+
+	const CD3DX12_STATIC_SAMPLER_DESC linearClamp(
+		3, // shaderRegister
+		D3D12_FILTER_MIN_MAG_MIP_LINEAR, // filter
+		D3D12_TEXTURE_ADDRESS_MODE_CLAMP,  // addressU
+		D3D12_TEXTURE_ADDRESS_MODE_CLAMP,  // addressV
+		D3D12_TEXTURE_ADDRESS_MODE_CLAMP); // addressW
+
+	const CD3DX12_STATIC_SAMPLER_DESC anisotropicWrap(
+		4, // shaderRegister
+		D3D12_FILTER_ANISOTROPIC, // filter
+		D3D12_TEXTURE_ADDRESS_MODE_WRAP,  // addressU
+		D3D12_TEXTURE_ADDRESS_MODE_WRAP,  // addressV
+		D3D12_TEXTURE_ADDRESS_MODE_WRAP,  // addressW
+		0.0f,                             // mipLODBias
+		8);                               // maxAnisotropy
+
+	const CD3DX12_STATIC_SAMPLER_DESC anisotropicClamp(
+		5, // shaderRegister
+		D3D12_FILTER_ANISOTROPIC, // filter
+		D3D12_TEXTURE_ADDRESS_MODE_CLAMP,  // addressU
+		D3D12_TEXTURE_ADDRESS_MODE_CLAMP,  // addressV
+		D3D12_TEXTURE_ADDRESS_MODE_CLAMP,  // addressW
+		0.0f,                              // mipLODBias
+		8);                                // maxAnisotropy
+
+	return {
+		pointWrap, pointClamp,
+		linearWrap, linearClamp,
+		anisotropicWrap, anisotropicClamp };
 }
 
 bool BasicApp::CreateRootSignature()
 {
-	CD3DX12_ROOT_PARAMETER slotRootParameter[3] = {};
+	CD3DX12_DESCRIPTOR_RANGE textureTable;
+	textureTable.Init(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, TextureManager::GetInstance()->GetTextures()->size(), 3);
+
+	CD3DX12_ROOT_PARAMETER slotRootParameter[4] = {};
 
 	slotRootParameter[0].InitAsConstantBufferView(0);	//Per frame CB
 	slotRootParameter[1].InitAsConstantBufferView(1);	//Per object CB
 	slotRootParameter[2].InitAsConstantBufferView(2);	//Material CB
+	slotRootParameter[3].InitAsDescriptorTable(1, &textureTable);	//Material CB
+
+	std::array<const CD3DX12_STATIC_SAMPLER_DESC, 6> staticSamplers = GetStaticSamplers();
+
+
 
 	CD3DX12_ROOT_SIGNATURE_DESC rootSignatureDesc;
-	rootSignatureDesc.Init((UINT)3, slotRootParameter, 0, nullptr, D3D12_ROOT_SIGNATURE_FLAG_ALLOW_INPUT_ASSEMBLER_INPUT_LAYOUT);
+	rootSignatureDesc.Init((UINT)4, slotRootParameter, (UINT)staticSamplers.size(), staticSamplers.data(), D3D12_ROOT_SIGNATURE_FLAG_ALLOW_INPUT_ASSEMBLER_INPUT_LAYOUT);
 
 	ComPtr<ID3DBlob> signature;
 	ComPtr<ID3DBlob> error;
@@ -410,7 +489,7 @@ bool BasicApp::CreateRootSignature()
 
 bool BasicApp::CreateDescriptorHeaps()
 {
-	D3D12_DESCRIPTOR_HEAP_DESC IMGUIheapDescs;
+	D3D12_DESCRIPTOR_HEAP_DESC IMGUIheapDescs = {};
 	IMGUIheapDescs.NumDescriptors = 1;
 	IMGUIheapDescs.Type = D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV;
 	IMGUIheapDescs.Flags = D3D12_DESCRIPTOR_HEAP_FLAG_SHADER_VISIBLE;
@@ -425,7 +504,52 @@ bool BasicApp::CreateDescriptorHeaps()
 		return false;
 	}
 
+	D3D12_DESCRIPTOR_HEAP_DESC srvDesc = {};
+	srvDesc.NumDescriptors = TextureManager::GetInstance()->GetTextures()->size();
+	srvDesc.Type = D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV;
+	srvDesc.Flags = D3D12_DESCRIPTOR_HEAP_FLAG_SHADER_VISIBLE;
+
+	hr = m_pDevice->CreateDescriptorHeap(&srvDesc, IID_PPV_ARGS(&m_pTextureDescHeap));
+
+	if (FAILED(hr))
+	{
+		LOG_ERROR(tag, L"Failed to create the texture buffer heap!");
+
+		return false;
+	}
+
 	return true;
+}
+
+void BasicApp::PopulateTextureHeap()
+{
+	std::unordered_map<std::string, D3DTextureData*>* pTextures = TextureManager::GetInstance()->GetTextures();
+
+	CD3DX12_CPU_DESCRIPTOR_HANDLE descHandle = CD3DX12_CPU_DESCRIPTOR_HANDLE(m_pTextureDescHeap->GetCPUDescriptorHandleForHeapStart());
+
+	D3D12_SHADER_RESOURCE_VIEW_DESC srvDesc = {};
+	srvDesc.Shader4ComponentMapping = D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING;
+	srvDesc.ViewDimension = D3D12_SRV_DIMENSION_TEXTURE2D;
+	srvDesc.Texture2D.MostDetailedMip = 0;
+	srvDesc.Texture2D.ResourceMinLODClamp = 0.0f;
+
+	UINT uiCount = 0;
+
+	for (std::unordered_map<std::string, D3DTextureData*>::iterator it = pTextures->begin(); it != pTextures->end(); ++it)
+	{
+		//Cerate shader resource view
+		srvDesc.Texture2D.MipLevels = it->second->pResource->GetDesc().MipLevels;
+		srvDesc.Format = it->second->pResource->GetDesc().Format;
+
+		m_pDevice->CreateShaderResourceView(it->second->pResource.Get(), &srvDesc, descHandle);
+
+		//Offset handle ready for next view
+		descHandle.Offset(1, m_uiCBVSRVDescSize);
+
+		it->second->HeapIndex = uiCount;
+
+		++uiCount;
+	}
 }
 
 bool BasicApp::CreatePSOs()
@@ -435,7 +559,6 @@ bool BasicApp::CreatePSOs()
 	psoDesc.InputLayout = { m_VertexInputLayoutDesc.data(), (UINT)m_VertexInputLayoutDesc.size() };
 	psoDesc.pRootSignature = m_pRootSignature.Get();
 	psoDesc.VS = CD3DX12_SHADER_BYTECODE(ShaderManager::GetInstance()->GetShader<VisibleGameObjectCB>("VS")->GetShaderBlob().Get());
-	//psoDesc.GS = CD3DX12_SHADER_BYTECODE(ShaderManager::GetInstance()->GetShader<VisibleGameObjectCB>("GS")->GetShaderBlob().Get());
 	psoDesc.PS = CD3DX12_SHADER_BYTECODE(ShaderManager::GetInstance()->GetShader<VisibleGameObjectCB>("PS")->GetShaderBlob().Get());
 	psoDesc.RasterizerState = CD3DX12_RASTERIZER_DESC(D3D12_DEFAULT);
 	psoDesc.BlendState = CD3DX12_BLEND_DESC(D3D12_DEFAULT);
