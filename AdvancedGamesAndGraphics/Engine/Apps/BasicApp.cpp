@@ -84,14 +84,23 @@ void BasicApp::Update(const Timer& kTimer)
 
 	VisibleGameObjectCB visibleGameObjectCB;
 
-	GameObject* pGameObject = ObjectManager::GetInstance()->GetGameObject("Box2");
+	GameObject* pGameObject = ObjectManager::GetInstance()->GetGameObject("Box1");
 	pGameObject->Rotate(0.0f, 10.0f * kTimer.DeltaTime(), 0.0f);
+
+	//GameObject* pGameObject = ObjectManager::GetInstance()->GetGameObject("Box2");
+	//pGameObject->Rotate(0.0f, 10.0f * kTimer.DeltaTime(), 0.0f);
 
 	for (std::unordered_map<std::string, GameObject*>::iterator it = ObjectManager::GetInstance()->GetGameObjects()->begin(); it != ObjectManager::GetInstance()->GetGameObjects()->end(); ++it)
 	{
 		it->second->Update(kTimer);
 
-		visibleGameObjectCB.World = XMMatrixTranspose(XMLoadFloat4x4(&it->second->GetWorldMatrix()));
+		XMMATRIX world = XMLoadFloat4x4(&it->second->GetWorldMatrix());
+
+		visibleGameObjectCB.World = XMMatrixTranspose(world);
+
+		world.r[3] = XMVectorSet(0, 0, 0, 1);
+
+		visibleGameObjectCB.InvWorld = XMMatrixInverse(nullptr, world);
 
 		pUploadBuffer->CopyData(uiCount, visibleGameObjectCB);
 
@@ -111,9 +120,7 @@ void BasicApp::Update(const Timer& kTimer)
 	//Zero out the translation component so it doesn't cause issues when transforming the normal
 	viewProj.r[3] = XMVectorSet(0, 0, 0, 1);
 
-	constants.InvTransposeViewProjection = XMMatrixTranspose(XMMatrixInverse(&XMMatrixDeterminant(viewProj), viewProj));
-
-	XMMatrixInverse(&XMMatrixDeterminant(viewProj), viewProj);
+	constants.InvTransposeViewProjection = XMMatrixInverse(&XMMatrixDeterminant(viewProj), viewProj);
 
 	Light* pLight = nullptr;
 
@@ -123,7 +130,7 @@ void BasicApp::Update(const Timer& kTimer)
 		constants.Lights[i] = *LightManager::GetInstance()->GetLight(i);
 	}
 
-	constants.Ambient = XMFLOAT4(1, 1, 1, 1);
+	constants.Ambient = XMFLOAT4(0.0f, 0.0f, 0.0f, 1);
 	constants.EyePosition = ObjectManager::GetInstance()->GetActiveCamera()->GetPosition();
 
 	m_pPerFrameCB->CopyData(0, constants);
@@ -198,7 +205,7 @@ void BasicApp::Draw()
 			matCBAdress = m_pMaterialCB->Get()->GetGPUVirtualAddress() + uiMatByteSize * pVisibleGameObject->GetMaterial()->CBIndex;
 
 			//Set the material constant buffer
-			m_pGraphicsCommandList->SetGraphicsRootConstantBufferView(2, perObjCBAddress);
+			m_pGraphicsCommandList->SetGraphicsRootConstantBufferView(2, matCBAdress);
 
 			pVisibleGameObject->Draw();
 
@@ -279,25 +286,32 @@ void BasicApp::CreateGameObjects()
 	ObjectManager::GetInstance()->SetActiveCamera(pCamera);
 
 	VisibleGameObject* pGameObject = new VisibleGameObject();
-	pGameObject->Init("Box1", XMFLOAT3(0, 0, 10), XMFLOAT3(5, 21, 11), XMFLOAT3(0.2f, 0.2f, 0.2f), "test");
+	//pGameObject->Init("Box1", XMFLOAT3(0, 0, 10), XMFLOAT3(5, 21, 11), XMFLOAT3(0.2f, 0.2f, 0.2f), "test");
+	pGameObject->Init("Box1", XMFLOAT3(0, 0, 10), XMFLOAT3(0, 0, 0), XMFLOAT3(3, 3, 3), "test");
+
+	//pGameObject = new VisibleGameObject();
+	//pGameObject->Init("Box2", XMFLOAT3(-5, 0, 10), XMFLOAT3(75, 44, 0), XMFLOAT3(3, 2, 1), "test");
+
+	//pGameObject = new VisibleGameObject();
+	//pGameObject->Init("Box3", XMFLOAT3(5, 0, 10), XMFLOAT3(45, 45, 45), XMFLOAT3(1, 1, 1), "test");
 
 	pGameObject = new VisibleGameObject();
-	pGameObject->Init("Box2", XMFLOAT3(-5, 0, 10), XMFLOAT3(75, 44, 0), XMFLOAT3(3, 2, 1), "test");
+	pGameObject->Init("Box4", XMFLOAT3(0, 0, 0), XMFLOAT3(0, 0, 0), XMFLOAT3(0.2f, 0.2f, 0.2f), "test");
 
-	pGameObject = new VisibleGameObject();
-	pGameObject->Init("Box3", XMFLOAT3(5, 0, 10), XMFLOAT3(45, 45, 45), XMFLOAT3(1, 1, 1), "test");
-
-	Light* pPointLight = new PointLight(XMFLOAT3(), XMFLOAT3(0.0f, 1.0f, 0.0f), 10.0f, 50.0f);
-	LightManager::GetInstance()->AddLight(pPointLight);
+	Light* pPointLight = new PointLight(XMFLOAT3(), XMFLOAT3(0.2f, 0.2f, 0.2f), XMFLOAT3(1.0f, 1.0f, 1.0f), XMFLOAT4(0.5f, 0.5f, 0.5f, 10.0f), XMFLOAT3(0.2f, 0.09f, 0.0f), 1000.0f);
+	Light* pSpotLight = new SpotLight(XMFLOAT3(), XMFLOAT3(0.2f, 0.2f, 0.2f), XMFLOAT3(1.0f, 1.0f, 1.0f), XMFLOAT4(0.5f, 0.5f, 0.5f, 10.0f), XMFLOAT3(0.2f, 0.09f, 0.0f), 1000.0f, XMFLOAT4(0, 0, 1, 1), 45.0f);
+	Light* pDirectionalLight = new DirectionalLight(XMFLOAT3(0.1f, 0.1f, 0.1f), XMFLOAT3(0.75f, 0.75f, 0.75f), XMFLOAT4(0.5f, 0.5f, 0.5f, 10), XMFLOAT4(0, -0.707f, 0.707f, 1));
+	LightManager::GetInstance()->AddLight(pDirectionalLight);
+	//LightManager::GetInstance()->AddLight(pPointLight);
 }
 
 void BasicApp::CreateMaterials()
 {
 	Material* pMat = new Material();
 	pMat->name = "test";
-	pMat->diffuse = XMFLOAT4(0.6f, 0.0f, 0.0f, 1.0f);
-	pMat->fresnel = XMFLOAT3(0.2f, 0.2f, 0.2f);
-	pMat->roughness = 0.4f;
+	pMat->Ambient = XMFLOAT4(0.1f, 0.1f, 0.1f, 1.0f);
+	pMat->Diffuse = XMFLOAT4(0.0f, 0.467f, 1.0f, 0.745f);
+	pMat->Specular = XMFLOAT4(0.5f, 0.5f, 0.5f, 10.0f);
 
 	MaterialManager::GetInstance()->AddMaterial(pMat);
 }
@@ -314,9 +328,9 @@ void BasicApp::CreateMaterialsUploadBuffer()
 	{
 		it->second->CBIndex = uiCount;
 
-		mat.diffuse = it->second->diffuse;
-		mat.fresnel = it->second->fresnel;
-		mat.roughness = it->second->roughness;
+		mat.Ambient = it->second->Ambient;
+		mat.Diffuse = it->second->Diffuse;
+		mat.Specular = it->second->Specular;
 
 		m_pMaterialCB->CopyData(uiCount, mat);
 
@@ -328,6 +342,7 @@ void BasicApp::CreateShadersAndUploadBuffers()
 {
 	//Compile shaders
 	ComPtr<ID3DBlob> pVertexShader;
+	ComPtr<ID3DBlob> pGeometryShader;
 	ComPtr<ID3DBlob> pPixelShader;
 
 #if _DEBUG
@@ -344,7 +359,8 @@ void BasicApp::CreateShadersAndUploadBuffers()
 
 	//Compile shaders
 	pVertexShader = ShaderManager::GetInstance()->CompileShader<VisibleGameObjectCB>(L"Shaders/VertexShader.hlsl", "VS", nullptr, "VSMain", "vs_5_0", visibleCBUploadBuffer);
-	pPixelShader = ShaderManager::GetInstance()->CompileShader<VisibleGameObjectCB>(L"Shaders/VertexShader.hlsl", "PS", nullptr, "PSMain", "ps_5_0", visibleCBUploadBuffer);
+	pGeometryShader = ShaderManager::GetInstance()->CompileShader<VisibleGameObjectCB>(L"Shaders/VertexShader.hlsl", "PS", nullptr, "PSMain", "ps_5_0", visibleCBUploadBuffer);
+	pPixelShader = ShaderManager::GetInstance()->CompileShader<VisibleGameObjectCB>(L"Shaders/VertexShader.hlsl", "GS", nullptr, "GSMain", "gs_5_0", visibleCBUploadBuffer);
 }
 
 void BasicApp::CreateInputDescriptions()
@@ -359,7 +375,7 @@ void BasicApp::CreateInputDescriptions()
 
 bool BasicApp::CreateRootSignature()
 {
-	CD3DX12_ROOT_PARAMETER slotRootParameter[4] = {};
+	CD3DX12_ROOT_PARAMETER slotRootParameter[3] = {};
 
 	slotRootParameter[0].InitAsConstantBufferView(0);	//Per frame CB
 	slotRootParameter[1].InitAsConstantBufferView(1);	//Per object CB
@@ -419,6 +435,7 @@ bool BasicApp::CreatePSOs()
 	psoDesc.InputLayout = { m_VertexInputLayoutDesc.data(), (UINT)m_VertexInputLayoutDesc.size() };
 	psoDesc.pRootSignature = m_pRootSignature.Get();
 	psoDesc.VS = CD3DX12_SHADER_BYTECODE(ShaderManager::GetInstance()->GetShader<VisibleGameObjectCB>("VS")->GetShaderBlob().Get());
+	//psoDesc.GS = CD3DX12_SHADER_BYTECODE(ShaderManager::GetInstance()->GetShader<VisibleGameObjectCB>("GS")->GetShaderBlob().Get());
 	psoDesc.PS = CD3DX12_SHADER_BYTECODE(ShaderManager::GetInstance()->GetShader<VisibleGameObjectCB>("PS")->GetShaderBlob().Get());
 	psoDesc.RasterizerState = CD3DX12_RASTERIZER_DESC(D3D12_DEFAULT);
 	psoDesc.BlendState = CD3DX12_BLEND_DESC(D3D12_DEFAULT);

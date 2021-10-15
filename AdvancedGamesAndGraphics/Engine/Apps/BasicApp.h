@@ -50,7 +50,7 @@ protected:
 
 	std::vector<D3D12_INPUT_ELEMENT_DESC> m_VertexInputLayoutDesc;
 
-	bool m_bShowDemoWindow = true;
+	bool m_bShowDemoWindow = false;
 
 private:
 
