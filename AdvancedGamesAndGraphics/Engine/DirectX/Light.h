@@ -11,70 +11,64 @@ enum class LightType
 
 struct Light
 {
-	Light()
-	{
-		Direction = DirectX::XMFLOAT3();
-		FallOffStart = 0;
-
-		Color = DirectX::XMFLOAT3();
-		FallOffEnd = 0;
-
-		Position = DirectX::XMFLOAT3();
-		SpotLightPower = 0;
-
-		InUse = false;
-	}
-
-	DirectX::XMFLOAT3 Direction;
-	float FallOffStart;
-
-	DirectX::XMFLOAT3 Color;
-	float FallOffEnd;
-
 	DirectX::XMFLOAT3 Position;
-	float SpotLightPower;
+	float Range;
 
-	int InUse;
+	DirectX::XMFLOAT4 Direction;
+	
+	DirectX::XMFLOAT3 Ambient;
 	int Type;
-	DirectX::XMFLOAT2 pad;
+
+	DirectX::XMFLOAT3 Diffuse;
+	int Enabled;
+
+	DirectX::XMFLOAT4 Specular;
+
+	DirectX::XMFLOAT3 Attenuation;
+	float SpotLightAngle;
 };
 
 struct PointLight : Light
 {
-	PointLight(DirectX::XMFLOAT3 position, DirectX::XMFLOAT3 color, float fFallOffStart, float fFallOffEnd)
+	PointLight(DirectX::XMFLOAT3 position, DirectX::XMFLOAT3 ambient, DirectX::XMFLOAT3 diffuse, DirectX::XMFLOAT4 specular, DirectX::XMFLOAT3 attenuation, float fRange)
 	{
 		Position = position;
-		Color = color;
-		FallOffStart = fFallOffStart;
-		FallOffEnd = fFallOffEnd;
-		InUse = true;
+		Ambient = ambient;
+		Diffuse = diffuse;
+		Specular = specular;
+		Attenuation = attenuation;
+		Range = fRange;
+		Enabled = 1;
 		Type = (int)LightType::POINT;
 	}
 };
 
 struct SpotLight : Light
 {
-	SpotLight(DirectX::XMFLOAT3 position, DirectX::XMFLOAT3 color, float fFallOffStart, float fFallOffEnd, DirectX::XMFLOAT3 direction, float fSpotLightPower)
+	SpotLight(DirectX::XMFLOAT3 position, DirectX::XMFLOAT3 ambient, DirectX::XMFLOAT3 diffuse, DirectX::XMFLOAT4 specular, DirectX::XMFLOAT3 attenuation, float fRange, DirectX::XMFLOAT4 direction, float fSpotLightAngle)
 	{
 		Position = position;
-		Color = color;
-		FallOffStart = fFallOffStart;
-		FallOffEnd = fFallOffEnd;
+		Ambient = ambient;
+		Diffuse = diffuse;
+		Specular = specular;
+		Attenuation = attenuation;
+		Range = fRange;
 		Direction = direction;
-		SpotLightPower = fSpotLightPower;
-		InUse = true;
+		SpotLightAngle = fSpotLightAngle;
+		Enabled = 1;
 		Type = (int)LightType::SPOT;
 	}
 };
 
 struct DirectionalLight : Light
 {
-	DirectionalLight(DirectX::XMFLOAT3 position, DirectX::XMFLOAT3 color, DirectX::XMFLOAT3 direction)
+	DirectionalLight(DirectX::XMFLOAT3 ambient, DirectX::XMFLOAT3 diffuse, DirectX::XMFLOAT4 specular, DirectX::XMFLOAT4 direction)
 	{
-		Position = position;
-		Color = color;
+		Ambient = ambient;
+		Diffuse = diffuse;
+		Specular = specular;
 		Direction = direction;
-		InUse = true;
+		Enabled = 1;
 		Type = (int)LightType::DIRECTIONAL;
 	}
 };

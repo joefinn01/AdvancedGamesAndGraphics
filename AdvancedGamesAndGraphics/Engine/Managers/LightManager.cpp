@@ -21,7 +21,7 @@ bool LightManager::AddLight(Light* pLight)
 {
 	for (int i = 0; i < MAX_LIGHTS; ++i)
 	{
-		if (m_Lights[i]->InUse == false)
+		if (m_Lights[i]->Enabled == false)
 		{
 			delete m_Lights[i];
 			m_Lights[i] = pLight;

@@ -26,11 +26,12 @@ struct GameObjectCB
 struct VisibleGameObjectCB
 {
 	DirectX::XMMATRIX World;
+	DirectX::XMMATRIX InvWorld;
 };
 
 struct MaterialCB
 {
-	DirectX::XMFLOAT4 diffuse;
-	DirectX::XMFLOAT3 fresnel;
-	float roughness;
+	DirectX::XMFLOAT4 Ambient;
+	DirectX::XMFLOAT4 Diffuse;	//4th float is the alpha
+	DirectX::XMFLOAT4 Specular;	//4th float is the specular power
 };
