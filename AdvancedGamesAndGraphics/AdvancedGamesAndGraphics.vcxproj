@@ -282,6 +282,7 @@
     <ClCompile Include="Engine\Cameras\Camera.cpp" />
     <ClCompile Include="Engine\Cameras\DebugCamera.cpp" />
     <ClCompile Include="Engine\Commons\Timer.cpp" />
+    <ClCompile Include="Engine\DDSTextureLoader.cpp" />
     <ClCompile Include="Engine\GameObjects\GameObject.cpp" />
     <ClCompile Include="Engine\GameObjects\VisibleGameObject.cpp" />
     <ClCompile Include="Engine\Helpers\DebugHelper.cpp" />
@@ -298,6 +299,7 @@
     <ClCompile Include="Engine\Managers\MaterialManager.cpp" />
     <ClCompile Include="Engine\Managers\ObjectManager.cpp" />
     <ClCompile Include="Engine\Managers\ShaderManager.cpp" />
+    <ClCompile Include="Engine\Managers\TextureManager.cpp" />
     <ClCompile Include="Engine\Managers\WindowManager.cpp" />
     <ClCompile Include="Main.cpp" />
   </ItemGroup>
@@ -355,6 +357,7 @@
     <ClInclude Include="Engine\Cameras\Camera.h" />
     <ClInclude Include="Engine\Cameras\DebugCamera.h" />
     <ClInclude Include="Engine\Commons\Timer.h" />
+    <ClInclude Include="Engine\DDSTextureLoader.h" />
     <ClInclude Include="Engine\DirectX\ConstantBuffers.h" />
     <ClInclude Include="Engine\DirectX\Light.h" />
     <ClInclude Include="Engine\DirectX\Material.h" />
@@ -379,6 +382,7 @@
     <ClInclude Include="Engine\Managers\MaterialManager.h" />
     <ClInclude Include="Engine\Managers\ObjectManager.h" />
     <ClInclude Include="Engine\Managers\ShaderManager.h" />
+    <ClInclude Include="Engine\Managers\TextureManager.h" />
     <ClInclude Include="Engine\Managers\WindowManager.h" />
     <ClInclude Include="Engine\Structure\Singleton.h" />
   </ItemGroup>

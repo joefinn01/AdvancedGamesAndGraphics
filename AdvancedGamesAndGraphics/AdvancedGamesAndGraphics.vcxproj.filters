@@ -110,6 +110,12 @@
     <ClCompile Include="Engine\Managers\LightManager.cpp">
       <Filter>Engine\Managers</Filter>
     </ClCompile>
+    <ClCompile Include="Engine\Managers\TextureManager.cpp">
+      <Filter>Engine\Managers</Filter>
+    </ClCompile>
+    <ClCompile Include="Engine\DDSTextureLoader.cpp">
+      <Filter>Engine</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <FxCompile Include="Shaders\PixelShader.hlsl">
@@ -215,6 +221,12 @@
     </ClInclude>
     <ClInclude Include="Engine\Managers\LightManager.h">
       <Filter>Engine\Managers</Filter>
+    </ClInclude>
+    <ClInclude Include="Engine\Managers\TextureManager.h">
+      <Filter>Engine\Managers</Filter>
+    </ClInclude>
+    <ClInclude Include="Engine\DDSTextureLoader.h">
+      <Filter>Engine</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
