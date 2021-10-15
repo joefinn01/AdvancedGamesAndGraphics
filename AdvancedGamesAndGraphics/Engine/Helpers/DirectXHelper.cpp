@@ -6,7 +6,7 @@
 
 Tag tag = L"DirectXHelper";
 
-Microsoft::WRL::ComPtr<ID3D12Resource> DirectXHelper::CreateDefaultBuffer(ID3D12Device4* pDevice, ID3D12GraphicsCommandList* pGraphicsCommandList, const void* pData, UINT64 uiByteSize, Microsoft::WRL::ComPtr<ID3D12Resource>& pUploadBuffer)
+Microsoft::WRL::ComPtr<ID3D12Resource> DirectXHelper::CreateDefaultBuffer(ID3D12Device* pDevice, ID3D12GraphicsCommandList* pGraphicsCommandList, const void* pData, UINT64 uiByteSize, Microsoft::WRL::ComPtr<ID3D12Resource>& pUploadBuffer)
 {
 	Microsoft::WRL::ComPtr<ID3D12Resource> pDefaultBuffer;
 

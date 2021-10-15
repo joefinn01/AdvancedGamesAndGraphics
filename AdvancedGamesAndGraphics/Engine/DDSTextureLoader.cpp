@@ -1228,7 +1228,7 @@ static HRESULT CreateD3DResources( _In_ ID3D11Device* d3dDevice,
 }
 
 static HRESULT CreateD3DResources12(
-	ID3D12Device4* device,
+	ID3D12Device* device,
 	ID3D12GraphicsCommandList* cmdList,
 	_In_ uint32_t resDim,
 	_In_ size_t width,
@@ -1670,7 +1670,7 @@ static HRESULT CreateTextureFromDDS( _In_ ID3D11Device* d3dDevice,
 }
 
 static HRESULT CreateTextureFromDDS12(
-	_In_ ID3D12Device4* device,
+	_In_ ID3D12Device* device,
 	_In_opt_ ID3D12GraphicsCommandList* cmdList,
 	_In_ const DDS_HEADER* header,
 	_In_reads_bytes_(bitSize) const uint8_t* bitData,
@@ -1919,7 +1919,7 @@ HRESULT DirectX::CreateDDSTextureFromMemory( ID3D11Device* d3dDevice,
 
 _Use_decl_annotations_
 HRESULT DirectX::CreateDDSTextureFromMemory12(
-	ID3D12Device4* device,
+	ID3D12Device* device,
 	_In_ ID3D12GraphicsCommandList* cmdList,
 	_In_reads_bytes_(ddsDataSize) const uint8_t* ddsData,
 	_In_ size_t ddsDataSize,
@@ -2134,7 +2134,7 @@ HRESULT DirectX::CreateDDSTextureFromFile( ID3D11Device* d3dDevice,
                                        texture, textureView, alphaMode );
 }
 
-HRESULT DirectX::CreateDDSTextureFromFile12(_In_ ID3D12Device4* device,
+HRESULT DirectX::CreateDDSTextureFromFile12(_In_ ID3D12Device* device,
 	_In_ ID3D12GraphicsCommandList* cmdList,
 	_In_z_ const wchar_t* szFileName,
 	_Out_ ComPtr<ID3D12Resource>& texture,
