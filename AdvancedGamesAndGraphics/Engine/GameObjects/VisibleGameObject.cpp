@@ -32,44 +32,110 @@ bool VisibleGameObject::Init(std::string sName, DirectX::XMFLOAT3 position, Dire
 	ID3D12Device4* pDevice = App::GetApp()->GetDevice();
 	ID3D12GraphicsCommandList4* pCommandList = App::GetApp()->GetGraphicsCommandList();
 
-	std::array<Vertex, 8> vertices =
+	//std::array<Vertex, 8> vertices =
+	//{
+	//	Vertex({ XMFLOAT3(-1.0f, -1.0f, -1.0f) }),
+	//	Vertex({ XMFLOAT3(-1.0f, +1.0f, -1.0f) }),
+	//	Vertex({ XMFLOAT3(+1.0f, +1.0f, -1.0f) }),
+	//	Vertex({ XMFLOAT3(+1.0f, -1.0f, -1.0f) }),
+	//	Vertex({ XMFLOAT3(-1.0f, -1.0f, +1.0f) }),
+	//	Vertex({ XMFLOAT3(-1.0f, +1.0f, +1.0f) }),
+	//	Vertex({ XMFLOAT3(+1.0f, +1.0f, +1.0f) }),
+	//	Vertex({ XMFLOAT3(+1.0f, -1.0f, +1.0f) })
+	//};
+
+	std::array<Vertex, 24> vertices =
 	{
-		Vertex({ XMFLOAT3(-1.0f, -1.0f, -1.0f) }),
-		Vertex({ XMFLOAT3(-1.0f, +1.0f, -1.0f) }),
-		Vertex({ XMFLOAT3(+1.0f, +1.0f, -1.0f) }),
-		Vertex({ XMFLOAT3(+1.0f, -1.0f, -1.0f) }),
-		Vertex({ XMFLOAT3(-1.0f, -1.0f, +1.0f) }),
-		Vertex({ XMFLOAT3(-1.0f, +1.0f, +1.0f) }),
-		Vertex({ XMFLOAT3(+1.0f, +1.0f, +1.0f) }),
-		Vertex({ XMFLOAT3(+1.0f, -1.0f, +1.0f) })
+		//Front face
+		Vertex(XMFLOAT3(-1, -1, -1), XMFLOAT3(0, 0, -1)),
+		Vertex(XMFLOAT3(-1, 1, -1), XMFLOAT3(0, 0, -1)),
+		Vertex(XMFLOAT3(1, 1, -1), XMFLOAT3(0, 0, -1)),
+		Vertex(XMFLOAT3(1, -1, -1), XMFLOAT3(0, 0, -1)),
+
+		//Back face
+		Vertex(XMFLOAT3(-1, -1, 1), XMFLOAT3(0, 0, 1)),
+		Vertex(XMFLOAT3(1, -1, 1), XMFLOAT3(0, 0, 1)),
+		Vertex(XMFLOAT3(1, 1, 1), XMFLOAT3(0, 0, 1)),
+		Vertex(XMFLOAT3(-1, 1, 1), XMFLOAT3(0, 0, 1)),
+
+		//Top face
+		Vertex(XMFLOAT3(-1, 1, -1), XMFLOAT3(0, 1, 0)),
+		Vertex(XMFLOAT3(-1, 1, 1), XMFLOAT3(0, 1, 0)),
+		Vertex(XMFLOAT3(1, 1, 1), XMFLOAT3(0, 1, 0)),
+		Vertex(XMFLOAT3(1, 1, -1), XMFLOAT3(0, 1, 0)),
+
+		//Bottom face
+		Vertex(XMFLOAT3(-1, -1, -1), XMFLOAT3(0, -1, 0)),
+		Vertex(XMFLOAT3(1, -1, -1), XMFLOAT3(0, -1, 0)),
+		Vertex(XMFLOAT3(1, -1, 1), XMFLOAT3(0, -1, 0)),
+		Vertex(XMFLOAT3(-1, -1, 1), XMFLOAT3(0, -1, 0)),
+
+		//Left face
+		Vertex(XMFLOAT3(-1, -1, 1), XMFLOAT3(-1, 0, 0)),
+		Vertex(XMFLOAT3(-1, 1, 1), XMFLOAT3(-1, 0, 0)),
+		Vertex(XMFLOAT3(-1, 1, -1), XMFLOAT3(-1, 0, 0)),
+		Vertex(XMFLOAT3(-1, -1, -1), XMFLOAT3(-1, 0, 0)),
+
+		//Right face
+		Vertex(XMFLOAT3(1, -1, -1), XMFLOAT3(1, 0, 0)),
+		Vertex(XMFLOAT3(1, 1, -1), XMFLOAT3(1, 0, 0)),
+		Vertex(XMFLOAT3(1, 1, 1), XMFLOAT3(1, 0, 0)),
+		Vertex(XMFLOAT3(1, -1, 1), XMFLOAT3(1, 0, 0)),
 	};
 
 	std::array<std::uint16_t, 36> indices =
 	{
-		// front face
+		//Front face
 		0, 1, 2,
 		0, 2, 3,
 
-		// back face
-		4, 6, 5,
-		4, 7, 6,
+		//Back face
+		4, 5, 6,
+		4, 6, 7,
 
-		// left face
-		4, 5, 1,
-		4, 1, 0,
+		//Top face
+		8, 9, 10,
+		8, 10, 11,
 
-		// right face
-		3, 2, 6,
-		3, 6, 7,
+		//Bottom face
+		12, 13, 14,
+		12, 14, 15,
 
-		// top face
-		1, 5, 6,
-		1, 6, 2,
+		//Left face
+		16, 17, 18,
+		16, 18, 19,
 
-		// bottom face
-		4, 0, 3,
-		4, 3, 7
+		//Right face
+		20, 21, 22,
+		20, 22, 23
 	};
+
+	//std::array<std::uint16_t, 36> indices =
+	//{
+	//	// front face
+	//	0, 1, 2,
+	//	0, 2, 3,
+
+	//	// back face
+	//	4, 6, 5,
+	//	4, 7, 6,
+
+	//	// left face
+	//	4, 5, 1,
+	//	4, 1, 0,
+
+	//	// right face
+	//	3, 2, 6,
+	//	3, 6, 7,
+
+	//	// top face
+	//	1, 5, 6,
+	//	1, 6, 2,
+
+	//	// bottom face
+	//	4, 0, 3,
+	//	4, 3, 7
+	//};
 
 	Vertex vertex;
 	XMFLOAT3 triNormal;
@@ -79,26 +145,26 @@ bool VisibleGameObject::Init(std::string sName, DirectX::XMFLOAT3 position, Dire
 	std::uint16_t index2;
 
 	//Calculate normal for all faces and add all together
-	for (UINT i = 0; i < 12; ++i)
-	{
-		index0 = indices[i * 3];
-		index1 = indices[i * 3 + 1];
-		index2 = indices[i * 3 + 2];
+	//for (UINT i = 0; i < 12; ++i)
+	//{
+	//	index0 = indices[i * 3];
+	//	index1 = indices[i * 3 + 1];
+	//	index2 = indices[i * 3 + 2];
 
-		vertex = vertices[index0];
+	//	vertex = vertices[index0];
 
-		XMStoreFloat3(&triNormal, XMVector3Normalize(XMVector3Cross(XMVector3Normalize(XMLoadFloat3(&vertices[index1].position) - XMLoadFloat3(&vertex.position)), XMLoadFloat3(&vertices[index2].position) - XMLoadFloat3(&vertex.position))));
+	//	XMStoreFloat3(&triNormal, XMVector3Normalize(XMVector3Cross(XMVector3Normalize(XMLoadFloat3(&vertices[index1].position) - XMLoadFloat3(&vertex.position)), XMLoadFloat3(&vertices[index2].position) - XMLoadFloat3(&vertex.position))));
 
-		XMStoreFloat3(&vertices[index0].normal, XMLoadFloat3(&vertices[index0].normal) + XMLoadFloat3(&triNormal));
-		XMStoreFloat3(&vertices[index1].normal, XMLoadFloat3(&vertices[index1].normal) + XMLoadFloat3(&triNormal));
-		XMStoreFloat3(&vertices[index2].normal, XMLoadFloat3(&vertices[index2].normal) + XMLoadFloat3(&triNormal));
-	}
+	//	XMStoreFloat3(&vertices[index0].normal, XMLoadFloat3(&vertices[index0].normal) + XMLoadFloat3(&triNormal));
+	//	XMStoreFloat3(&vertices[index1].normal, XMLoadFloat3(&vertices[index1].normal) + XMLoadFloat3(&triNormal));
+	//	XMStoreFloat3(&vertices[index2].normal, XMLoadFloat3(&vertices[index2].normal) + XMLoadFloat3(&triNormal));
+	//}
 
-	//Normalize all the vectors to average the normal
-	for (UINT i = 0; i < 8; ++i)
-	{
-		XMStoreFloat3(&vertices[i].normal, XMVector3Normalize(XMLoadFloat3(&vertices[i].normal)));
-	}
+	////Normalize all the vectors to average the normal
+	//for (UINT i = 0; i < 8; ++i)
+	//{
+	//	XMStoreFloat3(&vertices[i].normal, XMVector3Normalize(XMLoadFloat3(&vertices[i].normal)));
+	//}
 
 	const UINT uiVertexBufferByteSize = (UINT)vertices.size() * sizeof(Vertex);
 	const UINT uiIndexBufferByteSize = (UINT)indices.size() * sizeof(std::uint16_t);
