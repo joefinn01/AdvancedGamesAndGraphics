@@ -48,7 +48,7 @@ public:
 
 		if (FAILED(hr))
 		{
-			LOG_ERROR(tag, L"Failed to compile shader %S!", kwsFilename.c_str());
+			LOG_ERROR(tag, L"Failed to compile shader %ls!", kwsFilename);
 
 			return nullptr;
 		}
