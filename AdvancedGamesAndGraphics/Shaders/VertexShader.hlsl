@@ -4,6 +4,7 @@ struct VS_INPUT
 {
 	float3 PosL  : POSITION;
 	float3 NormalL : NORMAL;
+	float2 TexCoords : TEXCOORD;
 };
 
 struct VS_OUTPUT
@@ -11,6 +12,7 @@ struct VS_OUTPUT
 	float4 PosH    : SV_POSITION;
 	float3 PosW    : POSITION;
 	float4 NormalW : NORMAL;
+	float2 TexCoords : TEXCOORD;
 };
 
 cbuffer PerFrameCB : register(b0)
@@ -37,6 +39,10 @@ cbuffer MaterialCB : register(b2)
 	Material gMaterial;
 }
 
+Texture2D ColorTex : register(t3);
+
+SamplerState SamplePointWrap : register(s0);
+
 VS_OUTPUT VSMain(VS_INPUT input)
 {
 	VS_OUTPUT result;
@@ -46,20 +52,9 @@ VS_OUTPUT VSMain(VS_INPUT input)
 
 	result.NormalW = normalize(mul(float4(input.NormalL, 1.0f), TransposeInvWorld));
 
+	result.TexCoords = input.TexCoords;
+
 	return result;
-}
-
-[maxvertexcount(2)]
-void GSMain(point VS_OUTPUT input[1], inout LineStream<VS_OUTPUT> output)
-{
-	output.Append(input[0]);
-
-	VS_OUTPUT result;
-	result.PosW = input[0].PosW + normalize(input[0].NormalW.xyz) * 0.5f;
-	result.PosH = mul(float4(result.PosW, 1.0f), TransposeInvWorld);
-	result.NormalW = input[0].NormalW;
-
-	output.Append(result);
 }
 
 float4 PSMain(VS_OUTPUT input) : SV_TARGET
@@ -68,7 +63,11 @@ float4 PSMain(VS_OUTPUT input) : SV_TARGET
 
 	LightingResult result = CalculateLighting(Lights, gMaterial, input.PosW, normalize(input.NormalW).xyz, normalize(viewVector));	//Normalize as interpolation can cause vector not to be normal
 
-	float4 litColour = (result.Ambient + result.Diffuse) + result.Specular;
+	float4 textureColour = { 1, 1, 1, 1 };
+
+	textureColour = ColorTex.Sample(SamplePointWrap, input.TexCoords);
+
+	float4 litColour = textureColour * (result.Ambient + result.Diffuse) + result.Specular;
 
 	litColour.a = gMaterial.Diffuse.a;
 
