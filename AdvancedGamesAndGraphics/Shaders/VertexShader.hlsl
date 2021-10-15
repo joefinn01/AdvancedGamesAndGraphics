@@ -29,13 +29,12 @@ cbuffer PerFrameCB : register(b0)
 cbuffer PerObjectCB : register(b1)
 {
 	float4x4 World;
+	float4x4 TransposeInvWorld;
 }
 
 cbuffer MaterialCB : register(b2)
 {
-	float4 Diffuse;
-	float3 Fresnel;
-	float Roughness;
+	Material gMaterial;
 }
 
 VS_OUTPUT VSMain(VS_INPUT input)
@@ -45,36 +44,33 @@ VS_OUTPUT VSMain(VS_INPUT input)
 	result.PosW = mul(float4(input.PosL, 1.0f), World).xyz;
 	result.PosH = mul(float4(result.PosW, 1.0f), ViewProjection);
 
-	result.NormalW = mul(float4(input.NormalL, 1.0f), InvTransposeViewProjection);
+	result.NormalW = normalize(mul(float4(input.NormalL, 1.0f), TransposeInvWorld));
 
 	return result;
 }
 
+[maxvertexcount(2)]
+void GSMain(point VS_OUTPUT input[1], inout LineStream<VS_OUTPUT> output)
+{
+	output.Append(input[0]);
+
+	VS_OUTPUT result;
+	result.PosW = input[0].PosW + normalize(input[0].NormalW.xyz) * 0.5f;
+	result.PosH = mul(float4(result.PosW, 1.0f), TransposeInvWorld);
+	result.NormalW = input[0].NormalW;
+
+	output.Append(result);
+}
+
 float4 PSMain(VS_OUTPUT input) : SV_TARGET
 {
-	input.NormalW = normalize(input.NormalW);
+	float3 viewVector = EyePosW - input.PosW;
 
-	float3 toEyeW = normalize(EyePosW - input.PosW);
+	LightingResult result = CalculateLighting(Lights, gMaterial, input.PosW, normalize(input.NormalW).xyz, normalize(viewVector));	//Normalize as interpolation can cause vector not to be normal
 
-	// Indirect lighting.
-	float4 ambient = Ambient * Diffuse;
+	float4 litColour = (result.Ambient + result.Diffuse) + result.Specular;
 
-	Material material = { Diffuse, Fresnel, Roughness };
+	litColour.a = gMaterial.Diffuse.a;
 
-	Light light;
-	light.Position = float3(0, 0, 0);
-	light.FallOffStart = 20.0f;
-	light.FallOffEnd = 60.0f;
-	light.Color = float3(0.0f, 1.0f, 0.0f);
-
-	//Material material = {float4(0.6f, 0.0f, 0.0f, 1.0f), float3(0.2f, 0.2f, 0.2f), 0.4f};
-
-	float4 directLight = CalculateLighting(Lights, material, input.PosW, input.NormalW.xyz, toEyeW);
-	//float4 directLight = float4(CalculatePoint(light, material, input.PosW, input.NormalW.xyz, toEyeW), 1.0f);
-
-	float4 litColor = Ambient * 0.1f + directLight;
-
-	litColor.a = Diffuse.a;
-
-	return directLight;
+	return litColour;
 }

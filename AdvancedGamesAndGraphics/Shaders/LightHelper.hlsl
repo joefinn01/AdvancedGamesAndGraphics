@@ -7,121 +7,179 @@
 
 struct Material
 {
+	float4 Ambient;
+	float4 Diffuse;		//4th float is the alpha
+	float4 Specular;	//4th float is the specular power
+};
+
+struct LightingResult
+{
+	float4 Ambient;
 	float4 Diffuse;
-	float3 Fresnel;
-	float Roughness;
+	float4 Specular;
 };
 
 struct Light
 {
-	float3 Direction;
-	float FallOffStart;
-	float3 Color;
-	float FallOffEnd;
 	float3 Position;
-	float SpotLightPower;
-	int InUse;
-	int Type;
-	float2 pad;
+	float Range;
+
+	float4 Direction;
+
+	float3 Ambient;
+	int LightType;
+
+	float3 Diffuse;
+	int Enabled;
+
+	float4 Specular;
+
+	float3 Attenuation;
+	float SpotLightAngle;
 };
 
-float3 Schlick(float3 fFresnel, float3 normal, float3 lightDir)
+LightingResult InitLight()
 {
-	float fValue = 1.0f - saturate(dot(normal, lightDir));
+	LightingResult result;
 
-	return fFresnel + (1.0f - fFresnel) * fValue * fValue * fValue * fValue * fValue;
+	result.Ambient = float4(0.0f, 0.0f, 0.0f, 0.0f);
+	result.Diffuse = float4(0.0f, 0.0f, 0.0f, 0.0f);
+	result.Specular = float4(0.0f, 0.0f, 0.0f, 0.0f);
+
+	return result;
 }
 
-float CalculateAttenuation(float fDist, float fStart, float fEnd)
+LightingResult CalculatePoint(Light light, Material material, float3 position, float3 normal, float3 viewVector)
 {
-	return saturate((fEnd - fDist) / (fEnd - fStart));
-}
+	LightingResult result = InitLight();
 
-float3 BlinnPhong(float3 color, float3 lightDir, float3 normal, float3 toEye, Material material)
-{
-	float fValue = (1.0f - material.Roughness) * 256.0f;
+	float3 lightVec = light.Position - position;
 
-	float3 h = normalize(toEye + lightDir);
+	float fDistance = length(lightVec);
 
-	//Roughness factor * fresnel factor
-	float3 specular = ((fValue + 8.0f) * pow(max(dot(h, normal), 0.0f), fValue) / 8.0f) * Schlick(material.Fresnel, h, lightDir);
-
-	//Remap to between 0 and 1
-	specular = specular / (specular + 1.0f);
-
-	return (material.Diffuse.rgb + specular) * color;
-}
-
-float3 CalculatePoint(Light light, Material material, float3 position, float3 normal, float3 toEye)
-{
-	float3 lightDir = light.Position - position;
-
-	float fDistance = length(lightDir);
-
-	if (fDistance > light.FallOffEnd)
+	if (fDistance > light.Range)
 	{
-		return 0.0f;
+		return result;
 	}
 
-	lightDir /= fDistance;
+	lightVec /= fDistance;
 
-	float3 color = light.Color * max(dot(lightDir, normal), 0.0f) * CalculateAttenuation(fDistance, light.FallOffStart, light.FallOffEnd);
+	result.Ambient = material.Ambient * float4(light.Ambient, 1.0f);
 
-	return BlinnPhong(color, lightDir, normal, toEye, material);
-}
+	float diffuseIntensity = dot(lightVec, normal);
 
-float3 CalculateSpot(Light light, Material material, float3 position, float3 normal, float3 toEye)
-{
-	float3 lightDir = light.Position - position;
-
-	float fDistance = length(lightDir);
-
-	if (fDistance > light.FallOffEnd)
+	if (diffuseIntensity > 0.0f)
 	{
-		return 0.0f;
+		float3 reflected = reflect(-lightVec, normal);
+		float specularIntensity = pow(max(dot(reflected, viewVector), 0.0f), material.Specular.w);
+
+		result.Diffuse = diffuseIntensity * material.Diffuse * float4(light.Diffuse, 1.0f);
+		result.Specular = specularIntensity * material.Specular * light.Specular;
 	}
 
-	lightDir /= fDistance;
+	float attenuation = 1.0f / dot(light.Attenuation[0], float3(1.0f, light.Attenuation[1] * fDistance, light.Attenuation[2] * fDistance * fDistance));
 
-	// color * lambert * attenuation * spotlight factor
-	float3 color = light.Color * max(dot(lightDir, normal), 0.0f) * CalculateAttenuation(fDistance, light.FallOffStart, light.FallOffEnd) * pow(max(dot(-lightDir, light.Direction), 0.0f), light.SpotLightPower);
+	result.Diffuse *= attenuation;
+	result.Specular *= attenuation;
 
-	return BlinnPhong(color, lightDir, normal, toEye, material);
+	return result;
 }
 
-float3 CalculateDirectional(Light light, Material material, float3 normal, float3 toEye)
+LightingResult CalculateSpot(Light light, Material material, float3 position, float3 normal, float3 viewVector)
 {
-	float3 lightDir = -light.Direction;
+	LightingResult result = InitLight();
 
-	float3 color = light.Color * max(dot(lightDir, normal), 0.0f);
+	float3 lightVec = light.Position - position;
 
-	return BlinnPhong(color, lightDir, normal, toEye, material);
+	float fDistance = length(lightVec);
+
+	if (fDistance > light.Range)
+	{
+		return result;
+	}
+
+	lightVec /= fDistance;
+
+	result.Ambient = material.Ambient * float4(light.Ambient, 1.0f);
+
+	float diffuseIntensity = dot(lightVec, normal);
+
+	if (diffuseIntensity > 0.0f)
+	{
+		float3 reflected = reflect(-lightVec, normal);
+		float specularIntensity = pow(max(dot(reflected, viewVector), 0.0f), material.Specular.w);
+
+		result.Diffuse = diffuseIntensity * material.Diffuse * float4(light.Diffuse, .0f);
+		result.Specular = specularIntensity * material.Specular * light.Specular;
+	}
+
+	float spotLightIntensity = pow(max(dot(-lightVec, light.Direction.xyz), 0.0f), light.SpotLightAngle);
+
+	float attenuation = 1.0f / dot(light.Attenuation[0], float3(1.0f, light.Attenuation[1] * fDistance, light.Attenuation[2] * fDistance * fDistance));
+
+	result.Ambient *= spotLightIntensity;
+	result.Diffuse *= attenuation * spotLightIntensity;
+	result.Specular *= attenuation * spotLightIntensity;
+
+	return result;
 }
 
-float4 CalculateLighting(Light lights[MAX_LIGHTS], Material material, float3 position, float3 normal, float3 toEye)
+LightingResult CalculateDirectional(Light light, Material material, float3 normal, float3 viewVector)
 {
-	float3 result = 0.0f;
+	LightingResult result = InitLight();
+
+	float3 lightVec = -light.Direction.xyz;
+
+	result.Ambient = material.Ambient * float4(light.Ambient, 1.0f);
+
+	float diffuseIntensity = dot(lightVec, normal);
+
+	if (diffuseIntensity > 0.0f)
+	{
+		float3 reflected = reflect(-lightVec, normal);
+		float specularIntensity = pow(max(dot(reflected, viewVector), 0.0f), material.Specular.w);
+
+		result.Diffuse = diffuseIntensity * material.Diffuse * float4(light.Diffuse, 1.0f);
+		result.Specular = specularIntensity * material.Specular * light.Specular;
+	}
+
+	return result;
+}
+
+LightingResult CalculateLighting(Light lights[MAX_LIGHTS], Material material, float3 position, float3 normal, float3 viewVector)
+{
+	LightingResult totalResult = InitLight();
 
 	for (int i = 0; i < MAX_LIGHTS; ++i)
 	{
-		if (lights[i].InUse == 0)
+		LightingResult result = InitLight();
+
+		if (lights[i].Enabled == 1)
 		{
-			continue;
+			switch (lights[i].LightType)
+			{
+			case DIRECTIONAL:
+				result = CalculateDirectional(lights[i], material, normal, viewVector);
+				break;
+
+			case POINT:
+				result = CalculatePoint(lights[i], material, position, normal, viewVector);
+				break;
+
+			case SPOT:
+				result = CalculateSpot(lights[i], material, position, normal, viewVector);
+				break;
+			}
+
+			totalResult.Ambient += result.Ambient;
+			totalResult.Diffuse += result.Diffuse;
+			totalResult.Specular += result.Specular;
 		}
 
-		if (lights[i].Type == SPOT)
-		{
-			result += CalculateSpot(lights[i], material, position, normal, toEye);
-		}
-		else if (lights[i].Type == POINT)
-		{
-			result += CalculatePoint(lights[i], material, position, normal, toEye);
-		}
-		else
-		{
-			result += CalculateDirectional(lights[i], material, normal, toEye);
-		}
+		totalResult.Ambient = saturate(totalResult.Ambient);
+		totalResult.Diffuse = saturate(totalResult.Diffuse);	//Clamp value in range 0 and 1 with saturate
+		totalResult.Specular = saturate(totalResult.Specular);
 	}
 
-	return float4(result, 1.0f);
+	return totalResult;
 }
