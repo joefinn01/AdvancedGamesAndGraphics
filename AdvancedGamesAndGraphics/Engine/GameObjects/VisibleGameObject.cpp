@@ -5,6 +5,7 @@
 #include "Engine/Helpers/DebugHelper.h"
 #include "Engine/Helpers/DirectXHelper.h"
 #include "Engine/Managers/MaterialManager.h"
+#include "Engine/Managers/TextureManager.h"
 
 #include <DirectX\d3dx12.h>
 #include <DirectXColors.h>
@@ -15,7 +16,7 @@ using namespace DirectX;
 
 Tag tag = L"VisibleGameObject";
 
-bool VisibleGameObject::Init(std::string sName, DirectX::XMFLOAT3 position, DirectX::XMFLOAT3 rotation, DirectX::XMFLOAT3 scale, std::string sMatName)
+bool VisibleGameObject::Init(std::string sName, DirectX::XMFLOAT3 position, DirectX::XMFLOAT3 rotation, DirectX::XMFLOAT3 scale, std::string sMatName, std::string sTexName)
 {
 	if (GameObject::Init(sName, position, rotation, scale) == false)
 	{
@@ -29,7 +30,14 @@ bool VisibleGameObject::Init(std::string sName, DirectX::XMFLOAT3 position, Dire
 		return false;
 	}
 
-	ID3D12Device4* pDevice = App::GetApp()->GetDevice();
+	m_pTexture = TextureManager::GetInstance()->GetTexture(sTexName);
+
+	if (m_pTexture == nullptr)
+	{
+		return false;
+	}
+
+	ID3D12Device* pDevice = App::GetApp()->GetDevice();
 	ID3D12GraphicsCommandList4* pCommandList = App::GetApp()->GetGraphicsCommandList();
 
 	//std::array<Vertex, 8> vertices =
@@ -47,40 +55,40 @@ bool VisibleGameObject::Init(std::string sName, DirectX::XMFLOAT3 position, Dire
 	std::array<Vertex, 24> vertices =
 	{
 		//Front face
-		Vertex(XMFLOAT3(-1, -1, -1), XMFLOAT3(0, 0, -1)),
-		Vertex(XMFLOAT3(-1, 1, -1), XMFLOAT3(0, 0, -1)),
-		Vertex(XMFLOAT3(1, 1, -1), XMFLOAT3(0, 0, -1)),
-		Vertex(XMFLOAT3(1, -1, -1), XMFLOAT3(0, 0, -1)),
+		Vertex(XMFLOAT3(-1, -1, -1), XMFLOAT3(0, 0, -1), XMFLOAT2(0, 1)),
+		Vertex(XMFLOAT3(-1, 1, -1), XMFLOAT3(0, 0, -1), XMFLOAT2(0, 0)),
+		Vertex(XMFLOAT3(1, 1, -1), XMFLOAT3(0, 0, -1), XMFLOAT2(1, 0)),
+		Vertex(XMFLOAT3(1, -1, -1), XMFLOAT3(0, 0, -1), XMFLOAT2(1, 1)),
 
 		//Back face
-		Vertex(XMFLOAT3(-1, -1, 1), XMFLOAT3(0, 0, 1)),
-		Vertex(XMFLOAT3(1, -1, 1), XMFLOAT3(0, 0, 1)),
-		Vertex(XMFLOAT3(1, 1, 1), XMFLOAT3(0, 0, 1)),
-		Vertex(XMFLOAT3(-1, 1, 1), XMFLOAT3(0, 0, 1)),
+		Vertex(XMFLOAT3(-1, -1, 1), XMFLOAT3(0, 0, 1), XMFLOAT2(1, 1)),
+		Vertex(XMFLOAT3(1, -1, 1), XMFLOAT3(0, 0, 1), XMFLOAT2(0, 1)),
+		Vertex(XMFLOAT3(1, 1, 1), XMFLOAT3(0, 0, 1), XMFLOAT2(0, 0)),
+		Vertex(XMFLOAT3(-1, 1, 1), XMFLOAT3(0, 0, 1), XMFLOAT2(1, 0)),
 
 		//Top face
-		Vertex(XMFLOAT3(-1, 1, -1), XMFLOAT3(0, 1, 0)),
-		Vertex(XMFLOAT3(-1, 1, 1), XMFLOAT3(0, 1, 0)),
-		Vertex(XMFLOAT3(1, 1, 1), XMFLOAT3(0, 1, 0)),
-		Vertex(XMFLOAT3(1, 1, -1), XMFLOAT3(0, 1, 0)),
+		Vertex(XMFLOAT3(-1, 1, -1), XMFLOAT3(0, 1, 0), XMFLOAT2(0, 1)),
+		Vertex(XMFLOAT3(-1, 1, 1), XMFLOAT3(0, 1, 0), XMFLOAT2(0, 0)),
+		Vertex(XMFLOAT3(1, 1, 1), XMFLOAT3(0, 1, 0), XMFLOAT2(1, 0)),
+		Vertex(XMFLOAT3(1, 1, -1), XMFLOAT3(0, 1, 0), XMFLOAT2(1, 1)),
 
 		//Bottom face
-		Vertex(XMFLOAT3(-1, -1, -1), XMFLOAT3(0, -1, 0)),
-		Vertex(XMFLOAT3(1, -1, -1), XMFLOAT3(0, -1, 0)),
-		Vertex(XMFLOAT3(1, -1, 1), XMFLOAT3(0, -1, 0)),
-		Vertex(XMFLOAT3(-1, -1, 1), XMFLOAT3(0, -1, 0)),
+		Vertex(XMFLOAT3(-1, -1, -1), XMFLOAT3(0, -1, 0), XMFLOAT2(1, 1)),
+		Vertex(XMFLOAT3(1, -1, -1), XMFLOAT3(0, -1, 0), XMFLOAT2(0, 1)),
+		Vertex(XMFLOAT3(1, -1, 1), XMFLOAT3(0, -1, 0), XMFLOAT2(0, 0)),
+		Vertex(XMFLOAT3(-1, -1, 1), XMFLOAT3(0, -1, 0), XMFLOAT2(1, 0)),
 
 		//Left face
-		Vertex(XMFLOAT3(-1, -1, 1), XMFLOAT3(-1, 0, 0)),
-		Vertex(XMFLOAT3(-1, 1, 1), XMFLOAT3(-1, 0, 0)),
-		Vertex(XMFLOAT3(-1, 1, -1), XMFLOAT3(-1, 0, 0)),
-		Vertex(XMFLOAT3(-1, -1, -1), XMFLOAT3(-1, 0, 0)),
+		Vertex(XMFLOAT3(-1, -1, 1), XMFLOAT3(-1, 0, 0), XMFLOAT2(0, 1)),
+		Vertex(XMFLOAT3(-1, 1, 1), XMFLOAT3(-1, 0, 0), XMFLOAT2(0, 0)),
+		Vertex(XMFLOAT3(-1, 1, -1), XMFLOAT3(-1, 0, 0), XMFLOAT2(1, 0)),
+		Vertex(XMFLOAT3(-1, -1, -1), XMFLOAT3(-1, 0, 0), XMFLOAT2(1, 1)),
 
 		//Right face
-		Vertex(XMFLOAT3(1, -1, -1), XMFLOAT3(1, 0, 0)),
-		Vertex(XMFLOAT3(1, 1, -1), XMFLOAT3(1, 0, 0)),
-		Vertex(XMFLOAT3(1, 1, 1), XMFLOAT3(1, 0, 0)),
-		Vertex(XMFLOAT3(1, -1, 1), XMFLOAT3(1, 0, 0)),
+		Vertex(XMFLOAT3(1, -1, -1), XMFLOAT3(1, 0, 0), XMFLOAT2(0, 1)),
+		Vertex(XMFLOAT3(1, 1, -1), XMFLOAT3(1, 0, 0), XMFLOAT2(0, 0)),
+		Vertex(XMFLOAT3(1, 1, 1), XMFLOAT3(1, 0, 0), XMFLOAT2(1, 0)),
+		Vertex(XMFLOAT3(1, -1, 1), XMFLOAT3(1, 0, 0), XMFLOAT2(1, 1)),
 	};
 
 	std::array<std::uint16_t, 36> indices =
@@ -238,4 +246,9 @@ void VisibleGameObject::Draw()
 Material* VisibleGameObject::GetMaterial()
 {
 	return m_pMaterial;
+}
+
+D3DTextureData* VisibleGameObject::GetTexture()
+{
+	return m_pTexture;
 }
