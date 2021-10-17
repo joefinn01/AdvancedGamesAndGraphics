@@ -464,7 +464,7 @@ ID3D12GraphicsCommandList4* App::GetGraphicsCommandList()
 	return m_pGraphicsCommandList.Get();
 }
 
-ID3D12Device4* App::GetDevice()
+ID3D12Device* App::GetDevice()
 {
 	return m_pDevice.Get();
 }

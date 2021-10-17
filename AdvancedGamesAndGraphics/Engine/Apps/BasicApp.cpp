@@ -336,7 +336,7 @@ void BasicApp::CreateTextures()
 
 void BasicApp::CreateMaterialsUploadBuffer()
 {
-	m_pMaterialCB = new UploadBuffer<MaterialCB>(m_pDevice.Get(), MaterialManager::GetInstance()->GetMaterials()->size(), true);
+	m_pMaterialCB = new UploadBuffer<MaterialCB>(m_pDevice.Get(), (UINT)MaterialManager::GetInstance()->GetMaterials()->size(), true);
 
 	UINT uiCount = 0;
 
@@ -447,7 +447,7 @@ std::array<const CD3DX12_STATIC_SAMPLER_DESC, 6> BasicApp::GetStaticSamplers()
 bool BasicApp::CreateRootSignature()
 {
 	CD3DX12_DESCRIPTOR_RANGE textureTable;
-	textureTable.Init(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, TextureManager::GetInstance()->GetTextures()->size(), 3);
+	textureTable.Init(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, (UINT)TextureManager::GetInstance()->GetTextures()->size(), 3);
 
 	CD3DX12_ROOT_PARAMETER slotRootParameter[4] = {};
 
@@ -505,7 +505,7 @@ bool BasicApp::CreateDescriptorHeaps()
 	}
 
 	D3D12_DESCRIPTOR_HEAP_DESC srvDesc = {};
-	srvDesc.NumDescriptors = TextureManager::GetInstance()->GetTextures()->size();
+	srvDesc.NumDescriptors = (UINT)TextureManager::GetInstance()->GetTextures()->size();
 	srvDesc.Type = D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV;
 	srvDesc.Flags = D3D12_DESCRIPTOR_HEAP_FLAG_SHADER_VISIBLE;
 

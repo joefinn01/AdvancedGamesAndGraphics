@@ -13,6 +13,8 @@ bool MaterialManager::AddMaterial(Material* pMat)
 	}
 
 	m_Materials[pMat->name] = pMat;
+
+	return true;
 }
 
 Material* MaterialManager::GetMaterial(std::string sName)
