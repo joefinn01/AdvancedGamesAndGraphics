@@ -300,7 +300,7 @@ void BasicApp::CreateGameObjects()
 
 	VisibleGameObject* pGameObject = new VisibleGameObject();
 	//pGameObject->Init("Box1", XMFLOAT3(0, 0, 10), XMFLOAT3(5, 21, 11), XMFLOAT3(0.2f, 0.2f, 0.2f), "test");
-	pGameObject->Init("Box1", XMFLOAT3(0, 0, 10), XMFLOAT3(0, 0, 0), XMFLOAT3(3, 3, 3), "test", "test");
+	pGameObject->Init("Box1", XMFLOAT3(0, 0, 10), XMFLOAT3(0, 0, 0), XMFLOAT3(3, 3, 3), "test", "normal");
 
 	//pGameObject = new VisibleGameObject();
 	//pGameObject->Init("Box2", XMFLOAT3(-5, 0, 10), XMFLOAT3(75, 44, 0), XMFLOAT3(3, 2, 1), "test");
@@ -332,6 +332,7 @@ void BasicApp::CreateMaterials()
 void BasicApp::CreateTextures()
 {
 	TextureManager::GetInstance()->AddTexture("test", L"Textures/color.dds");
+	TextureManager::GetInstance()->AddTexture("normal", L"Textures/conenormal.dds");
 }
 
 void BasicApp::CreateMaterialsUploadBuffer()
@@ -386,7 +387,9 @@ void BasicApp::CreateInputDescriptions()
 	{
 		{ "POSITION", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, 0, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0 },
 		{ "NORMAL", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, 12, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0},
-		{ "TEXCOORD", 0, DXGI_FORMAT_R32G32_FLOAT, 0, 24, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0}
+		{ "TEXCOORD", 0, DXGI_FORMAT_R32G32_FLOAT, 0, 24, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0},
+		{ "TANGENT", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, 32, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0},
+		{ "BITANGENT", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, 44, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0}
 	};
 }
 

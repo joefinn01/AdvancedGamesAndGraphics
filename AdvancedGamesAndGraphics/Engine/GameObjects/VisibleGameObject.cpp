@@ -118,6 +118,44 @@ bool VisibleGameObject::Init(std::string sName, DirectX::XMFLOAT3 position, Dire
 		20, 22, 23
 	};
 
+	XMFLOAT3 tangent, binormal, normal;
+
+	for (int i = 0; i < vertices.size() / 3; ++i)
+	{
+		CalculateTangentBinormal(vertices[i], vertices[i + 1], vertices[i + 2], normal, tangent, binormal);
+
+		// Store the normal, tangent, and binormal for this face back in the model structure.
+		//vertices[i].Normal.x = normal.x;
+		//vertices[i].Normal.y = normal.y;
+		//vertices[i].Normal.z = normal.z;
+		vertices[i].Tangent.x = tangent.x;
+		vertices[i].Tangent.y = tangent.y;
+		vertices[i].Tangent.z = tangent.z;
+		vertices[i].BiTangent.x = binormal.x;
+		vertices[i].BiTangent.y = binormal.y;
+		vertices[i].BiTangent.z = binormal.z;
+
+		//vertices[i + 1].Normal.x = normal.x;
+		//vertices[i + 1].Normal.y = normal.y;
+		//vertices[i + 1].Normal.z = normal.z;
+		vertices[i + 1].Tangent.x = tangent.x;
+		vertices[i + 1].Tangent.y = tangent.y;
+		vertices[i + 1].Tangent.z = tangent.z;
+		vertices[i + 1].BiTangent.x = binormal.x;
+		vertices[i + 1].BiTangent.y = binormal.y;
+		vertices[i + 1].BiTangent.z = binormal.z;
+
+		//vertices[i + 2].Normal.x = normal.x;
+		//vertices[i + 2].Normal.y = normal.y;
+		//vertices[i + 2].Normal.z = normal.z;
+		vertices[i + 2].Tangent.x = tangent.x;
+		vertices[i + 2].Tangent.y = tangent.y;
+		vertices[i + 2].Tangent.z = tangent.z;
+		vertices[i + 2].BiTangent.x = binormal.x;
+		vertices[i + 2].BiTangent.y = binormal.y;
+		vertices[i + 2].BiTangent.z = binormal.z;
+	}
+
 	const UINT uiVertexBufferByteSize = (UINT)vertices.size() * sizeof(Vertex);
 	const UINT uiIndexBufferByteSize = (UINT)indices.size() * sizeof(std::uint16_t);
 
@@ -195,4 +233,60 @@ Material* VisibleGameObject::GetMaterial()
 D3DTextureData* VisibleGameObject::GetTexture()
 {
 	return m_pTexture;
+}
+
+void VisibleGameObject::CalculateTangentBinormal(Vertex v0, Vertex v1, Vertex v2, DirectX::XMFLOAT3& normal, DirectX::XMFLOAT3& tangent, DirectX::XMFLOAT3& binormal)
+{
+	XMVECTOR vv0 = XMLoadFloat3(&v0.Position);
+	XMVECTOR vv1 = XMLoadFloat3(&v1.Position);
+	XMVECTOR vv2 = XMLoadFloat3(&v2.Position);
+
+	XMVECTOR P = vv1 - vv0;
+	XMVECTOR Q = vv2 - vv0;
+
+	// 2. CALCULATE THE TANGENT from texture space
+
+	float s1 = v1.TexCoords.x - v0.TexCoords.x;
+	float t1 = v1.TexCoords.y - v0.TexCoords.y;
+	float s2 = v2.TexCoords.x - v0.TexCoords.x;
+	float t2 = v2.TexCoords.y - v0.TexCoords.y;
+
+	float tmp = 0.0f;
+	if (fabsf(s1 * t2 - s2 * t1) <= 0.0001f)
+	{
+		tmp = 1.0f;
+	}
+	else
+	{
+		tmp = 1.0f / (s1 * t2 - s2 * t1);
+	}
+
+	XMFLOAT3 PF3, QF3;
+	XMStoreFloat3(&PF3, P);
+	XMStoreFloat3(&QF3, Q);
+
+	tangent.x = (t2 * PF3.x - t1 * QF3.x);
+	tangent.y = (t2 * PF3.y - t1 * QF3.y);
+	tangent.z = (t2 * PF3.z - t1 * QF3.z);
+
+	tangent.x = tangent.x * tmp;
+	tangent.y = tangent.y * tmp;
+	tangent.z = tangent.z * tmp;
+
+	XMVECTOR vn = XMLoadFloat3(&normal);
+	XMVECTOR vt = XMLoadFloat3(&tangent);
+
+	// 3. CALCULATE THE BINORMAL
+	// left hand system b = t cross n (rh would be b = n cross t)
+	XMVECTOR vb = XMVector3Cross(vt, vn);
+
+	vn = XMVector3Normalize(vn);
+	vt = XMVector3Normalize(vt);
+	vb = XMVector3Normalize(vb);
+
+	XMStoreFloat3(&normal, vn);
+	XMStoreFloat3(&tangent, vt);
+	XMStoreFloat3(&binormal, vb);
+
+	return;
 }

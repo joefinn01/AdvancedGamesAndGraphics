@@ -5,6 +5,8 @@ struct VS_INPUT
 	float3 PosL  : POSITION;
 	float3 NormalL : NORMAL;
 	float2 TexCoords : TEXCOORD;
+	float3 Tangent : TANGENT;
+	float3 Bitangent : BITANGENT;
 };
 
 struct VS_OUTPUT
@@ -13,6 +15,8 @@ struct VS_OUTPUT
 	float3 PosW    : POSITION;
 	float4 NormalW : NORMAL;
 	float2 TexCoords : TEXCOORD;
+	float3 EyeVecTS : TEST;
+	float3 LightVecTS : TEST2;
 };
 
 cbuffer PerFrameCB : register(b0)
@@ -40,6 +44,7 @@ cbuffer MaterialCB : register(b2)
 }
 
 Texture2D ColorTex : register(t3);
+Texture2D BumpTex : register(t4);
 
 SamplerState SamplePointWrap : register(s0);
 
@@ -54,6 +59,16 @@ VS_OUTPUT VSMain(VS_INPUT input)
 
 	result.TexCoords = input.TexCoords;
 
+	// Build TBN matrix
+	float3 T = normalize(mul(input.Tangent, TransposeInvWorld));
+	float3 B = normalize(mul(input.Bitangent, TransposeInvWorld));
+	float3 N = result.NormalW;
+	float3x3 TBN = float3x3(T, B, N);
+	float3x3 TBN_inv = transpose(TBN);
+
+	result.EyeVecTS = normalize(mul(EyePosW - result.PosW, TBN_inv));
+	result.EyeVecTS = normalize(mul(EyePosW - Lights[0].Position, TBN_inv));
+
 	return result;
 }
 
@@ -61,7 +76,12 @@ float4 PSMain(VS_OUTPUT input) : SV_TARGET
 {
 	float3 viewVector = EyePosW - input.PosW;
 
-	LightingResult result = CalculateLighting(Lights, gMaterial, input.PosW, normalize(input.NormalW).xyz, normalize(viewVector));	//Normalize as interpolation can cause vector not to be normal
+	float4 bumpMap = BumpTex.Sample(SamplePointWrap, input.TexCoords);
+	bumpMap = (bumpMap * 2.0f) - 1.0f;
+	bumpMap = float4(normalize(bumpMap.xyz), 1);
+
+
+	LightingResult result = CalculateLighting(Lights, gMaterial, input.PosW, bumpMap.xyz, normalize(input.EyeVecTS));	//Normalize as interpolation can cause vector not to be normal
 
 	float4 textureColour = { 1, 1, 1, 1 };
 

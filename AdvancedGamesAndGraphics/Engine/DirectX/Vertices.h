@@ -4,35 +4,45 @@
 
 struct Vertex
 {
-	DirectX::XMFLOAT3 position;
-	DirectX::XMFLOAT3 normal;
+	DirectX::XMFLOAT3 Position;
+	DirectX::XMFLOAT3 Normal;
 	DirectX::XMFLOAT2 TexCoords;
+	DirectX::XMFLOAT3 Tangent;
+	DirectX::XMFLOAT3 BiTangent;
 
 	Vertex(DirectX::XMFLOAT3 pos, DirectX::XMFLOAT3 norm, DirectX::XMFLOAT2 texCoords)
 	{
-		position = pos;
-		normal = norm;
+		Position = pos;
+		Normal = norm;
 		TexCoords = texCoords;
+		Tangent = DirectX::XMFLOAT3(0, 0, 0);
+		BiTangent = DirectX::XMFLOAT3(0, 0, 0);
 	}
 
 	Vertex(DirectX::XMFLOAT3 pos, DirectX::XMFLOAT3 norm)
 	{
-		position = pos;
-		normal = norm;
+		Position = pos;
+		Normal = norm;
 		TexCoords = DirectX::XMFLOAT2(0, 0);
+		Tangent = DirectX::XMFLOAT3(0, 0, 0);
+		BiTangent = DirectX::XMFLOAT3(0, 0, 0);
 	}
 
 	Vertex(DirectX::XMFLOAT3 pos)
 	{
-		position = pos;
-		normal = DirectX::XMFLOAT3(0, 0, 0);
+		Position = pos;
+		Normal = DirectX::XMFLOAT3(0, 0, 0);
 		TexCoords = DirectX::XMFLOAT2(0, 0);
+		Tangent = DirectX::XMFLOAT3(0, 0, 0);
+		BiTangent = DirectX::XMFLOAT3(0, 0, 0);
 	}
 
 	Vertex()
 	{
-		position = DirectX::XMFLOAT3(0, 0, 0);
-		normal = DirectX::XMFLOAT3(0, 0, 0);
+		Position = DirectX::XMFLOAT3(0, 0, 0);
+		Normal = DirectX::XMFLOAT3(0, 0, 0);
 		TexCoords = DirectX::XMFLOAT2(0, 0);
+		Tangent = DirectX::XMFLOAT3(0, 0, 0);
+		BiTangent = DirectX::XMFLOAT3(0, 0, 0);
 	}
 };

@@ -4,6 +4,7 @@
 struct MeshGeometry;
 struct Material;
 struct D3DTextureData;
+struct Vertex;
 
 class VisibleGameObject : public GameObject
 {
@@ -17,6 +18,8 @@ public:
 	D3DTextureData* GetTexture();
 
 protected:
+	void CalculateTangentBinormal(Vertex v0, Vertex v1, Vertex v2, DirectX::XMFLOAT3& normal, DirectX::XMFLOAT3& tangent, DirectX::XMFLOAT3& binormal);
+
 	MeshGeometry* m_pMeshGeometry = nullptr;
 
 	Material* m_pMaterial = nullptr;
