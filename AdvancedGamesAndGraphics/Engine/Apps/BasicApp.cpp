@@ -88,7 +88,7 @@ void BasicApp::Update(const Timer& kTimer)
 	VisibleGameObjectCB visibleGameObjectCB;
 
 	GameObject* pGameObject = ObjectManager::GetInstance()->GetGameObject("Box1");
-	pGameObject->Rotate(0.0f, 10.0f * kTimer.DeltaTime(), 0.0f);
+	//pGameObject->Rotate(0.0f, 10.0f * kTimer.DeltaTime(), 0.0f);
 
 	//GameObject* pGameObject = ObjectManager::GetInstance()->GetGameObject("Box2");
 	//pGameObject->Rotate(0.0f, 10.0f * kTimer.DeltaTime(), 0.0f);
@@ -159,9 +159,7 @@ void BasicApp::Draw()
 		return;
 	}
 
-#if PIX
-	PIXBeginEvent(m_pGraphicsCommandList.Get(), PIX_COLOR(50, 50, 50), "Draw GameObjects");
-#endif
+	PIX_ONLY(PIXBeginEvent(m_pGraphicsCommandList.Get(), PIX_COLOR(50, 50, 50), "Draw GameObjects"));
 
 	CreateIMGUIWindow();
 
@@ -199,7 +197,7 @@ void BasicApp::Draw()
 
 	CD3DX12_GPU_DESCRIPTOR_HANDLE textureAddress;
 
-	std::vector<D3DTextureData*> ptextures;
+	std::vector<D3DTextureData*> pTextures;
 
 	for (std::unordered_map<std::string, GameObject*>::iterator it = pGameObjects->begin(); it != pGameObjects->end(); ++it)
 	{
@@ -217,21 +215,14 @@ void BasicApp::Draw()
 			//Set the material constant buffer
 			m_pGraphicsCommandList->SetGraphicsRootConstantBufferView(2, matCBAdress);
 
-			ptextures = pVisibleGameObject->GetTextures();
+			pTextures = pVisibleGameObject->GetTextures();
 
-			//Set Albedo texture
-			textureAddress = m_pTextureDescHeap->GetGPUDescriptorHandleForHeapStart();
-			textureAddress.Offset(ptextures[0]->HeapIndex, m_uiCBVSRVDescSize);
-
-			m_pGraphicsCommandList->SetGraphicsRootDescriptorTable(3, textureAddress);
-
-			//Set normal map texture
-			if (ptextures.size() > 1)
+			for (int i = 0; i < pTextures.size(); ++i)
 			{
 				textureAddress = m_pTextureDescHeap->GetGPUDescriptorHandleForHeapStart();
-				textureAddress.Offset(ptextures[1]->HeapIndex, m_uiCBVSRVDescSize);
+				textureAddress.Offset(pTextures[i]->HeapIndex, m_uiCBVSRVDescSize);
 
-				m_pGraphicsCommandList->SetGraphicsRootDescriptorTable(4, textureAddress);
+				m_pGraphicsCommandList->SetGraphicsRootDescriptorTable(3 + i, textureAddress);
 			}
 
 			pVisibleGameObject->Draw();
@@ -246,17 +237,19 @@ void BasicApp::Draw()
 		perObjCBAddress += uiPerObjByteSize;
 	}
 
+	PIX_ONLY(PIXBeginEvent(m_pGraphicsCommandList.Get(), PIX_COLOR(50, 50, 50), "Draw IMGUI"));
+
 	ID3D12DescriptorHeap* pIMGUIDescriptorHeaps[] = { m_pIMGUIDescHeap.Get() };
 	m_pGraphicsCommandList->SetDescriptorHeaps(_countof(pIMGUIDescriptorHeaps), pIMGUIDescriptorHeaps);
 
 	ImGui::Render();
 	ImGui_ImplDX12_RenderDrawData(ImGui::GetDrawData(), m_pGraphicsCommandList.Get());
 
+	PIX_ONLY(PIXEndEvent(m_pGraphicsCommandList.Get()));
+
 	m_pGraphicsCommandList->ResourceBarrier(1, &CD3DX12_RESOURCE_BARRIER::Transition(GetCurrentBackBuffer(), D3D12_RESOURCE_STATE_RENDER_TARGET, D3D12_RESOURCE_STATE_PRESENT));
 
-#if PIX
-	PIXEndEvent(m_pGraphicsCommandList.Get());
-#endif
+	PIX_ONLY(PIXEndEvent(m_pGraphicsCommandList.Get()));
 
 	hr = m_pGraphicsCommandList->Close();
 
@@ -309,12 +302,12 @@ void BasicApp::ExecuteCommandList()
 void BasicApp::CreateGameObjects()
 {
 	//Create camera
-	Camera* pCamera = new DebugCamera(XMFLOAT3(0, 0, 0), XMFLOAT3(0, 0, 1), XMFLOAT3(0, 1, 0), 0.1f, 1000.0f, "BasicCamera");
+	Camera* pCamera = new DebugCamera(XMFLOAT3(5, 1, 0), XMFLOAT3(6, 1, 0), XMFLOAT3(0, 1, 0), 0.1f, 1000.0f, "BasicCamera");
 	ObjectManager::GetInstance()->SetActiveCamera(pCamera);
 
 	VisibleGameObject* pGameObject = new VisibleGameObject();
 	//pGameObject->Init("Box1", XMFLOAT3(0, 0, 10), XMFLOAT3(5, 21, 11), XMFLOAT3(0.2f, 0.2f, 0.2f), "test");
-	pGameObject->Init("Box1", XMFLOAT3(0, 0, 10), XMFLOAT3(0, 0, 0), XMFLOAT3(3, 3, 3), "test", { "normal", "normal" });
+	pGameObject->Init("Box1", XMFLOAT3(0, 0, 10), XMFLOAT3(0, 0, 0), XMFLOAT3(3, 3, 3), "test", { "color", "normal", "height" });
 
 	//pGameObject = new VisibleGameObject();
 	//pGameObject->Init("Box2", XMFLOAT3(-5, 0, 10), XMFLOAT3(75, 44, 0), XMFLOAT3(3, 2, 1), "test");
@@ -323,7 +316,7 @@ void BasicApp::CreateGameObjects()
 	//pGameObject->Init("Box3", XMFLOAT3(5, 0, 10), XMFLOAT3(45, 45, 45), XMFLOAT3(1, 1, 1), "test");
 
 	pGameObject = new VisibleGameObject();
-	pGameObject->Init("Light", XMFLOAT3(0, 0, 0), XMFLOAT3(0, 0, 0), XMFLOAT3(0.2f, 0.2f, 0.2f), "test", { "test" });
+	pGameObject->Init("Light", XMFLOAT3(0, 0, 0), XMFLOAT3(0, 0, 0), XMFLOAT3(0.2f, 0.2f, 0.2f), "test", { "color" });
 
 	Light* pPointLight = new PointLight(XMFLOAT3(0, 0, 0), XMFLOAT3(0.2f, 0.2f, 0.2f), XMFLOAT3(0.5f, 0.5f, 0.5f), XMFLOAT4(0.5f, 0.5f, 0.5f, 10.0f), XMFLOAT3(0.2f, 0.09f, 0.0f), 1000.0f);
 	Light* pSpotLight = new SpotLight(XMFLOAT3(), XMFLOAT3(0.2f, 0.2f, 0.2f), XMFLOAT3(0.5f, 0.5f, 0.5f), XMFLOAT4(0.5f, 0.5f, 0.5f, 10.0f), XMFLOAT3(0.2f, 0.09f, 0.0f), 1000.0f, XMFLOAT4(0, 0, 1, 0), 45.0f);
@@ -336,8 +329,8 @@ void BasicApp::CreateMaterials()
 {
 	Material* pMat = new Material();
 	pMat->name = "test";
-	pMat->Ambient = XMFLOAT4(0.1f, 0.1f, 0.1f, 1.0f);
-	pMat->Diffuse = XMFLOAT4(0.0f, 0.467f, 1.0f, 0.745f);
+	pMat->Ambient = XMFLOAT4(0.75f, 0.75f, 0.75f, 1.0f);
+	pMat->Diffuse = XMFLOAT4(0.5f, 0.5f, 0.5f, 0.745f);
 	pMat->Specular = XMFLOAT4(0.5f, 0.5f, 0.5f, 10.0f);
 
 	MaterialManager::GetInstance()->AddMaterial(pMat);
@@ -345,8 +338,9 @@ void BasicApp::CreateMaterials()
 
 void BasicApp::CreateTextures()
 {
-	TextureManager::GetInstance()->AddTexture("test", L"Textures/color.dds");
-	TextureManager::GetInstance()->AddTexture("normal", L"Textures/GrillNormal.dds");
+	TextureManager::GetInstance()->AddTexture("color", L"Textures/bricks_COLOR.dds");
+	TextureManager::GetInstance()->AddTexture("normal", L"Textures/bricks_NORM.dds");
+	TextureManager::GetInstance()->AddTexture("height", L"Textures/bricks_DISP.dds");
 }
 
 void BasicApp::CreateMaterialsUploadBuffer()
@@ -465,16 +459,22 @@ bool BasicApp::CreateRootSignature()
 	CD3DX12_DESCRIPTOR_RANGE albedoTable;
 	albedoTable.Init(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, (UINT)1, 3);
 
-	CD3DX12_DESCRIPTOR_RANGE NormalTable;
-	NormalTable.Init(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, (UINT)1, 4);
+	CD3DX12_DESCRIPTOR_RANGE normalTable;
+	normalTable.Init(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, (UINT)1, 4);
 
-	CD3DX12_ROOT_PARAMETER slotRootParameter[5] = {};
+	CD3DX12_DESCRIPTOR_RANGE heightTable;
+	heightTable.Init(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, (UINT)1, 5);
+
+	CD3DX12_ROOT_PARAMETER slotRootParameter[6] = {};
 
 	slotRootParameter[0].InitAsConstantBufferView(0);	//Per frame CB
 	slotRootParameter[1].InitAsConstantBufferView(1);	//Per object CB
 	slotRootParameter[2].InitAsConstantBufferView(2);	//Material CB
-	slotRootParameter[3].InitAsDescriptorTable(1, &albedoTable);	//Material CB
-	slotRootParameter[4].InitAsDescriptorTable(1, &NormalTable);	//Material CB
+
+	//Adding textures
+	slotRootParameter[3].InitAsDescriptorTable(1, &albedoTable);
+	slotRootParameter[4].InitAsDescriptorTable(1, &normalTable);
+	slotRootParameter[5].InitAsDescriptorTable(1, &heightTable);
 
 	std::array<const CD3DX12_STATIC_SAMPLER_DESC, 6> staticSamplers = GetStaticSamplers();
 

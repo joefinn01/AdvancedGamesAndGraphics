@@ -24,6 +24,17 @@ enum class LogLevel
 
 #endif
 
+#if PIX
+
+#define PIX_ONLY(code) code
+
+
+#else
+
+#define PIX_ONLY(code)
+
+#endif
+
 typedef const std::wstring Tag;
 
 class DebugHelper

@@ -43,6 +43,7 @@ cbuffer MaterialCB : register(b2)
 
 Texture2D ColorTex : register(t3);
 Texture2D NormalTex : register(t4);
+Texture2D HeightTex : register(t5);
 
 SamplerState SamPointWrap        : register(s0);
 SamplerState SamPointClamp       : register(s1);
@@ -57,7 +58,7 @@ VS_OUTPUT VSMain(VS_INPUT input)
 
 	result.PosW = mul(float4(input.PosL, 1.0f), World).xyz;
 	result.PosH = mul(float4(result.PosW, 1.0f), ViewProjection);
-
+	 
 	result.NormalW = normalize(mul(float4(input.NormalL, 0), TransposeInvWorld).xyz);
 	result.TangentW = normalize(mul(float4(input.Tangent, 0), TransposeInvWorld).xyz);
 
@@ -71,28 +72,46 @@ float4 PSMain(VS_OUTPUT input) : SV_TARGET
 	input.NormalW = normalize(input.NormalW);
 	input.TangentW = normalize(input.TangentW);
 
-	float3 viewVector = EyePosW - input.PosW;
-
-	float3 normalT = NormalTex.Sample(SamAnisotropicWrap, input.TexCoords).xyz;
-	normalT *= 2.0f;
-	normalT -= 1.0f;
-
-	normalT = normalize(normalT);
-
+	//Calculate TBN matrix
 	float3 n = input.NormalW;
 	float3 t = normalize(input.TangentW - dot(input.TangentW, n) * n);	//Ensures the vectors are orthogonal
 	float3 b = cross(t, n);
 
 	float3x3 tbn = float3x3(t, b, n);
 
+	float3 viewVectorW = normalize(EyePosW - input.PosW);
+
+	float3 viewVectorT = mul(viewVectorW, transpose(tbn));
+	//float3 viewVectorT = normalize(mul(EyePosW, transpose(tbn)) - mul(input.PosW, transpose(tbn)));
+
+	float height = HeightTex.Sample(SamAnisotropicWrap, input.TexCoords).x;
+	float heightScale = 0.1f;
+
+	//Divide by Z axis to remove issues at steeper angles.
+	float2 uvOffset = (viewVectorT.xy / viewVectorT.z) * height * heightScale;
+
+	float2 uv = input.TexCoords - uvOffset;
+	//float2 uv = input.TexCoords;
+
+	//if (uv.x > 1.0 || uv.y > 1.0 || uv.x < 0.0 || uv.y < 0.0)
+	//{
+	//	discard;
+	//}
+
+	float3 normalT = NormalTex.Sample(SamAnisotropicWrap, uv).xyz;
+	normalT *= 2.0f;
+	normalT -= 1.0f;
+
+	normalT = normalize(normalT);
+
 	float3 bumpedNormalW = mul(normalT, tbn);
 
-	//LightingResult result = CalculateLighting(Lights, gMaterial, input.PosW, input.NormalW, normalize(viewVector));	//Normalize as interpolation can cause vector not to be normal
-	LightingResult result = CalculateLighting(Lights, gMaterial, input.PosW, bumpedNormalW, normalize(viewVector));
+	//LightingResult result = CalculateLighting(Lights, gMaterial, input.PosW, input.NormalW, normalize(viewVectorW));	//Normalize as interpolation can cause vector not to be normal
+	LightingResult result = CalculateLighting(Lights, gMaterial, input.PosW, bumpedNormalW, viewVectorW);
 
 	float4 textureColour = { 1, 1, 1, 1 };
 
-	textureColour = ColorTex.Sample(SamPointWrap, input.TexCoords);
+	textureColour = ColorTex.Sample(SamPointWrap, uv);
 
 	float4 litColour = saturate(textureColour * (result.Ambient + result.Diffuse) + result.Specular);
 
