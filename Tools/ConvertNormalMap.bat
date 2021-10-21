@@ -1,0 +1,1 @@
+texconv -m 1 -f R32G32B32A32_FLOAT TestMap.jpg
