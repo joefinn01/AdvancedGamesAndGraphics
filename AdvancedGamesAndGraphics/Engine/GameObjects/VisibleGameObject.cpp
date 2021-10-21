@@ -16,7 +16,7 @@ using namespace DirectX;
 
 Tag tag = L"VisibleGameObject";
 
-bool VisibleGameObject::Init(std::string sName, DirectX::XMFLOAT3 position, DirectX::XMFLOAT3 rotation, DirectX::XMFLOAT3 scale, std::string sMatName, std::string sTexName)
+bool VisibleGameObject::Init(std::string sName, DirectX::XMFLOAT3 position, DirectX::XMFLOAT3 rotation, DirectX::XMFLOAT3 scale, std::string sMatName, std::vector<std::string> sTexNames)
 {
 	if (GameObject::Init(sName, position, rotation, scale) == false)
 	{
@@ -30,65 +30,56 @@ bool VisibleGameObject::Init(std::string sName, DirectX::XMFLOAT3 position, Dire
 		return false;
 	}
 
-	m_pTexture = TextureManager::GetInstance()->GetTexture(sTexName);
-
-	if (m_pTexture == nullptr)
+	for (int i = 0; i < sTexNames.size(); ++i)
 	{
-		return false;
+		m_pTextures.push_back(TextureManager::GetInstance()->GetTexture(sTexNames[i]));
+
+		if (m_pTextures[i] == nullptr)
+		{
+			return false;
+		}
 	}
 
 	ID3D12Device* pDevice = App::GetApp()->GetDevice();
 	ID3D12GraphicsCommandList4* pCommandList = App::GetApp()->GetGraphicsCommandList();
 
-	//std::array<Vertex, 8> vertices =
-	//{
-	//	Vertex({ XMFLOAT3(-1.0f, -1.0f, -1.0f) }),
-	//	Vertex({ XMFLOAT3(-1.0f, +1.0f, -1.0f) }),
-	//	Vertex({ XMFLOAT3(+1.0f, +1.0f, -1.0f) }),
-	//	Vertex({ XMFLOAT3(+1.0f, -1.0f, -1.0f) }),
-	//	Vertex({ XMFLOAT3(-1.0f, -1.0f, +1.0f) }),
-	//	Vertex({ XMFLOAT3(-1.0f, +1.0f, +1.0f) }),
-	//	Vertex({ XMFLOAT3(+1.0f, +1.0f, +1.0f) }),
-	//	Vertex({ XMFLOAT3(+1.0f, -1.0f, +1.0f) })
-	//};
-
 	std::array<Vertex, 24> vertices =
 	{
 		//Front face
-		Vertex(XMFLOAT3(-1, -1, -1), XMFLOAT3(0, 0, -1), XMFLOAT2(0, 1)),
-		Vertex(XMFLOAT3(-1, 1, -1), XMFLOAT3(0, 0, -1), XMFLOAT2(0, 0)),
-		Vertex(XMFLOAT3(1, 1, -1), XMFLOAT3(0, 0, -1), XMFLOAT2(1, 0)),
-		Vertex(XMFLOAT3(1, -1, -1), XMFLOAT3(0, 0, -1), XMFLOAT2(1, 1)),
+		Vertex(XMFLOAT3(-1, -1, -1), XMFLOAT3(0, 0, -1), XMFLOAT2(0, 1), XMFLOAT3(1.0f, 0.0f, 0.0f)),
+		Vertex(XMFLOAT3(-1, 1, -1), XMFLOAT3(0, 0, -1), XMFLOAT2(0, 0), XMFLOAT3(1.0f, 0.0f, 0.0f)),
+		Vertex(XMFLOAT3(1, 1, -1), XMFLOAT3(0, 0, -1), XMFLOAT2(1, 0), XMFLOAT3(1.0f, 0.0f, 0.0f)),
+		Vertex(XMFLOAT3(1, -1, -1), XMFLOAT3(0, 0, -1), XMFLOAT2(1, 1), XMFLOAT3(1.0f, 0.0f, 0.0f)),
 
 		//Back face
-		Vertex(XMFLOAT3(-1, -1, 1), XMFLOAT3(0, 0, 1), XMFLOAT2(1, 1)),
-		Vertex(XMFLOAT3(1, -1, 1), XMFLOAT3(0, 0, 1), XMFLOAT2(0, 1)),
-		Vertex(XMFLOAT3(1, 1, 1), XMFLOAT3(0, 0, 1), XMFLOAT2(0, 0)),
-		Vertex(XMFLOAT3(-1, 1, 1), XMFLOAT3(0, 0, 1), XMFLOAT2(1, 0)),
+		Vertex(XMFLOAT3(-1, -1, 1), XMFLOAT3(0, 0, 1), XMFLOAT2(1, 1), XMFLOAT3(-1.0f, 0.0f, 0.0f)),
+		Vertex(XMFLOAT3(1, -1, 1), XMFLOAT3(0, 0, 1), XMFLOAT2(0, 1), XMFLOAT3(-1.0f, 0.0f, 0.0f)),
+		Vertex(XMFLOAT3(1, 1, 1), XMFLOAT3(0, 0, 1), XMFLOAT2(0, 0), XMFLOAT3(-1.0f, 0.0f, 0.0f)),
+		Vertex(XMFLOAT3(-1, 1, 1), XMFLOAT3(0, 0, 1), XMFLOAT2(1, 0), XMFLOAT3(-1.0f, 0.0f, 0.0f)),
 
 		//Top face
-		Vertex(XMFLOAT3(-1, 1, -1), XMFLOAT3(0, 1, 0), XMFLOAT2(0, 1)),
-		Vertex(XMFLOAT3(-1, 1, 1), XMFLOAT3(0, 1, 0), XMFLOAT2(0, 0)),
-		Vertex(XMFLOAT3(1, 1, 1), XMFLOAT3(0, 1, 0), XMFLOAT2(1, 0)),
-		Vertex(XMFLOAT3(1, 1, -1), XMFLOAT3(0, 1, 0), XMFLOAT2(1, 1)),
+		Vertex(XMFLOAT3(-1, 1, -1), XMFLOAT3(0, 1, 0), XMFLOAT2(0, 1), XMFLOAT3(1.0f, 0.0f, 0.0f)),
+		Vertex(XMFLOAT3(-1, 1, 1), XMFLOAT3(0, 1, 0), XMFLOAT2(0, 0), XMFLOAT3(1.0f, 0.0f, 0.0f)),
+		Vertex(XMFLOAT3(1, 1, 1), XMFLOAT3(0, 1, 0), XMFLOAT2(1, 0), XMFLOAT3(1.0f, 0.0f, 0.0f)),
+		Vertex(XMFLOAT3(1, 1, -1), XMFLOAT3(0, 1, 0), XMFLOAT2(1, 1), XMFLOAT3(1.0f, 0.0f, 0.0f)),
 
 		//Bottom face
-		Vertex(XMFLOAT3(-1, -1, -1), XMFLOAT3(0, -1, 0), XMFLOAT2(1, 1)),
-		Vertex(XMFLOAT3(1, -1, -1), XMFLOAT3(0, -1, 0), XMFLOAT2(0, 1)),
-		Vertex(XMFLOAT3(1, -1, 1), XMFLOAT3(0, -1, 0), XMFLOAT2(0, 0)),
-		Vertex(XMFLOAT3(-1, -1, 1), XMFLOAT3(0, -1, 0), XMFLOAT2(1, 0)),
+		Vertex(XMFLOAT3(-1, -1, -1), XMFLOAT3(0, -1, 0), XMFLOAT2(1, 1), XMFLOAT3(-1.0f, 0.0f, 0.0f)),
+		Vertex(XMFLOAT3(1, -1, -1), XMFLOAT3(0, -1, 0), XMFLOAT2(0, 1), XMFLOAT3(-1.0f, 0.0f, 0.0f)),
+		Vertex(XMFLOAT3(1, -1, 1), XMFLOAT3(0, -1, 0), XMFLOAT2(0, 0), XMFLOAT3(-1.0f, 0.0f, 0.0f)),
+		Vertex(XMFLOAT3(-1, -1, 1), XMFLOAT3(0, -1, 0), XMFLOAT2(1, 0), XMFLOAT3(-1.0f, 0.0f, 0.0f)),
 
 		//Left face
-		Vertex(XMFLOAT3(-1, -1, 1), XMFLOAT3(-1, 0, 0), XMFLOAT2(0, 1)),
-		Vertex(XMFLOAT3(-1, 1, 1), XMFLOAT3(-1, 0, 0), XMFLOAT2(0, 0)),
-		Vertex(XMFLOAT3(-1, 1, -1), XMFLOAT3(-1, 0, 0), XMFLOAT2(1, 0)),
-		Vertex(XMFLOAT3(-1, -1, -1), XMFLOAT3(-1, 0, 0), XMFLOAT2(1, 1)),
+		Vertex(XMFLOAT3(-1, -1, 1), XMFLOAT3(-1, 0, 0), XMFLOAT2(0, 1), XMFLOAT3(0.0f, 0.0f, -1.0f)),
+		Vertex(XMFLOAT3(-1, 1, 1), XMFLOAT3(-1, 0, 0), XMFLOAT2(0, 0), XMFLOAT3(0.0f, 0.0f, -1.0f)),
+		Vertex(XMFLOAT3(-1, 1, -1), XMFLOAT3(-1, 0, 0), XMFLOAT2(1, 0), XMFLOAT3(0.0f, 0.0f, -1.0f)),
+		Vertex(XMFLOAT3(-1, -1, -1), XMFLOAT3(-1, 0, 0), XMFLOAT2(1, 1), XMFLOAT3(0.0f, 0.0f, -1.0f)),
 
 		//Right face
-		Vertex(XMFLOAT3(1, -1, -1), XMFLOAT3(1, 0, 0), XMFLOAT2(0, 1)),
-		Vertex(XMFLOAT3(1, 1, -1), XMFLOAT3(1, 0, 0), XMFLOAT2(0, 0)),
-		Vertex(XMFLOAT3(1, 1, 1), XMFLOAT3(1, 0, 0), XMFLOAT2(1, 0)),
-		Vertex(XMFLOAT3(1, -1, 1), XMFLOAT3(1, 0, 0), XMFLOAT2(1, 1)),
+		Vertex(XMFLOAT3(1, -1, -1), XMFLOAT3(1, 0, 0), XMFLOAT2(0, 1), XMFLOAT3(0.0f, 0.0f, 1.0f)),
+		Vertex(XMFLOAT3(1, 1, -1), XMFLOAT3(1, 0, 0), XMFLOAT2(0, 0), XMFLOAT3(0.0f, 0.0f, 1.0f)),
+		Vertex(XMFLOAT3(1, 1, 1), XMFLOAT3(1, 0, 0), XMFLOAT2(1, 0), XMFLOAT3(0.0f, 0.0f, 1.0f)),
+		Vertex(XMFLOAT3(1, -1, 1), XMFLOAT3(1, 0, 0), XMFLOAT2(1, 1), XMFLOAT3(0.0f, 0.0f, 1.0f)),
 	};
 
 	std::array<std::uint16_t, 36> indices =
@@ -117,44 +108,6 @@ bool VisibleGameObject::Init(std::string sName, DirectX::XMFLOAT3 position, Dire
 		20, 21, 22,
 		20, 22, 23
 	};
-
-	XMFLOAT3 tangent, binormal, normal;
-
-	for (int i = 0; i < vertices.size() / 3; ++i)
-	{
-		CalculateTangentBinormal(vertices[i], vertices[i + 1], vertices[i + 2], normal, tangent, binormal);
-
-		// Store the normal, tangent, and binormal for this face back in the model structure.
-		//vertices[i].Normal.x = normal.x;
-		//vertices[i].Normal.y = normal.y;
-		//vertices[i].Normal.z = normal.z;
-		vertices[i].Tangent.x = tangent.x;
-		vertices[i].Tangent.y = tangent.y;
-		vertices[i].Tangent.z = tangent.z;
-		vertices[i].BiTangent.x = binormal.x;
-		vertices[i].BiTangent.y = binormal.y;
-		vertices[i].BiTangent.z = binormal.z;
-
-		//vertices[i + 1].Normal.x = normal.x;
-		//vertices[i + 1].Normal.y = normal.y;
-		//vertices[i + 1].Normal.z = normal.z;
-		vertices[i + 1].Tangent.x = tangent.x;
-		vertices[i + 1].Tangent.y = tangent.y;
-		vertices[i + 1].Tangent.z = tangent.z;
-		vertices[i + 1].BiTangent.x = binormal.x;
-		vertices[i + 1].BiTangent.y = binormal.y;
-		vertices[i + 1].BiTangent.z = binormal.z;
-
-		//vertices[i + 2].Normal.x = normal.x;
-		//vertices[i + 2].Normal.y = normal.y;
-		//vertices[i + 2].Normal.z = normal.z;
-		vertices[i + 2].Tangent.x = tangent.x;
-		vertices[i + 2].Tangent.y = tangent.y;
-		vertices[i + 2].Tangent.z = tangent.z;
-		vertices[i + 2].BiTangent.x = binormal.x;
-		vertices[i + 2].BiTangent.y = binormal.y;
-		vertices[i + 2].BiTangent.z = binormal.z;
-	}
 
 	const UINT uiVertexBufferByteSize = (UINT)vertices.size() * sizeof(Vertex);
 	const UINT uiIndexBufferByteSize = (UINT)indices.size() * sizeof(std::uint16_t);
@@ -230,9 +183,9 @@ Material* VisibleGameObject::GetMaterial()
 	return m_pMaterial;
 }
 
-D3DTextureData* VisibleGameObject::GetTexture()
+std::vector<D3DTextureData*> VisibleGameObject::GetTextures()
 {
-	return m_pTexture;
+	return m_pTextures;
 }
 
 void VisibleGameObject::CalculateTangentBinormal(Vertex v0, Vertex v1, Vertex v2, DirectX::XMFLOAT3& normal, DirectX::XMFLOAT3& tangent, DirectX::XMFLOAT3& binormal)
@@ -251,15 +204,7 @@ void VisibleGameObject::CalculateTangentBinormal(Vertex v0, Vertex v1, Vertex v2
 	float s2 = v2.TexCoords.x - v0.TexCoords.x;
 	float t2 = v2.TexCoords.y - v0.TexCoords.y;
 
-	float tmp = 0.0f;
-	if (fabsf(s1 * t2 - s2 * t1) <= 0.0001f)
-	{
-		tmp = 1.0f;
-	}
-	else
-	{
-		tmp = 1.0f / (s1 * t2 - s2 * t1);
-	}
+	float tmp = 1.0f / (s1 * t2 - s2 * t1);
 
 	XMFLOAT3 PF3, QF3;
 	XMStoreFloat3(&PF3, P);
@@ -280,9 +225,9 @@ void VisibleGameObject::CalculateTangentBinormal(Vertex v0, Vertex v1, Vertex v2
 	// left hand system b = t cross n (rh would be b = n cross t)
 	XMVECTOR vb = XMVector3Cross(vt, vn);
 
-	vn = XMVector3Normalize(vn);
-	vt = XMVector3Normalize(vt);
-	vb = XMVector3Normalize(vb);
+	//vn = XMVector3Normalize(vn);
+	//vt = XMVector3Normalize(vt);
+	//vb = XMVector3Normalize(vb);
 
 	XMStoreFloat3(&normal, vn);
 	XMStoreFloat3(&tangent, vt);

@@ -6,17 +6,15 @@ struct VS_INPUT
 	float3 NormalL : NORMAL;
 	float2 TexCoords : TEXCOORD;
 	float3 Tangent : TANGENT;
-	float3 Bitangent : BITANGENT;
 };
 
 struct VS_OUTPUT
 {
 	float4 PosH    : SV_POSITION;
 	float3 PosW    : POSITION;
-	float4 NormalW : NORMAL;
+	float3 NormalW : NORMAL;
 	float2 TexCoords : TEXCOORD;
-	float3 EyeVecTS : TEST;
-	float3 LightVecTS : TEST2;
+	float3 TangentW : TANGENT;
 };
 
 cbuffer PerFrameCB : register(b0)
@@ -44,9 +42,14 @@ cbuffer MaterialCB : register(b2)
 }
 
 Texture2D ColorTex : register(t3);
-Texture2D BumpTex : register(t4);
+Texture2D NormalTex : register(t4);
 
-SamplerState SamplePointWrap : register(s0);
+SamplerState SamPointWrap        : register(s0);
+SamplerState SamPointClamp       : register(s1);
+SamplerState SamLinearWrap       : register(s2);
+SamplerState SamLinearClamp      : register(s3);
+SamplerState SamAnisotropicWrap  : register(s4);
+SamplerState SamAnisotropicClamp : register(s5);
 
 VS_OUTPUT VSMain(VS_INPUT input)
 {
@@ -55,39 +58,43 @@ VS_OUTPUT VSMain(VS_INPUT input)
 	result.PosW = mul(float4(input.PosL, 1.0f), World).xyz;
 	result.PosH = mul(float4(result.PosW, 1.0f), ViewProjection);
 
-	result.NormalW = normalize(mul(float4(input.NormalL, 1.0f), TransposeInvWorld));
+	result.NormalW = normalize(mul(float4(input.NormalL, 0), TransposeInvWorld).xyz);
+	result.TangentW = normalize(mul(float4(input.Tangent, 0), TransposeInvWorld).xyz);
 
 	result.TexCoords = input.TexCoords;
-
-	// Build TBN matrix
-	float3 T = normalize(mul(input.Tangent, TransposeInvWorld));
-	float3 B = normalize(mul(input.Bitangent, TransposeInvWorld));
-	float3 N = result.NormalW;
-	float3x3 TBN = float3x3(T, B, N);
-	float3x3 TBN_inv = transpose(TBN);
-
-	result.EyeVecTS = normalize(mul(EyePosW - result.PosW, TBN_inv));
-	result.EyeVecTS = normalize(mul(EyePosW - Lights[0].Position, TBN_inv));
 
 	return result;
 }
 
 float4 PSMain(VS_OUTPUT input) : SV_TARGET
 {
+	input.NormalW = normalize(input.NormalW);
+	input.TangentW = normalize(input.TangentW);
+
 	float3 viewVector = EyePosW - input.PosW;
 
-	float4 bumpMap = BumpTex.Sample(SamplePointWrap, input.TexCoords);
-	bumpMap = (bumpMap * 2.0f) - 1.0f;
-	bumpMap = float4(normalize(bumpMap.xyz), 1);
+	float3 normalT = NormalTex.Sample(SamAnisotropicWrap, input.TexCoords).xyz;
+	normalT *= 2.0f;
+	normalT -= 1.0f;
 
+	normalT = normalize(normalT);
 
-	LightingResult result = CalculateLighting(Lights, gMaterial, input.PosW, bumpMap.xyz, normalize(input.EyeVecTS));	//Normalize as interpolation can cause vector not to be normal
+	float3 n = input.NormalW;
+	float3 t = normalize(input.TangentW - dot(input.TangentW, n) * n);	//Ensures the vectors are orthogonal
+	float3 b = cross(t, n);
+
+	float3x3 tbn = float3x3(t, b, n);
+
+	float3 bumpedNormalW = mul(normalT, tbn);
+
+	//LightingResult result = CalculateLighting(Lights, gMaterial, input.PosW, input.NormalW, normalize(viewVector));	//Normalize as interpolation can cause vector not to be normal
+	LightingResult result = CalculateLighting(Lights, gMaterial, input.PosW, bumpedNormalW, normalize(viewVector));
 
 	float4 textureColour = { 1, 1, 1, 1 };
 
-	textureColour = ColorTex.Sample(SamplePointWrap, input.TexCoords);
+	textureColour = ColorTex.Sample(SamPointWrap, input.TexCoords);
 
-	float4 litColour = textureColour * (result.Ambient + result.Diffuse) + result.Specular;
+	float4 litColour = saturate(textureColour * (result.Ambient + result.Diffuse) + result.Specular);
 
 	litColour.a = gMaterial.Diffuse.a;
 

@@ -7,8 +7,8 @@
 
 struct D3DTextureData
 {
-	Microsoft::WRL::ComPtr<ID3D12Resource> pResource;
-	Microsoft::WRL::ComPtr<ID3D12Resource> pUploadHeap;
+	Microsoft::WRL::ComPtr<ID3D12Resource> Resource;
+	Microsoft::WRL::ComPtr<ID3D12Resource> UploadHeap;
 	int HeapIndex;
 };
 

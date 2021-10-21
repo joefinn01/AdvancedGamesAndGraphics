@@ -16,7 +16,7 @@ bool TextureManager::AddTexture(std::string sName, std::wstring wsFilename)
 
 	D3DTextureData* pTexData = new D3DTextureData();
 
-	HRESULT hr = DirectX::CreateDDSTextureFromFile12(App::GetApp()->GetDevice(), App::GetApp()->GetGraphicsCommandList(), wsFilename.c_str(), pTexData->pResource, pTexData->pUploadHeap);
+	HRESULT hr = DirectX::CreateDDSTextureFromFile12(App::GetApp()->GetDevice(), App::GetApp()->GetGraphicsCommandList(), wsFilename.c_str(), pTexData->Resource, pTexData->UploadHeap);
 
 	if (FAILED(hr))
 	{
@@ -26,6 +26,8 @@ bool TextureManager::AddTexture(std::string sName, std::wstring wsFilename)
 
 		return false;
 	}
+
+	D3D12_RESOURCE_DESC test = pTexData->Resource->GetDesc();
 
 	m_Textures[sName] = pTexData;
 

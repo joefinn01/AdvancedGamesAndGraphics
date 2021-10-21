@@ -199,6 +199,8 @@ void BasicApp::Draw()
 
 	CD3DX12_GPU_DESCRIPTOR_HANDLE textureAddress;
 
+	std::vector<D3DTextureData*> ptextures;
+
 	for (std::unordered_map<std::string, GameObject*>::iterator it = pGameObjects->begin(); it != pGameObjects->end(); ++it)
 	{
 		//Set the per object constant buffer
@@ -215,10 +217,22 @@ void BasicApp::Draw()
 			//Set the material constant buffer
 			m_pGraphicsCommandList->SetGraphicsRootConstantBufferView(2, matCBAdress);
 
+			ptextures = pVisibleGameObject->GetTextures();
+
+			//Set Albedo texture
 			textureAddress = m_pTextureDescHeap->GetGPUDescriptorHandleForHeapStart();
-			textureAddress.Offset(pVisibleGameObject->GetTexture()->HeapIndex, m_uiCBVSRVDescSize);
+			textureAddress.Offset(ptextures[0]->HeapIndex, m_uiCBVSRVDescSize);
 
 			m_pGraphicsCommandList->SetGraphicsRootDescriptorTable(3, textureAddress);
+
+			//Set normal map texture
+			if (ptextures.size() > 1)
+			{
+				textureAddress = m_pTextureDescHeap->GetGPUDescriptorHandleForHeapStart();
+				textureAddress.Offset(ptextures[1]->HeapIndex, m_uiCBVSRVDescSize);
+
+				m_pGraphicsCommandList->SetGraphicsRootDescriptorTable(4, textureAddress);
+			}
 
 			pVisibleGameObject->Draw();
 
@@ -300,7 +314,7 @@ void BasicApp::CreateGameObjects()
 
 	VisibleGameObject* pGameObject = new VisibleGameObject();
 	//pGameObject->Init("Box1", XMFLOAT3(0, 0, 10), XMFLOAT3(5, 21, 11), XMFLOAT3(0.2f, 0.2f, 0.2f), "test");
-	pGameObject->Init("Box1", XMFLOAT3(0, 0, 10), XMFLOAT3(0, 0, 0), XMFLOAT3(3, 3, 3), "test", "normal");
+	pGameObject->Init("Box1", XMFLOAT3(0, 0, 10), XMFLOAT3(0, 0, 0), XMFLOAT3(3, 3, 3), "test", { "normal", "normal" });
 
 	//pGameObject = new VisibleGameObject();
 	//pGameObject->Init("Box2", XMFLOAT3(-5, 0, 10), XMFLOAT3(75, 44, 0), XMFLOAT3(3, 2, 1), "test");
@@ -309,12 +323,12 @@ void BasicApp::CreateGameObjects()
 	//pGameObject->Init("Box3", XMFLOAT3(5, 0, 10), XMFLOAT3(45, 45, 45), XMFLOAT3(1, 1, 1), "test");
 
 	pGameObject = new VisibleGameObject();
-	pGameObject->Init("Box4", XMFLOAT3(0, 0, 0), XMFLOAT3(0, 0, 0), XMFLOAT3(0.2f, 0.2f, 0.2f), "test", "test");
+	pGameObject->Init("Light", XMFLOAT3(0, 0, 0), XMFLOAT3(0, 0, 0), XMFLOAT3(0.2f, 0.2f, 0.2f), "test", { "test" });
 
-	Light* pPointLight = new PointLight(XMFLOAT3(), XMFLOAT3(0.2f, 0.2f, 0.2f), XMFLOAT3(1.0f, 1.0f, 1.0f), XMFLOAT4(0.5f, 0.5f, 0.5f, 10.0f), XMFLOAT3(0.2f, 0.09f, 0.0f), 1000.0f);
-	Light* pSpotLight = new SpotLight(XMFLOAT3(), XMFLOAT3(0.2f, 0.2f, 0.2f), XMFLOAT3(1.0f, 1.0f, 1.0f), XMFLOAT4(0.5f, 0.5f, 0.5f, 10.0f), XMFLOAT3(0.2f, 0.09f, 0.0f), 1000.0f, XMFLOAT4(0, 0, 1, 1), 45.0f);
-	Light* pDirectionalLight = new DirectionalLight(XMFLOAT3(0.1f, 0.1f, 0.1f), XMFLOAT3(0.75f, 0.75f, 0.75f), XMFLOAT4(0.5f, 0.5f, 0.5f, 10), XMFLOAT4(0, -0.707f, 0.707f, 1));
-	LightManager::GetInstance()->AddLight(pSpotLight);
+	Light* pPointLight = new PointLight(XMFLOAT3(0, 0, 0), XMFLOAT3(0.2f, 0.2f, 0.2f), XMFLOAT3(0.5f, 0.5f, 0.5f), XMFLOAT4(0.5f, 0.5f, 0.5f, 10.0f), XMFLOAT3(0.2f, 0.09f, 0.0f), 1000.0f);
+	Light* pSpotLight = new SpotLight(XMFLOAT3(), XMFLOAT3(0.2f, 0.2f, 0.2f), XMFLOAT3(0.5f, 0.5f, 0.5f), XMFLOAT4(0.5f, 0.5f, 0.5f, 10.0f), XMFLOAT3(0.2f, 0.09f, 0.0f), 1000.0f, XMFLOAT4(0, 0, 1, 0), 45.0f);
+	Light* pDirectionalLight = new DirectionalLight(XMFLOAT3(0.2f, 0.2f, 0.2f), XMFLOAT3(0.5f, 0.5f, 0.5f), XMFLOAT4(0.5f, 0.5f, 0.5f, 10), XMFLOAT4(0, 0, 1, 0));
+	LightManager::GetInstance()->AddLight(pPointLight);
 	//LightManager::GetInstance()->AddLight(pPointLight);
 }
 
@@ -332,7 +346,7 @@ void BasicApp::CreateMaterials()
 void BasicApp::CreateTextures()
 {
 	TextureManager::GetInstance()->AddTexture("test", L"Textures/color.dds");
-	TextureManager::GetInstance()->AddTexture("normal", L"Textures/conenormal.dds");
+	TextureManager::GetInstance()->AddTexture("normal", L"Textures/GrillNormal.dds");
 }
 
 void BasicApp::CreateMaterialsUploadBuffer()
@@ -388,8 +402,7 @@ void BasicApp::CreateInputDescriptions()
 		{ "POSITION", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, 0, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0 },
 		{ "NORMAL", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, 12, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0},
 		{ "TEXCOORD", 0, DXGI_FORMAT_R32G32_FLOAT, 0, 24, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0},
-		{ "TANGENT", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, 32, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0},
-		{ "BITANGENT", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, 44, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0}
+		{ "TANGENT", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, 32, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0}
 	};
 }
 
@@ -449,22 +462,26 @@ std::array<const CD3DX12_STATIC_SAMPLER_DESC, 6> BasicApp::GetStaticSamplers()
 
 bool BasicApp::CreateRootSignature()
 {
-	CD3DX12_DESCRIPTOR_RANGE textureTable;
-	textureTable.Init(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, (UINT)TextureManager::GetInstance()->GetTextures()->size(), 3);
+	CD3DX12_DESCRIPTOR_RANGE albedoTable;
+	albedoTable.Init(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, (UINT)1, 3);
 
-	CD3DX12_ROOT_PARAMETER slotRootParameter[4] = {};
+	CD3DX12_DESCRIPTOR_RANGE NormalTable;
+	NormalTable.Init(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, (UINT)1, 4);
+
+	CD3DX12_ROOT_PARAMETER slotRootParameter[5] = {};
 
 	slotRootParameter[0].InitAsConstantBufferView(0);	//Per frame CB
 	slotRootParameter[1].InitAsConstantBufferView(1);	//Per object CB
 	slotRootParameter[2].InitAsConstantBufferView(2);	//Material CB
-	slotRootParameter[3].InitAsDescriptorTable(1, &textureTable);	//Material CB
+	slotRootParameter[3].InitAsDescriptorTable(1, &albedoTable);	//Material CB
+	slotRootParameter[4].InitAsDescriptorTable(1, &NormalTable);	//Material CB
 
 	std::array<const CD3DX12_STATIC_SAMPLER_DESC, 6> staticSamplers = GetStaticSamplers();
 
 
 
 	CD3DX12_ROOT_SIGNATURE_DESC rootSignatureDesc;
-	rootSignatureDesc.Init((UINT)4, slotRootParameter, (UINT)staticSamplers.size(), staticSamplers.data(), D3D12_ROOT_SIGNATURE_FLAG_ALLOW_INPUT_ASSEMBLER_INPUT_LAYOUT);
+	rootSignatureDesc.Init((UINT)_countof(slotRootParameter), slotRootParameter, (UINT)staticSamplers.size(), staticSamplers.data(), D3D12_ROOT_SIGNATURE_FLAG_ALLOW_INPUT_ASSEMBLER_INPUT_LAYOUT);
 
 	ComPtr<ID3DBlob> signature;
 	ComPtr<ID3DBlob> error;
@@ -541,10 +558,10 @@ void BasicApp::PopulateTextureHeap()
 	for (std::unordered_map<std::string, D3DTextureData*>::iterator it = pTextures->begin(); it != pTextures->end(); ++it)
 	{
 		//Cerate shader resource view
-		srvDesc.Texture2D.MipLevels = it->second->pResource->GetDesc().MipLevels;
-		srvDesc.Format = it->second->pResource->GetDesc().Format;
+		srvDesc.Texture2D.MipLevels = it->second->Resource->GetDesc().MipLevels;
+		srvDesc.Format = it->second->Resource->GetDesc().Format;
 
-		m_pDevice->CreateShaderResourceView(it->second->pResource.Get(), &srvDesc, descHandle);
+		m_pDevice->CreateShaderResourceView(it->second->Resource.Get(), &srvDesc, descHandle);
 
 		//Offset handle ready for next view
 		descHandle.Offset(1, m_uiCBVSRVDescSize);

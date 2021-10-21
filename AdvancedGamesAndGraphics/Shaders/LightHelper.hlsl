@@ -66,18 +66,20 @@ LightingResult CalculatePoint(Light light, Material material, float3 position, f
 
 	result.Ambient = material.Ambient * float4(light.Ambient, 1.0f);
 
-	float diffuseIntensity = dot(lightVec, normal);
+	float diffuseIntensity = min(dot(lightVec, normal), 1);
 
 	if (diffuseIntensity > 0.0f)
 	{
+		float test = dot(-lightVec, normal);
+
 		float3 reflected = reflect(-lightVec, normal);
-		float specularIntensity = pow(max(dot(reflected, viewVector), 0.0f), material.Specular.w);
+		float specularIntensity = min(pow(max(dot(reflected, viewVector), 0.0f), material.Specular.w), 1.0f);
 
 		result.Diffuse = diffuseIntensity * material.Diffuse * float4(light.Diffuse, 1.0f);
 		result.Specular = specularIntensity * material.Specular * light.Specular;
 	}
 
-	float attenuation = 1.0f / dot(light.Attenuation[0], float3(1.0f, light.Attenuation[1] * fDistance, light.Attenuation[2] * fDistance * fDistance));
+	float attenuation = min(1.0f / dot(light.Attenuation[0], float3(1.0f, light.Attenuation[1] * fDistance, light.Attenuation[2] * fDistance * fDistance)), 1.0f);
 
 	result.Diffuse *= attenuation;
 	result.Specular *= attenuation;
@@ -102,20 +104,20 @@ LightingResult CalculateSpot(Light light, Material material, float3 position, fl
 
 	result.Ambient = material.Ambient * float4(light.Ambient, 1.0f);
 
-	float diffuseIntensity = dot(lightVec, normal);
+	float diffuseIntensity = min(dot(lightVec, normal), 1.0f);
 
 	if (diffuseIntensity > 0.0f)
 	{
 		float3 reflected = reflect(-lightVec, normal);
-		float specularIntensity = pow(max(dot(reflected, viewVector), 0.0f), material.Specular.w);
+		float specularIntensity = min(pow(max(dot(reflected, viewVector), 0.0f), material.Specular.w), 1.0f);
 
-		result.Diffuse = diffuseIntensity * material.Diffuse * float4(light.Diffuse, .0f);
+		result.Diffuse = diffuseIntensity * material.Diffuse * float4(light.Diffuse, 1.0f);
 		result.Specular = specularIntensity * material.Specular * light.Specular;
 	}
 
 	float spotLightIntensity = pow(max(dot(-lightVec, light.Direction.xyz), 0.0f), light.SpotLightAngle);
 
-	float attenuation = 1.0f / dot(light.Attenuation[0], float3(1.0f, light.Attenuation[1] * fDistance, light.Attenuation[2] * fDistance * fDistance));
+	float attenuation = min(1.0f / dot(light.Attenuation[0], float3(1.0f, light.Attenuation[1] * fDistance, light.Attenuation[2] * fDistance * fDistance)), 1.0f);
 
 	result.Ambient *= spotLightIntensity;
 	result.Diffuse *= attenuation * spotLightIntensity;
@@ -132,12 +134,12 @@ LightingResult CalculateDirectional(Light light, Material material, float3 norma
 
 	result.Ambient = material.Ambient * float4(light.Ambient, 1.0f);
 
-	float diffuseIntensity = dot(lightVec, normal);
+	float diffuseIntensity = min(dot(lightVec, normal), 1.0f);
 
 	if (diffuseIntensity > 0.0f)
 	{
 		float3 reflected = reflect(-lightVec, normal);
-		float specularIntensity = pow(max(dot(reflected, viewVector), 0.0f), material.Specular.w);
+		float specularIntensity = min(pow(max(dot(reflected, viewVector), 0.0f), material.Specular.w), 1.0f);
 
 		result.Diffuse = diffuseIntensity * material.Diffuse * float4(light.Diffuse, 1.0f);
 		result.Specular = specularIntensity * material.Specular * light.Specular;
