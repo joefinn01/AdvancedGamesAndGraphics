@@ -8,7 +8,7 @@ public:
 	virtual void Update(const Timer& kTimer) override;
 
 protected:
-	bool m_bLockMouse = true;
+	bool m_bLockMouse = false;
 
 	float m_fMouseSensitivity = 1.0f;
 
