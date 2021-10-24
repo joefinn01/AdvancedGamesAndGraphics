@@ -1,5 +1,9 @@
 #pragma once
 
+// I decided to keep this input manager simple as it isn't vital to the actual application.
+// I could improve it by adding an extra level of abstraction between the keycodes and the actual keys allowing for rebinding of keys.
+
+
 #include "Engine/Structure/Singleton.h"
 
 #include <unordered_map>
