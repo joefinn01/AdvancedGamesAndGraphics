@@ -22,7 +22,7 @@ public:
 	static std::wstring GetPixGpuCapturePath();
 #endif
 
-	virtual void Update(const Timer& kTimer) = 0;
+	virtual void Update(const Timer& kTimer);
 	virtual void OnResize();
 
 	virtual void Draw() = 0;

@@ -116,6 +116,7 @@
     <ClCompile Include="Engine\DDSTextureLoader.cpp">
       <Filter>Engine</Filter>
     </ClCompile>
+    <ClCompile Include="Engine\Managers\InputManager.cpp" />
   </ItemGroup>
   <ItemGroup>
     <FxCompile Include="Shaders\PixelShader.hlsl">
@@ -228,6 +229,7 @@
     <ClInclude Include="Engine\DDSTextureLoader.h">
       <Filter>Engine</Filter>
     </ClInclude>
+    <ClInclude Include="Engine\Managers\InputManager.h" />
   </ItemGroup>
   <ItemGroup>
     <None Include="packages.config" />

@@ -81,6 +81,8 @@ bool BasicApp::Init()
 
 void BasicApp::Update(const Timer& kTimer)
 {
+	App::Update(kTimer);
+
 	UploadBuffer<VisibleGameObjectCB>* pUploadBuffer = ShaderManager::GetInstance()->GetShaderConstantUploadBuffer<VisibleGameObjectCB>("VS");
 
 	UINT uiCount = 0;
@@ -88,7 +90,7 @@ void BasicApp::Update(const Timer& kTimer)
 	VisibleGameObjectCB visibleGameObjectCB;
 
 	GameObject* pGameObject = ObjectManager::GetInstance()->GetGameObject("Box1");
-	//pGameObject->Rotate(0.0f, 10.0f * kTimer.DeltaTime(), 0.0f);
+	pGameObject->Rotate(0.0f, 10.0f * kTimer.DeltaTime(), 0.0f);
 
 	//GameObject* pGameObject = ObjectManager::GetInstance()->GetGameObject("Box2");
 	//pGameObject->Rotate(0.0f, 10.0f * kTimer.DeltaTime(), 0.0f);
@@ -302,7 +304,7 @@ void BasicApp::ExecuteCommandList()
 void BasicApp::CreateGameObjects()
 {
 	//Create camera
-	Camera* pCamera = new DebugCamera(XMFLOAT3(5, 1, 0), XMFLOAT3(6, 1, 0), XMFLOAT3(0, 1, 0), 0.1f, 1000.0f, "BasicCamera");
+	Camera* pCamera = new DebugCamera(XMFLOAT3(0, 0, 0), XMFLOAT3(0, 0, 1), XMFLOAT3(0, 1, 0), 0.1f, 1000.0f, "BasicCamera");
 	ObjectManager::GetInstance()->SetActiveCamera(pCamera);
 
 	VisibleGameObject* pGameObject = new VisibleGameObject();
@@ -341,6 +343,10 @@ void BasicApp::CreateTextures()
 	TextureManager::GetInstance()->AddTexture("color", L"Textures/bricks_COLOR.dds");
 	TextureManager::GetInstance()->AddTexture("normal", L"Textures/bricks_NORM.dds");
 	TextureManager::GetInstance()->AddTexture("height", L"Textures/bricks_DISP.dds");
+
+	//TextureManager::GetInstance()->AddTexture("color", L"Textures/Crate_COLOR.dds");
+	//TextureManager::GetInstance()->AddTexture("normal", L"Textures/Crate_NORM.dds");
+	//TextureManager::GetInstance()->AddTexture("height", L"Textures/Crate_DISP.dds");
 }
 
 void BasicApp::CreateMaterialsUploadBuffer()

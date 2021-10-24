@@ -3,6 +3,7 @@
 #include "Engine/Helpers/DebugHelper.h"
 #include "Engine/Managers/WindowManager.h"
 #include "Engine/Managers/ObjectManager.h"
+#include "Engine/Managers/InputManager.h"
 
 #include "imgui\imgui.h"
 
@@ -146,6 +147,11 @@ std::wstring App::GetPixGpuCapturePath()
 	return &output[0];
 }
 #endif
+
+void App::Update(const Timer& kTimer)
+{
+	InputManager::GetInstance()->Update();
+}
 
 void App::OnResize()
 {
@@ -430,6 +436,8 @@ LRESULT App::MsgProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam)
 		return 0;
 
 	case WM_KEYUP:
+		InputManager::GetInstance()->KeyUp((int)wParam);
+
 		if (wParam == VK_ESCAPE)
 		{
 			PostQuitMessage(0);
@@ -442,6 +450,7 @@ LRESULT App::MsgProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam)
 		return 0;
 
 	case WM_KEYDOWN:
+		InputManager::GetInstance()->KeyDown((int)wParam);
 
 		return 0;
 	}
