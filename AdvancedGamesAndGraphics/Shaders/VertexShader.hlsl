@@ -75,7 +75,7 @@ float4 PSMain(VS_OUTPUT input) : SV_TARGET
 	//Calculate TBN matrix
 	float3 n = input.NormalW;
 	float3 t = normalize(input.TangentW - dot(input.TangentW, n) * n);	//Ensures the vectors are orthogonal
-	float3 b = cross(t, n);
+	float3 b = cross(n, t);
 
 	float3x3 tbn = float3x3(t, b, n);
 
@@ -88,15 +88,16 @@ float4 PSMain(VS_OUTPUT input) : SV_TARGET
 	float heightScale = 0.1f;
 
 	//Divide by Z axis to remove issues at steeper angles.
-	float2 uvOffset = (viewVectorT.xy / viewVectorT.z) * height * heightScale;
+	//float2 uvOffset = (viewVectorT.xy / viewVectorT.z) * (1.0f - height) * heightScale;
+	float2 uvOffset = viewVectorT.xy * (1.0f - height) * heightScale;
 
 	float2 uv = input.TexCoords - uvOffset;
 	//float2 uv = input.TexCoords;
 
-	//if (uv.x > 1.0 || uv.y > 1.0 || uv.x < 0.0 || uv.y < 0.0)
-	//{
-	//	discard;
-	//}
+	if (uv.x > 1.0 || uv.y > 1.0 || uv.x < 0.0 || uv.y < 0.0)
+	{
+		discard;
+	}
 
 	float3 normalT = NormalTex.Sample(SamAnisotropicWrap, uv).xyz;
 	normalT *= 2.0f;
@@ -112,6 +113,7 @@ float4 PSMain(VS_OUTPUT input) : SV_TARGET
 	float4 textureColour = { 1, 1, 1, 1 };
 
 	textureColour = ColorTex.Sample(SamPointWrap, uv);
+	//textureColour = ColorTex.Sample(SamPointWrap, input.TexCoords);
 
 	float4 litColour = saturate(textureColour * (result.Ambient + result.Diffuse) + result.Specular);
 
