@@ -82,24 +82,55 @@ float4 PSMain(VS_OUTPUT input) : SV_TARGET
 	float3 viewVectorW = normalize(EyePosW - input.PosW);
 
 	float3 viewVectorT = mul(viewVectorW, transpose(tbn));
-	//float3 viewVectorT = normalize(mul(EyePosW, transpose(tbn)) - mul(input.PosW, transpose(tbn)));
 
-	float height = HeightTex.Sample(SamAnisotropicWrap, input.TexCoords).x;
+	int minLayers = 5;
+	int maxLayers = 15;
+	
+	int numLayers = lerp(maxLayers, minLayers, abs(dot(float3(0, 0, 1), viewVectorT)));
+	
+	float stepSize = 1.0f / numLayers;
+
+	float currentLayerDepth = 0;
+	
 	float heightScale = 0.1f;
+	
+	float2 deltaTex = (viewVectorT.xy * heightScale) / numLayers;
+	
+	float2 currentTex = input.TexCoords;
+	
+	float currentDepthMapValue = HeightTex.Sample(SamAnisotropicWrap, currentTex).x;
+	
+	while (currentLayerDepth < currentDepthMapValue)
+	{
+		currentTex += deltaTex;
+		
+		currentDepthMapValue = HeightTex.SampleLevel(SamAnisotropicWrap, currentTex, 0).x;
+		
+		currentLayerDepth += stepSize;
+	}
+	
+	float2 prevTex = currentTex - deltaTex;
+	
+	float afterDepth = currentDepthMapValue - currentLayerDepth;
+	float beforeDepth = HeightTex.Sample(SamAnisotropicWrap, prevTex).x - currentLayerDepth + stepSize;
+	
+	float weight = afterDepth / (afterDepth - beforeDepth);
+	float2 finalTexCoords = prevTex * weight + currentTex * (1.0 - weight);
+	
+	//if (currentLayer == numLayers - 1)
+	//{
+	//	return float4(1, 0, 0, 1);
+
+	//}
 
 	//Divide by Z axis to remove issues at steeper angles.
 	//float2 uvOffset = (viewVectorT.xy / viewVectorT.z) * (1.0f - height) * heightScale;
-	float2 uvOffset = viewVectorT.xy * (1.0f - height) * heightScale;
+	//float2 uvOffset = viewVectorT.xy * (1.0f - currentLayerHeight) * heightScale;
 
-	float2 uv = input.TexCoords - uvOffset;
+	//float2 uv = input.TexCoords - uvOffset;
 	//float2 uv = input.TexCoords;
 
-	if (uv.x > 1.0 || uv.y > 1.0 || uv.x < 0.0 || uv.y < 0.0)
-	{
-		discard;
-	}
-
-	float3 normalT = NormalTex.Sample(SamAnisotropicWrap, uv).xyz;
+	float3 normalT = NormalTex.Sample(SamAnisotropicWrap, finalTexCoords).xyz;
 	normalT *= 2.0f;
 	normalT -= 1.0f;
 
@@ -112,12 +143,12 @@ float4 PSMain(VS_OUTPUT input) : SV_TARGET
 
 	float4 textureColour = { 1, 1, 1, 1 };
 
-	textureColour = ColorTex.Sample(SamPointWrap, uv);
+	textureColour = ColorTex.Sample(SamPointWrap, finalTexCoords);
 	//textureColour = ColorTex.Sample(SamPointWrap, input.TexCoords);
 
-	float4 litColour = saturate(textureColour * (result.Ambient + result.Diffuse) + result.Specular);
+		float4 litColour = saturate(textureColour * (result.Ambient + result.Diffuse) + result.Specular);
 
-	litColour.a = gMaterial.Diffuse.a;
+		litColour.a = gMaterial.Diffuse.a;
 
-	return litColour;
-}
+		return litColour;
+	}
