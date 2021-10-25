@@ -5,17 +5,19 @@
 
 
 #include "Engine/Structure/Singleton.h"
+#include "Engine/Commons/Timer.h"
 
 #include <unordered_map>
 #include <vector>
 
-typedef void (*InputCallback)(void*);
+typedef void (*InputCallback)(void*, int);
+typedef void (*UpdateInputCallback)(void*, int, const Timer&);
 
 struct InputObserver
 {
 	void* Object;
 	InputCallback OnKeyDown;
-	InputCallback OnKeyHeld;
+	UpdateInputCallback OnKeyHeld;
 	InputCallback OnKeyUp;
 
 	bool operator== (InputObserver rhs)
@@ -42,11 +44,12 @@ public:
 	InputManager();
 
 	bool Subscribe(int iKeycode, InputObserver observer);
+	bool Subscribe(std::vector<int> keycodes, InputObserver observer);
 	bool Unsubscribe(int iKeycode, InputObserver observer);
 
 	bool GetKeyState(int iKeycode);
 
-	void Update();
+	void Update(const Timer& kTimer);
 
 	void KeyDown(int iKeycode);
 	void KeyUp(int iKeycode);

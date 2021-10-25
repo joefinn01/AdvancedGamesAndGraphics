@@ -150,7 +150,7 @@ std::wstring App::GetPixGpuCapturePath()
 
 void App::Update(const Timer& kTimer)
 {
-	InputManager::GetInstance()->Update();
+	InputManager::GetInstance()->Update(kTimer);
 }
 
 void App::OnResize()

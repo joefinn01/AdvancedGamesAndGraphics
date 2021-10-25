@@ -17,6 +17,19 @@ bool InputManager::Subscribe(int iKeycode, InputObserver observer)
 	return true;
 }
 
+bool InputManager::Subscribe(std::vector<int> keycodes, InputObserver observer)
+{
+	for (int i = 0; i < keycodes.size(); ++i)
+	{
+		if (Subscribe(keycodes[i], observer) == false)
+		{
+			return false;
+		}
+	}
+
+	return true;
+}
+
 bool InputManager::Unsubscribe(int iKeycode, InputObserver observer)
 {
 	if (iKeycode < 0 || iKeycode > 254)
@@ -53,7 +66,7 @@ bool InputManager::GetKeyState(int iKeycode)
 	return m_Keys[iKeycode].Pressed;
 }
 
-void InputManager::Update()
+void InputManager::Update(const Timer& kTimer)
 {
 	for (int i = 0; i < m_Keys.size(); ++i)
 	{
@@ -63,7 +76,7 @@ void InputManager::Update()
 			{
 				if (m_Keys[i].Observers[j].OnKeyHeld != nullptr)
 				{
-					m_Keys[i].Observers[j].OnKeyHeld(m_Keys[i].Observers[j].Object);
+					m_Keys[i].Observers[j].OnKeyHeld(m_Keys[i].Observers[j].Object, i, kTimer);
 				}
 			}
 		}
@@ -78,7 +91,7 @@ void InputManager::KeyDown(int iKeycode)
 
 		for (int i = 0; i < m_Keys[iKeycode].Observers.size(); ++i)
 		{
-			m_Keys[iKeycode].Observers[i].OnKeyDown(m_Keys[iKeycode].Observers[i].Object);
+			m_Keys[iKeycode].Observers[i].OnKeyDown(m_Keys[iKeycode].Observers[i].Object, iKeycode);
 		}
 	}
 }
@@ -91,7 +104,7 @@ void InputManager::KeyUp(int iKeycode)
 
 		for (int i = 0; i < m_Keys[iKeycode].Observers.size(); ++i)
 		{
-			m_Keys[iKeycode].Observers[i].OnKeyUp(m_Keys[iKeycode].Observers[i].Object);
+			m_Keys[iKeycode].Observers[i].OnKeyUp(m_Keys[iKeycode].Observers[i].Object, iKeycode);
 		}
 	}
 }
