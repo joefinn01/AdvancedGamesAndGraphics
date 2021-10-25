@@ -116,7 +116,9 @@
     <ClCompile Include="Engine\DDSTextureLoader.cpp">
       <Filter>Engine</Filter>
     </ClCompile>
-    <ClCompile Include="Engine\Managers\InputManager.cpp" />
+    <ClCompile Include="Engine\Managers\InputManager.cpp">
+      <Filter>Engine\Managers</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <FxCompile Include="Shaders\PixelShader.hlsl">
@@ -229,7 +231,9 @@
     <ClInclude Include="Engine\DDSTextureLoader.h">
       <Filter>Engine</Filter>
     </ClInclude>
-    <ClInclude Include="Engine\Managers\InputManager.h" />
+    <ClInclude Include="Engine\Managers\InputManager.h">
+      <Filter>Engine\Managers</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <None Include="packages.config" />
