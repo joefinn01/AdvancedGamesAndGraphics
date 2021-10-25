@@ -17,39 +17,28 @@ DebugCamera::DebugCamera(DirectX::XMFLOAT3 position, DirectX::XMFLOAT3 at, Direc
 		SetCursorPos(WindowManager::GetInstance()->GetWindowWidth() / 2, WindowManager::GetInstance()->GetWindowHeight() / 2);
 	}
 
+	m_InputObserver.Object = this;
+	m_InputObserver.OnKeyDown = OnKeyDown;
+	m_InputObserver.OnKeyUp = OnKeyUp;
+	m_InputObserver.OnKeyHeld = OnKeyHeld;
+
+	InputManager::GetInstance()->Subscribe(
+		{
+			VK_CONTROL,
+			87,
+			VK_UP,
+			83,
+			VK_DOWN,
+			65,
+			VK_LEFT,
+			68,
+			VK_RIGHT
+		},
+		m_InputObserver);
 }
 
 void DebugCamera::Update(const Timer& kTimer)
 {
-	if (GetAsyncKeyState(VK_UP) || GetAsyncKeyState(0x57))	//W
-	{
-		XMStoreFloat3(&m_Eye, XMLoadFloat3(&m_Eye) + XMLoadFloat3(&GetForwardVector()) * kTimer.DeltaTime() * 25.0f);
-	}
-	if (GetAsyncKeyState(VK_DOWN) || GetAsyncKeyState(0x53)) //S
-	{
-		XMStoreFloat3(&m_Eye, XMLoadFloat3(&m_Eye) + XMLoadFloat3(&GetForwardVector()) * kTimer.DeltaTime() * -25.0f);
-	}
-	if (GetAsyncKeyState(VK_LEFT) || GetAsyncKeyState(0x41)) //A
-	{
-		XMStoreFloat3(&m_Eye, XMLoadFloat3(&m_Eye) + XMLoadFloat3(&GetRightVector()) * kTimer.DeltaTime() * 25.0f);
-	}
-	if (GetAsyncKeyState(VK_RIGHT) || GetAsyncKeyState(0x44))	//D
-	{
-		XMStoreFloat3(&m_Eye, XMLoadFloat3(&m_Eye) + XMLoadFloat3(&GetRightVector()) * kTimer.DeltaTime() * -25.0f);
-	}
-
-	//Toggle the mouse being locked to the screen if escape is pressed
-	if (GetAsyncKeyState(VK_CONTROL))
-	{
-		m_bLockMouse = !m_bLockMouse;
-
-		//If toggling on then center the mouse so there isn't a big change in mouse position when it's first toggled on.
-		if (m_bLockMouse == true)
-		{
-			SetCursorPos(WindowManager::GetInstance()->GetWindowWidth() / 2, WindowManager::GetInstance()->GetWindowHeight() / 2);
-		}
-	}
-
 	if (m_bLockMouse == true)
 	{
 		POINT mousePosition;
@@ -79,4 +68,59 @@ void DebugCamera::Update(const Timer& kTimer)
 	}
 
 	Camera::Update(kTimer);
+}
+
+void DebugCamera::OnKeyDown(void* pObject, int iKeycode)
+{
+	DebugCamera* pCamera = (DebugCamera*)pObject;
+
+	switch (iKeycode)
+	{
+	case VK_CONTROL:
+		pCamera->m_bLockMouse = !pCamera->m_bLockMouse;
+
+		//If toggling on then center the mouse so there isn't a big change in mouse position when it's first toggled on.
+		if (pCamera->m_bLockMouse == true)
+		{
+			SetCursorPos(WindowManager::GetInstance()->GetWindowWidth() / 2, WindowManager::GetInstance()->GetWindowHeight() / 2);
+		}
+		break;
+
+	default:
+		break;
+	}
+}
+
+void DebugCamera::OnKeyUp(void* pObject, int iKeycode)
+{
+}
+
+void DebugCamera::OnKeyHeld(void* pObject, int iKeycode, const Timer& kTimer)
+{
+	DebugCamera* pCamera = (DebugCamera*)pObject;
+
+	switch (iKeycode)
+	{
+	case 87:	//W
+	case VK_UP:
+		XMStoreFloat3(&pCamera->m_Eye, XMLoadFloat3(&pCamera->m_Eye) + XMLoadFloat3(&pCamera->GetForwardVector()) * kTimer.DeltaTime() * 25.0f);
+		break;
+
+	case 83:
+	case VK_DOWN:
+		XMStoreFloat3(&pCamera->m_Eye, XMLoadFloat3(&pCamera->m_Eye) + XMLoadFloat3(&pCamera->GetForwardVector()) * kTimer.DeltaTime() * -25.0f);
+		break;
+
+	case 65:
+	case VK_LEFT:
+		XMStoreFloat3(&pCamera->m_Eye, XMLoadFloat3(&pCamera->m_Eye) + XMLoadFloat3(&pCamera->GetRightVector()) * kTimer.DeltaTime() * 25.0f);
+		break;
+
+	case 68:
+	case VK_RIGHT:
+		XMStoreFloat3(&pCamera->m_Eye, XMLoadFloat3(&pCamera->m_Eye) + XMLoadFloat3(&pCamera->GetRightVector()) * kTimer.DeltaTime() * -25.0f);
+		break;
+	default:
+		break;
+	}
 }
