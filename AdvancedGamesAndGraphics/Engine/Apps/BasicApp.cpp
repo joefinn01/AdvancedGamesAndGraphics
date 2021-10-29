@@ -373,10 +373,6 @@ void BasicApp::CreateMaterialsUploadBuffer()
 
 void BasicApp::CreateShadersAndUploadBuffers()
 {
-	//Compile shaders
-	ComPtr<ID3DBlob> pVertexShader;
-	ComPtr<ID3DBlob> pPixelShader;
-
 #if _DEBUG
 	// Enable better shader debugging with the graphics debugging tools.
 	UINT compileFlags = D3DCOMPILE_DEBUG | D3DCOMPILE_SKIP_OPTIMIZATION;
@@ -389,9 +385,30 @@ void BasicApp::CreateShadersAndUploadBuffers()
 
 	m_pPerFrameCB = new UploadBuffer<PerFrameCB>(m_pDevice.Get(), 1, true);
 
+	D3D_SHADER_MACRO normal[] = 
+	{ 
+		"NORMAL_MAPPING", "1",
+		NULL, NULL
+	};
+
+	D3D_SHADER_MACRO parallax[] = 
+	{
+		"PARALLAX_MAPPING", "1",
+		NULL, NULL
+	};
+
+	D3D_SHADER_MACRO parallaxOcclusion[] = 
+	{
+		"PARALLAX_OCCLUSION", "1",
+		NULL, NULL
+	};
+
 	//Compile shaders
-	pVertexShader = ShaderManager::GetInstance()->CompileShader<VisibleGameObjectCB>(L"Shaders/VertexShader.hlsl", "VS", nullptr, "VSMain", "vs_5_0", visibleCBUploadBuffer);
-	pPixelShader = ShaderManager::GetInstance()->CompileShader<VisibleGameObjectCB>(L"Shaders/VertexShader.hlsl", "PS", nullptr, "PSMain", "ps_5_0", visibleCBUploadBuffer);
+	ShaderManager::GetInstance()->CompileShader<VisibleGameObjectCB>(L"Shaders/VertexShader.hlsl", "VS", nullptr, "VSMain", "vs_5_0", visibleCBUploadBuffer);
+	ShaderManager::GetInstance()->CompileShader<VisibleGameObjectCB>(L"Shaders/VertexShader.hlsl", "PSNothing", nullptr, "PSMain", "ps_5_0", visibleCBUploadBuffer);
+	ShaderManager::GetInstance()->CompileShader<VisibleGameObjectCB>(L"Shaders/VertexShader.hlsl", "PSNormal", normal, "PSMain", "ps_5_0", visibleCBUploadBuffer);
+	ShaderManager::GetInstance()->CompileShader<VisibleGameObjectCB>(L"Shaders/VertexShader.hlsl", "PSParallax", parallax, "PSMain", "ps_5_0", visibleCBUploadBuffer);
+	ShaderManager::GetInstance()->CompileShader<VisibleGameObjectCB>(L"Shaders/VertexShader.hlsl", "PSParallaxOcclusion", parallaxOcclusion, "PSMain", "ps_5_0", visibleCBUploadBuffer);
 }
 
 void BasicApp::CreateInputDescriptions()
@@ -585,7 +602,7 @@ bool BasicApp::CreatePSOs()
 	psoDesc.InputLayout = { m_VertexInputLayoutDesc.data(), (UINT)m_VertexInputLayoutDesc.size() };
 	psoDesc.pRootSignature = m_pRootSignature.Get();
 	psoDesc.VS = CD3DX12_SHADER_BYTECODE(ShaderManager::GetInstance()->GetShader<VisibleGameObjectCB>("VS")->GetShaderBlob().Get());
-	psoDesc.PS = CD3DX12_SHADER_BYTECODE(ShaderManager::GetInstance()->GetShader<VisibleGameObjectCB>("PS")->GetShaderBlob().Get());
+	psoDesc.PS = CD3DX12_SHADER_BYTECODE(ShaderManager::GetInstance()->GetShader<VisibleGameObjectCB>("PSParallaxOcclusion")->GetShaderBlob().Get());
 	psoDesc.RasterizerState = CD3DX12_RASTERIZER_DESC(D3D12_DEFAULT);
 	psoDesc.BlendState = CD3DX12_BLEND_DESC(D3D12_DEFAULT);
 	psoDesc.DepthStencilState = CD3DX12_DEPTH_STENCIL_DESC(D3D12_DEFAULT);
