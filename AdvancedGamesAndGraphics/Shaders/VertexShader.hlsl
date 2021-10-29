@@ -70,8 +70,12 @@ VS_OUTPUT VSMain(VS_INPUT input)
 float4 PSMain(VS_OUTPUT input) : SV_TARGET
 {
 	input.NormalW = normalize(input.NormalW);
-	input.TangentW = normalize(input.TangentW);
+    
+	float3 viewVectorW = normalize(EyePosW - input.PosW);
 
+#if NORMAL_MAPPING || PARALLAX_MAPPING || PARALLAX_OCCLUSION
+    input.TangentW = normalize(input.TangentW);
+    
 	//Calculate TBN matrix
 	float3 n = input.NormalW;
 	float3 t = normalize(input.TangentW - dot(input.TangentW, n) * n);	//Ensures the vectors are orthogonal
@@ -79,25 +83,37 @@ float4 PSMain(VS_OUTPUT input) : SV_TARGET
 
 	float3x3 tbn = float3x3(t, b, n);
 
-	float3 viewVectorW = normalize(EyePosW - input.PosW);
+    float heightScale = 0.1f;
+#endif
+    
+#if NORMAL_MAPPING
+    float2 uv = input.TexCoords;    
+#elif PARALLAX_MAPPING
+    float3 viewVectorT = mul(viewVectorW, transpose(tbn));
+    
+    float2 uvOffset = viewVectorT.xy * (1.0f - HeightTex.Sample(SamAnisotropicWrap, input.TexCoords).x) * heightScale;
 
-	float3 viewVectorT = mul(viewVectorW, transpose(tbn));
-
+    float2 uv = input.TexCoords - uvOffset;  
+    
+    if (uv.x > 1.0 || uv.y > 1.0 || uv.x < 0.0 || uv.y < 0.0)
+    {
+        discard;
+    }
+#elif PARALLAX_OCCLUSION
+    float3 viewVectorT = mul(viewVectorW, transpose(tbn));
+    
 	int minLayers = 5;
 	int maxLayers = 15;
 	
 	int numLayers = lerp(maxLayers, minLayers, abs(dot(float3(0, 0, 1), viewVectorT)));
 	
 	float stepSize = 1.0f / numLayers;
-
-	float currentLayerDepth = 0;
-	
-	float heightScale = 0.1f;
 	
 	float2 deltaTex = (viewVectorT.xy * heightScale) / numLayers;
 	
 	float2 currentTex = input.TexCoords;
 	
+	float currentLayerDepth = 0;
 	float currentDepthMapValue = HeightTex.Sample(SamAnisotropicWrap, currentTex).x;
 	
 	while (currentLayerDepth < currentDepthMapValue)
@@ -115,40 +131,33 @@ float4 PSMain(VS_OUTPUT input) : SV_TARGET
 	float beforeDepth = HeightTex.Sample(SamAnisotropicWrap, prevTex).x - currentLayerDepth + stepSize;
 	
 	float weight = afterDepth / (afterDepth - beforeDepth);
-	float2 finalTexCoords = prevTex * weight + currentTex * (1.0 - weight);
-	
-	//if (currentLayer == numLayers - 1)
-	//{
-	//	return float4(1, 0, 0, 1);
+	float2 uv = prevTex * weight + currentTex * (1.0 - weight);
+    
+#else 
+    float2 uv = input.TexCoords;
+#endif
 
-	//}
-
-	//Divide by Z axis to remove issues at steeper angles.
-	//float2 uvOffset = (viewVectorT.xy / viewVectorT.z) * (1.0f - height) * heightScale;
-	//float2 uvOffset = viewVectorT.xy * (1.0f - currentLayerHeight) * heightScale;
-
-	//float2 uv = input.TexCoords - uvOffset;
-	//float2 uv = input.TexCoords;
-
-	float3 normalT = NormalTex.Sample(SamAnisotropicWrap, finalTexCoords).xyz;
+#if NORMAL_MAPPING || PARALLAX_MAPPING || PARALLAX_OCCLUSION
+    float3 normalT = NormalTex.Sample(SamAnisotropicWrap, uv).xyz;
 	normalT *= 2.0f;
 	normalT -= 1.0f;
 
 	normalT = normalize(normalT);
 
 	float3 bumpedNormalW = mul(normalT, tbn);
-
-	//LightingResult result = CalculateLighting(Lights, gMaterial, input.PosW, input.NormalW, normalize(viewVectorW));	//Normalize as interpolation can cause vector not to be normal
+    
 	LightingResult result = CalculateLighting(Lights, gMaterial, input.PosW, bumpedNormalW, viewVectorW);
+#else
+    LightingResult result = CalculateLighting(Lights, gMaterial, input.PosW, input.NormalW, viewVectorW);
+#endif
 
 	float4 textureColour = { 1, 1, 1, 1 };
 
-	textureColour = ColorTex.Sample(SamPointWrap, finalTexCoords);
-	//textureColour = ColorTex.Sample(SamPointWrap, input.TexCoords);
+    textureColour = ColorTex.Sample(SamPointWrap, uv);
 
-		float4 litColour = saturate(textureColour * (result.Ambient + result.Diffuse) + result.Specular);
+	float4 litColour = saturate(textureColour * (result.Ambient + result.Diffuse) + result.Specular);
 
-		litColour.a = gMaterial.Diffuse.a;
+	litColour.a = gMaterial.Diffuse.a;
 
-		return litColour;
-	}
+	return litColour;
+}
