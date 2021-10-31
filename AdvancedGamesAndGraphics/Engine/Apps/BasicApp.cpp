@@ -72,6 +72,13 @@ bool BasicApp::Init()
 		return false;
 	}
 
+	m_Observer.Object = this;
+	m_Observer.OnKeyDown = OnKeyDown;
+	m_Observer.OnKeyHeld = nullptr;
+	m_Observer.OnKeyUp = nullptr;
+
+	InputManager::GetInstance()->Subscribe({ 48, 49, 50, 51 }, m_Observer);
+
 	InitIMGUI();
 
 	ExecuteCommandList();
@@ -152,7 +159,7 @@ void BasicApp::Draw()
 		return;
 	}
 
-	hr = m_pGraphicsCommandList->Reset(m_pCommandAllocator.Get(), m_pPipelineState.Get());
+	hr = m_pGraphicsCommandList->Reset(m_pCommandAllocator.Get(), m_pPipelineState);
 
 	if (FAILED(hr))
 	{
@@ -404,11 +411,11 @@ void BasicApp::CreateShadersAndUploadBuffers()
 	};
 
 	//Compile shaders
-	ShaderManager::GetInstance()->CompileShader<VisibleGameObjectCB>(L"Shaders/VertexShader.hlsl", "VS", nullptr, "VSMain", "vs_5_0", visibleCBUploadBuffer);
-	ShaderManager::GetInstance()->CompileShader<VisibleGameObjectCB>(L"Shaders/VertexShader.hlsl", "PSNothing", nullptr, "PSMain", "ps_5_0", visibleCBUploadBuffer);
-	ShaderManager::GetInstance()->CompileShader<VisibleGameObjectCB>(L"Shaders/VertexShader.hlsl", "PSNormal", normal, "PSMain", "ps_5_0", visibleCBUploadBuffer);
-	ShaderManager::GetInstance()->CompileShader<VisibleGameObjectCB>(L"Shaders/VertexShader.hlsl", "PSParallax", parallax, "PSMain", "ps_5_0", visibleCBUploadBuffer);
-	ShaderManager::GetInstance()->CompileShader<VisibleGameObjectCB>(L"Shaders/VertexShader.hlsl", "PSParallaxOcclusion", parallaxOcclusion, "PSMain", "ps_5_0", visibleCBUploadBuffer);
+	ShaderManager::GetInstance()->CompileShaderVS<VisibleGameObjectCB>(L"Shaders/VertexShader.hlsl", "VS", nullptr, "VSMain", "vs_5_0", visibleCBUploadBuffer);
+	ShaderManager::GetInstance()->CompileShaderPS<VisibleGameObjectCB>(L"Shaders/VertexShader.hlsl", "PS_Nothing", nullptr, "PSMain", "ps_5_0", visibleCBUploadBuffer);
+	ShaderManager::GetInstance()->CompileShaderPS<VisibleGameObjectCB>(L"Shaders/VertexShader.hlsl", "PS_Normal", normal, "PSMain", "ps_5_0", visibleCBUploadBuffer);
+	ShaderManager::GetInstance()->CompileShaderPS<VisibleGameObjectCB>(L"Shaders/VertexShader.hlsl", "PS_Parallax", parallax, "PSMain", "ps_5_0", visibleCBUploadBuffer);
+	ShaderManager::GetInstance()->CompileShaderPS<VisibleGameObjectCB>(L"Shaders/VertexShader.hlsl", "PS_ParallaxOcclusion", parallaxOcclusion, "PSMain", "ps_5_0", visibleCBUploadBuffer);
 }
 
 void BasicApp::CreateInputDescriptions()
@@ -597,12 +604,10 @@ void BasicApp::PopulateTextureHeap()
 
 bool BasicApp::CreatePSOs()
 {
-	// Create the pipeline state object
+	//Initialise constant pipeline desc propertires
 	D3D12_GRAPHICS_PIPELINE_STATE_DESC psoDesc = {};
 	psoDesc.InputLayout = { m_VertexInputLayoutDesc.data(), (UINT)m_VertexInputLayoutDesc.size() };
 	psoDesc.pRootSignature = m_pRootSignature.Get();
-	psoDesc.VS = CD3DX12_SHADER_BYTECODE(ShaderManager::GetInstance()->GetShader<VisibleGameObjectCB>("VS")->GetShaderBlob().Get());
-	psoDesc.PS = CD3DX12_SHADER_BYTECODE(ShaderManager::GetInstance()->GetShader<VisibleGameObjectCB>("PSParallaxOcclusion")->GetShaderBlob().Get());
 	psoDesc.RasterizerState = CD3DX12_RASTERIZER_DESC(D3D12_DEFAULT);
 	psoDesc.BlendState = CD3DX12_BLEND_DESC(D3D12_DEFAULT);
 	psoDesc.DepthStencilState = CD3DX12_DEPTH_STENCIL_DESC(D3D12_DEFAULT);
@@ -614,14 +619,48 @@ bool BasicApp::CreatePSOs()
 	psoDesc.SampleDesc.Quality = m_b4xMSAAState ? (m_uiMSAAQuality - 1) : 0;
 	psoDesc.DSVFormat = m_DepthStencilFormat;
 
-	HRESULT hr = m_pDevice->CreateGraphicsPipelineState(&psoDesc, IID_PPV_ARGS(m_pPipelineState.GetAddressOf()));
+	Microsoft::WRL::ComPtr<ID3D12PipelineState>* ppPipelineState;
 
-	if (FAILED(hr))
+	PSODesc psoDescription;
+
+	for (std::unordered_map<std::string, void*>::iterator itA = ShaderManager::GetInstance()->GetShaders()->begin(); itA != ShaderManager::GetInstance()->GetShaders()->end(); ++itA)
 	{
-		LOG_ERROR(tag, L"Failed to create the pipeline state object!");
+		if (static_cast<Shader<VisibleGameObjectCB>*>(itA->second)->GetShaderType() != ShaderType::Vertex)
+		{
+			continue;
+		}
 
-		return false;
+		for (std::unordered_map<std::string, void*>::iterator itB = ShaderManager::GetInstance()->GetShaders()->begin(); itB != ShaderManager::GetInstance()->GetShaders()->end(); ++itB)
+		{
+			if (static_cast<Shader<VisibleGameObjectCB>*>(itB->second)->GetShaderType() != ShaderType::Pixel)
+			{
+				continue;
+			}
+
+			psoDesc.VS = CD3DX12_SHADER_BYTECODE(ShaderManager::GetInstance()->GetShader<VisibleGameObjectCB>(itA->first)->GetShaderBlob().Get());
+			psoDesc.PS = CD3DX12_SHADER_BYTECODE(ShaderManager::GetInstance()->GetShader<VisibleGameObjectCB>(itB->first)->GetShaderBlob().Get());
+
+			ppPipelineState = new Microsoft::WRL::ComPtr<ID3D12PipelineState>();
+
+			HRESULT hr = m_pDevice->CreateGraphicsPipelineState(&psoDesc, IID_PPV_ARGS(ppPipelineState->GetAddressOf()));
+
+			if (FAILED(hr))
+			{
+				LOG_ERROR(tag, L"Failed to create the pipeline state object!");
+
+				return false;
+			}
+
+			psoDescription.VSName = itA->first;
+			psoDescription.PSName = itB->first;
+
+			m_PipelineStates[psoDescription] = ppPipelineState->Get();
+		}
 	}
+
+	PSODesc desc = { "VS", "PS_ParallaxOcclusion" };
+
+	m_pPipelineState = m_PipelineStates[desc].Get();
 
 	return true;
 }
@@ -659,5 +698,37 @@ void BasicApp::CreateIMGUIWindow()
 	if (m_bShowDemoWindow == true)
 	{
 		ImGui::ShowDemoWindow(&m_bShowDemoWindow);
+	}
+}
+
+void BasicApp::OnKeyDown(void* pObject, int iKeycode)
+{
+	BasicApp* pBasicApp = (BasicApp*)pObject;
+
+	PSODesc psoDesc;
+	psoDesc.VSName = "VS";
+
+	switch (iKeycode)
+	{
+	case 48: //0
+		psoDesc.PSName = "PS_Nothing";
+		pBasicApp->m_pPipelineState = pBasicApp->m_PipelineStates[psoDesc].Get();
+		break;
+
+	case 49: //1
+		psoDesc.PSName = "PS_Normal";
+		pBasicApp->m_pPipelineState = pBasicApp->m_PipelineStates[psoDesc].Get();
+		break;
+
+	case 50: //2
+		psoDesc.PSName = "PS_Parallax";
+		pBasicApp->m_pPipelineState = pBasicApp->m_PipelineStates[psoDesc].Get();
+		break;
+
+	case 51: //3
+		psoDesc.PSName = "PS_ParallaxOcclusion";
+		pBasicApp->m_pPipelineState = pBasicApp->m_PipelineStates[psoDesc].Get();
+		break;
+
 	}
 }

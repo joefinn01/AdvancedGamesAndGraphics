@@ -3,6 +3,7 @@
 #include "Engine/DirectX/UploadBuffer.h"
 #include "Engine/DirectX/ConstantBuffers.h"
 #include "Engine/DirectX/Material.h"
+#include "Engine/Managers/InputManager.h"
 
 #include <DirectXMath.h>
 #include <vector>
@@ -11,6 +12,39 @@
 class Timer;
 
 struct Light;
+
+struct PSODesc
+{
+	std::string VSName;
+	std::string PSName;
+
+	bool operator== (const PSODesc& rhs) const
+	{
+		return VSName == rhs.VSName && PSName == rhs.PSName;
+	}
+};
+
+namespace std
+{
+	template<>
+	struct hash<PSODesc>
+	{
+		std::size_t operator()(const PSODesc& psoDesc) const
+		{
+			return ((hash<string>()(psoDesc.VSName)
+				^ (hash<string>()(psoDesc.PSName) << 1)) >> 1);
+		}
+	};
+
+	template<>
+	struct equal_to<PSODesc>
+	{
+		bool operator()(const PSODesc& lhs, const PSODesc& rhs) const
+		{
+			return lhs == rhs;
+		}
+	};
+}
 
 class BasicApp : public App
 {
@@ -44,9 +78,14 @@ protected:
 	void InitIMGUI();
 	void CreateIMGUIWindow();
 
+	static void OnKeyDown(void* pObject, int iKeycode);
+
+	InputObserver m_Observer;
+
 	Microsoft::WRL::ComPtr<ID3D12RootSignature> m_pRootSignature;
 
-	Microsoft::WRL::ComPtr<ID3D12PipelineState> m_pPipelineState = nullptr;
+	std::unordered_map<PSODesc, Microsoft::WRL::ComPtr<ID3D12PipelineState>> m_PipelineStates;
+	ID3D12PipelineState* m_pPipelineState;
 
 	UploadBuffer<PerFrameCB>* m_pPerFrameCB = nullptr;
 	UploadBuffer<MaterialCB>* m_pMaterialCB = nullptr;
