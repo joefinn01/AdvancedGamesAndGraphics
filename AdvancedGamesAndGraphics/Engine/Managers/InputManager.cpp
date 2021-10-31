@@ -91,7 +91,10 @@ void InputManager::KeyDown(int iKeycode)
 
 		for (int i = 0; i < m_Keys[iKeycode].Observers.size(); ++i)
 		{
-			m_Keys[iKeycode].Observers[i].OnKeyDown(m_Keys[iKeycode].Observers[i].Object, iKeycode);
+			if (m_Keys[iKeycode].Observers[i].OnKeyDown != nullptr)
+			{
+				m_Keys[iKeycode].Observers[i].OnKeyDown(m_Keys[iKeycode].Observers[i].Object, iKeycode);
+			}
 		}
 	}
 }
@@ -104,7 +107,10 @@ void InputManager::KeyUp(int iKeycode)
 
 		for (int i = 0; i < m_Keys[iKeycode].Observers.size(); ++i)
 		{
-			m_Keys[iKeycode].Observers[i].OnKeyUp(m_Keys[iKeycode].Observers[i].Object, iKeycode);
+			if (m_Keys[iKeycode].Observers[i].OnKeyUp != nullptr)
+			{
+				m_Keys[iKeycode].Observers[i].OnKeyUp(m_Keys[iKeycode].Observers[i].Object, iKeycode);
+			}
 		}
 	}
 }
