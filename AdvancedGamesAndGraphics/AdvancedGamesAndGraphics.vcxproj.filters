@@ -234,6 +234,12 @@
     <ClInclude Include="Engine\Managers\InputManager.h">
       <Filter>Engine\Managers</Filter>
     </ClInclude>
+    <ClInclude Include="Engine\DirectX\VertexShader.h">
+      <Filter>Engine\DirectX</Filter>
+    </ClInclude>
+    <ClInclude Include="Engine\DirectX\PixelShader.h">
+      <Filter>Engine\DirectX</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <None Include="packages.config" />

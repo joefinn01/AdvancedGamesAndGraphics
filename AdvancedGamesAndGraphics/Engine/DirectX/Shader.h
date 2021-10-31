@@ -7,6 +7,13 @@
 
 struct ConstantBuffer;
 
+enum class ShaderType
+{
+	Vertex = 0,
+	Pixel,
+	Max
+};
+
 template<class T>
 class Shader
 {
@@ -39,12 +46,17 @@ public:
 		return m_pShaderBlob;
 	}
 
+	ShaderType GetShaderType()
+	{
+		return m_eShaderType;
+	}
+
 protected:
+	ShaderType m_eShaderType = ShaderType::Max;
 
 private:
 	Microsoft::WRL::ComPtr<ID3DBlob> m_pShaderBlob = nullptr;
 
 	UploadBuffer<T>* m_pConstantUploadBuffer;
-
 };
 
