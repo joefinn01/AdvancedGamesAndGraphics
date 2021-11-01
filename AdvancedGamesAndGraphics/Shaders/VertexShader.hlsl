@@ -73,7 +73,7 @@ float4 PSMain(VS_OUTPUT input) : SV_TARGET
     
 	float3 viewVectorW = normalize(EyePosW - input.PosW);
 
-#if NORMAL_MAPPING || PARALLAX_MAPPING || PARALLAX_OCCLUSION
+#if NORMAL_MAPPING || PARALLAX_MAPPING || PARALLAX_OCCLUSION || PARALLAX_SHADOW
     input.TangentW = normalize(input.TangentW);
     
 	//Calculate TBN matrix
@@ -99,7 +99,7 @@ float4 PSMain(VS_OUTPUT input) : SV_TARGET
     {
         discard;
     }
-#elif PARALLAX_OCCLUSION
+#elif PARALLAX_OCCLUSION || PARALLAX_SHADOW
     float3 viewVectorT = mul(viewVectorW, transpose(tbn));
     
 	int minLayers = 5;
@@ -114,7 +114,8 @@ float4 PSMain(VS_OUTPUT input) : SV_TARGET
 	float2 currentTex = input.TexCoords;
 	
 	float currentLayerDepth = 0;
-	float currentDepthMapValue = HeightTex.Sample(SamAnisotropicWrap, currentTex).x;
+	float height = HeightTex.Sample(SamAnisotropicWrap, currentTex).x;
+	float currentDepthMapValue = height;
 	
 	while (currentLayerDepth < currentDepthMapValue)
 	{
@@ -132,12 +133,130 @@ float4 PSMain(VS_OUTPUT input) : SV_TARGET
 	
 	float weight = afterDepth / (afterDepth - beforeDepth);
 	float2 uv = prevTex * weight + currentTex * (1.0 - weight);
-    
+
+#if PARALLAX_SHADOW
+	minLayers = 5;
+	maxLayers = 15;
+
+	numLayers = lerp(maxLayers, minLayers, abs(dot(float3(0, 0, 1), viewVectorT)));
+
+	float masterShadowFactor = 1.0f;
+	float shadowFactor = 1.0f;
+
+	float3 lightVecT;
+
+	float layerHeight;
+
+	float2 stepSizeShadow;
+
+	int stepIndex;
+
+	int numSamplesUnderSurface = 0;
+
+	lightVecT = mul(Lights[0].Position - input.PosW, tbn);
+
+	if (dot(float3(0, 0, 1), lightVecT) > 0)
+	{
+		shadowFactor = 0.0f;
+
+		numLayers = lerp(maxLayers, minLayers, abs(dot(float3(0, 0, 1), lightVecT)));
+
+		layerHeight = height / numLayers;
+
+		deltaTex = heightScale * lightVecT.xy / numLayers;
+
+		currentLayerDepth = height - layerHeight;
+
+		currentTex = input.TexCoords + deltaTex;
+
+		currentDepthMapValue = HeightTex.SampleLevel(SamAnisotropicWrap, currentTex, 0).x;
+		stepIndex = 1;
+
+		while (currentLayerDepth > 0.0f)
+		{
+			if (currentDepthMapValue < currentLayerDepth)
+			{
+				++numSamplesUnderSurface;
+
+				shadowFactor = max(shadowFactor, (currentLayerDepth - currentDepthMapValue) * (1.0f - (stepIndex / numLayers)));
+			}
+
+			++stepIndex;
+			currentLayerDepth -= layerHeight;
+			currentTex += deltaTex;
+
+			currentDepthMapValue = HeightTex.SampleLevel(SamAnisotropicWrap, currentTex, 0).x;
+		}
+
+		if (numSamplesUnderSurface < 1)
+		{
+			shadowFactor = 1;
+		}
+		else
+		{
+			shadowFactor = 1.0 - shadowFactor;
+		}
+	}
+
+	//for (int i = 0; i < MAX_LIGHTS; ++i)
+	//{
+	//	if (Lights[i].Enabled == true)
+	//	{
+	//		lightVecT = mul(Lights[i].Position - input.PosW, tbn);
+
+	//		if (dot(float3(0, 0, 1), lightVecT) > 0)
+	//		{
+	//			shadowFactor = 0.0f;
+
+	//			numLayers = lerp(maxLayers, minLayers, abs(dot(float3(0, 0, 1), lightVecT)));
+
+	//			layerHeight = height / numLayers;
+
+	//			deltaTex = heightScale * lightVecT.xy / numLayers;
+
+	//			currentLayerDepth = height - layerHeight;
+
+	//			currentTex = input.TexCoords + deltaTex;
+
+	//			currentDepthMapValue = HeightTex.SampleLevel(SamAnisotropicWrap, currentTex, 0).x;
+	//			stepIndex = 1;
+
+	//			while (currentLayerDepth > 0.0f)
+	//			{
+	//				if (currentDepthMapValue < currentLayerDepth)
+	//				{
+	//					++numSamplesUnderSurface;
+
+	//					shadowFactor = max(shadowFactor, (currentLayerDepth - currentDepthMapValue) * (1.0f - (stepIndex / numLayers)));
+	//				}
+
+	//				++stepIndex;
+	//				currentLayerDepth -= layerHeight;
+	//				currentTex += deltaTex;
+
+	//				currentDepthMapValue = HeightTex.SampleLevel(SamAnisotropicWrap, currentTex, 0).x;
+	//			}
+
+	//			if (numSamplesUnderSurface < 1)
+	//			{
+	//				shadowFactor = 1;
+	//			}
+	//			else
+	//			{
+	//				shadowFactor = 1.0 - shadowFactor;
+	//			}
+
+	//			masterShadowFactor = max(masterShadowFactor, shadowFactor);
+	//		}
+	//	}
+	//}
+#endif
+
 #else 
     float2 uv = input.TexCoords;
 #endif
 
-#if NORMAL_MAPPING || PARALLAX_MAPPING || PARALLAX_OCCLUSION
+#if NORMAL_MAPPING || PARALLAX_MAPPING || PARALLAX_OCCLUSION || PARALLAX_SHADOW
     float3 normalT = NormalTex.Sample(SamAnisotropicWrap, uv).xyz;
 	normalT *= 2.0f;
 	normalT -= 1.0f;
@@ -155,7 +274,11 @@ float4 PSMain(VS_OUTPUT input) : SV_TARGET
 
     textureColour = ColorTex.Sample(SamPointWrap, uv);
 
+#if PARALLAX_SHADOW
+	float4 litColour = saturate(textureColour * shadowFactor * (result.Ambient + result.Diffuse) + result.Specular * shadowFactor);
+#else
 	float4 litColour = saturate(textureColour * (result.Ambient + result.Diffuse) + result.Specular);
+#endif
 
 	litColour.a = gMaterial.Diffuse.a;
 

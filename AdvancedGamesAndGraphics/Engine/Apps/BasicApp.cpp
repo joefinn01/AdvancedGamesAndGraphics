@@ -404,9 +404,15 @@ void BasicApp::CreateShadersAndUploadBuffers()
 		NULL, NULL
 	};
 
+	//D3D_SHADER_MACRO parallaxOcclusion[] = 
+	//{
+	//	"PARALLAX_OCCLUSION", "1",
+	//	NULL, NULL
+	//};	
+	
 	D3D_SHADER_MACRO parallaxOcclusion[] = 
 	{
-		"PARALLAX_OCCLUSION", "1",
+		"PARALLAX_SHADOW", "1",
 		NULL, NULL
 	};
 
