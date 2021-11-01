@@ -14,6 +14,9 @@ public:
 
 	bool AddLight(Light* pLight);
 
+	void ToggleLight(int iIndex);
+	void SetLightState(int iIndex, bool bEnabled);
+
 protected:
 
 private:

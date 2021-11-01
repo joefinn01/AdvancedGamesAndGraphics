@@ -30,7 +30,7 @@ struct Light
 
 struct PointLight : Light
 {
-	PointLight(DirectX::XMFLOAT3 position, DirectX::XMFLOAT3 ambient, DirectX::XMFLOAT3 diffuse, DirectX::XMFLOAT4 specular, DirectX::XMFLOAT3 attenuation, float fRange)
+	PointLight(DirectX::XMFLOAT3 position, DirectX::XMFLOAT3 ambient, DirectX::XMFLOAT3 diffuse, DirectX::XMFLOAT4 specular, DirectX::XMFLOAT3 attenuation, float fRange, bool bEnabled = true)
 	{
 		Position = position;
 		Ambient = ambient;
@@ -38,14 +38,14 @@ struct PointLight : Light
 		Specular = specular;
 		Attenuation = attenuation;
 		Range = fRange;
-		Enabled = 1;
+		Enabled = (int)bEnabled;
 		Type = (int)LightType::POINT;
 	}
 };
 
 struct SpotLight : Light
 {
-	SpotLight(DirectX::XMFLOAT3 position, DirectX::XMFLOAT3 ambient, DirectX::XMFLOAT3 diffuse, DirectX::XMFLOAT4 specular, DirectX::XMFLOAT3 attenuation, float fRange, DirectX::XMFLOAT4 direction, float fSpotLightAngle)
+	SpotLight(DirectX::XMFLOAT3 position, DirectX::XMFLOAT3 ambient, DirectX::XMFLOAT3 diffuse, DirectX::XMFLOAT4 specular, DirectX::XMFLOAT3 attenuation, float fRange, DirectX::XMFLOAT4 direction, float fSpotLightAngle, bool bEnabled = true)
 	{
 		Position = position;
 		Ambient = ambient;
@@ -62,7 +62,7 @@ struct SpotLight : Light
 
 struct DirectionalLight : Light
 {
-	DirectionalLight(DirectX::XMFLOAT3 ambient, DirectX::XMFLOAT3 diffuse, DirectX::XMFLOAT4 specular, DirectX::XMFLOAT4 direction)
+	DirectionalLight(DirectX::XMFLOAT3 ambient, DirectX::XMFLOAT3 diffuse, DirectX::XMFLOAT4 specular, DirectX::XMFLOAT4 direction, bool bEnabled = true)
 	{
 		Ambient = ambient;
 		Diffuse = diffuse;

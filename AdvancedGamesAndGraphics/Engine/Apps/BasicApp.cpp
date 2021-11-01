@@ -77,7 +77,7 @@ bool BasicApp::Init()
 	m_Observer.OnKeyHeld = nullptr;
 	m_Observer.OnKeyUp = nullptr;
 
-	InputManager::GetInstance()->Subscribe({ 48, 49, 50, 51 }, m_Observer);
+	InputManager::GetInstance()->Subscribe({ 48, 49, 50, 51, 52, 53, 54 }, m_Observer);
 
 	InitIMGUI();
 
@@ -328,8 +328,8 @@ void BasicApp::CreateGameObjects()
 	pGameObject->Init("Light", XMFLOAT3(0, 0, 0), XMFLOAT3(0, 0, 0), XMFLOAT3(0.2f, 0.2f, 0.2f), "test", { "color" });
 
 	Light* pPointLight = new PointLight(XMFLOAT3(0, 0, 0), XMFLOAT3(0.2f, 0.2f, 0.2f), XMFLOAT3(0.5f, 0.5f, 0.5f), XMFLOAT4(0.5f, 0.5f, 0.5f, 10.0f), XMFLOAT3(0.2f, 0.09f, 0.0f), 1000.0f);
-	Light* pSpotLight = new SpotLight(XMFLOAT3(), XMFLOAT3(0.2f, 0.2f, 0.2f), XMFLOAT3(0.5f, 0.5f, 0.5f), XMFLOAT4(0.5f, 0.5f, 0.5f, 10.0f), XMFLOAT3(0.2f, 0.09f, 0.0f), 1000.0f, XMFLOAT4(0, 0, 1, 0), 45.0f);
-	Light* pDirectionalLight = new DirectionalLight(XMFLOAT3(0.2f, 0.2f, 0.2f), XMFLOAT3(0.5f, 0.5f, 0.5f), XMFLOAT4(0.5f, 0.5f, 0.5f, 10), XMFLOAT4(0, 0, 1, 0));
+	Light* pSpotLight = new SpotLight(XMFLOAT3(), XMFLOAT3(0.2f, 0.2f, 0.2f), XMFLOAT3(0.5f, 0.5f, 0.5f), XMFLOAT4(0.5f, 0.5f, 0.5f, 10.0f), XMFLOAT3(0.2f, 0.09f, 0.0f), 1000.0f, XMFLOAT4(0, 0, 1, 0), 45.0f, false);
+	Light* pDirectionalLight = new DirectionalLight(XMFLOAT3(0.2f, 0.2f, 0.2f), XMFLOAT3(0.5f, 0.5f, 0.5f), XMFLOAT4(0.5f, 0.5f, 0.5f, 10), XMFLOAT4(0, 0, 1, 0), false);
 	LightManager::GetInstance()->AddLight(pPointLight);
 	//LightManager::GetInstance()->AddLight(pPointLight);
 }
@@ -728,6 +728,24 @@ void BasicApp::OnKeyDown(void* pObject, int iKeycode)
 	case 51: //3
 		psoDesc.PSName = "PS_ParallaxOcclusion";
 		pBasicApp->m_pPipelineState = pBasicApp->m_PipelineStates[psoDesc].Get();
+		break;
+
+	case 52: //4
+		LightManager::GetInstance()->SetLightState(0, true);
+		LightManager::GetInstance()->SetLightState(1, false);
+		LightManager::GetInstance()->SetLightState(2, false);
+		break;
+
+	case 53: //5
+		LightManager::GetInstance()->SetLightState(0, false);
+		LightManager::GetInstance()->SetLightState(1, true);
+		LightManager::GetInstance()->SetLightState(2, false);
+		break;
+
+	case 54: //6
+		LightManager::GetInstance()->SetLightState(0, false);
+		LightManager::GetInstance()->SetLightState(1, false);
+		LightManager::GetInstance()->SetLightState(2, true);
 		break;
 
 	}

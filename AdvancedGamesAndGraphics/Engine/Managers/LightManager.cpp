@@ -34,3 +34,13 @@ bool LightManager::AddLight(Light* pLight)
 
 	return false;
 }
+
+void LightManager::ToggleLight(int iIndex)
+{
+	m_Lights[iIndex]->Enabled = 1 - m_Lights[iIndex]->Enabled;
+}
+
+void LightManager::SetLightState(int iIndex, bool bEnabled)
+{
+	m_Lights[iIndex]->Enabled = (int)bEnabled;
+}
