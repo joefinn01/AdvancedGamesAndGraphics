@@ -1,5 +1,7 @@
 #include "LightHelper.hlsl"
 
+//#define PARALLAX_SHADOW 1
+
 struct VS_INPUT
 {
 	float3 PosL  : POSITION;
@@ -107,151 +109,32 @@ float4 PSMain(VS_OUTPUT input) : SV_TARGET
 	
 	int numLayers = lerp(maxLayers, minLayers, abs(dot(float3(0, 0, 1), viewVectorT)));
 	
-	float stepSize = 1.0f / numLayers;
-	
 	float2 deltaTex = (viewVectorT.xy * heightScale) / numLayers;
 	
 	float2 currentTex = input.TexCoords;
 	
 	float currentLayerDepth = 0;
-	float height = HeightTex.Sample(SamAnisotropicWrap, currentTex).x;
+    float height = HeightTex.Sample(SamAnisotropicClamp, currentTex).x;
 	float currentDepthMapValue = height;
 	
+    float layerDepth = (1.0f) / numLayers;
+    
 	while (currentLayerDepth < currentDepthMapValue)
 	{
 		currentTex += deltaTex;
 		
-		currentDepthMapValue = HeightTex.SampleLevel(SamAnisotropicWrap, currentTex, 0).x;
+        currentDepthMapValue = HeightTex.SampleLevel(SamAnisotropicClamp, currentTex, 0).x;
 		
-		currentLayerDepth += stepSize;
-	}
+        currentLayerDepth += layerDepth;
+    }
 	
 	float2 prevTex = currentTex - deltaTex;
 	
 	float afterDepth = currentDepthMapValue - currentLayerDepth;
-	float beforeDepth = HeightTex.Sample(SamAnisotropicWrap, prevTex).x - currentLayerDepth + stepSize;
+    float beforeDepth = HeightTex.Sample(SamAnisotropicClamp, prevTex).x - currentLayerDepth + layerDepth;
 	
 	float weight = afterDepth / (afterDepth - beforeDepth);
 	float2 uv = prevTex * weight + currentTex * (1.0 - weight);
-
-#if PARALLAX_SHADOW
-	minLayers = 5;
-	maxLayers = 15;
-
-	numLayers = lerp(maxLayers, minLayers, abs(dot(float3(0, 0, 1), viewVectorT)));
-
-	float masterShadowFactor = 1.0f;
-	float shadowFactor = 1.0f;
-
-	float3 lightVecT;
-
-	float layerHeight;
-
-	float2 stepSizeShadow;
-
-	int stepIndex;
-
-	int numSamplesUnderSurface = 0;
-
-	lightVecT = mul(Lights[0].Position - input.PosW, tbn);
-
-	if (dot(float3(0, 0, 1), lightVecT) > 0)
-	{
-		shadowFactor = 0.0f;
-
-		numLayers = lerp(maxLayers, minLayers, abs(dot(float3(0, 0, 1), lightVecT)));
-
-		layerHeight = height / numLayers;
-
-		deltaTex = heightScale * lightVecT.xy / numLayers;
-
-		currentLayerDepth = height - layerHeight;
-
-		currentTex = input.TexCoords + deltaTex;
-
-		currentDepthMapValue = HeightTex.SampleLevel(SamAnisotropicWrap, currentTex, 0).x;
-		stepIndex = 1;
-
-		while (currentLayerDepth > 0.0f)
-		{
-			if (currentDepthMapValue < currentLayerDepth)
-			{
-				++numSamplesUnderSurface;
-
-				shadowFactor = max(shadowFactor, (currentLayerDepth - currentDepthMapValue) * (1.0f - (stepIndex / numLayers)));
-			}
-
-			++stepIndex;
-			currentLayerDepth -= layerHeight;
-			currentTex += deltaTex;
-
-			currentDepthMapValue = HeightTex.SampleLevel(SamAnisotropicWrap, currentTex, 0).x;
-		}
-
-		if (numSamplesUnderSurface < 1)
-		{
-			shadowFactor = 1;
-		}
-		else
-		{
-			shadowFactor = 1.0 - shadowFactor;
-		}
-	}
-
-	//for (int i = 0; i < MAX_LIGHTS; ++i)
-	//{
-	//	if (Lights[i].Enabled == true)
-	//	{
-	//		lightVecT = mul(Lights[i].Position - input.PosW, tbn);
-
-	//		if (dot(float3(0, 0, 1), lightVecT) > 0)
-	//		{
-	//			shadowFactor = 0.0f;
-
-	//			numLayers = lerp(maxLayers, minLayers, abs(dot(float3(0, 0, 1), lightVecT)));
-
-	//			layerHeight = height / numLayers;
-
-	//			deltaTex = heightScale * lightVecT.xy / numLayers;
-
-	//			currentLayerDepth = height - layerHeight;
-
-	//			currentTex = input.TexCoords + deltaTex;
-
-	//			currentDepthMapValue = HeightTex.SampleLevel(SamAnisotropicWrap, currentTex, 0).x;
-	//			stepIndex = 1;
-
-	//			while (currentLayerDepth > 0.0f)
-	//			{
-	//				if (currentDepthMapValue < currentLayerDepth)
-	//				{
-	//					++numSamplesUnderSurface;
-
-	//					shadowFactor = max(shadowFactor, (currentLayerDepth - currentDepthMapValue) * (1.0f - (stepIndex / numLayers)));
-	//				}
-
-	//				++stepIndex;
-	//				currentLayerDepth -= layerHeight;
-	//				currentTex += deltaTex;
-
-	//				currentDepthMapValue = HeightTex.SampleLevel(SamAnisotropicWrap, currentTex, 0).x;
-	//			}
-
-	//			if (numSamplesUnderSurface < 1)
-	//			{
-	//				shadowFactor = 1;
-	//			}
-	//			else
-	//			{
-	//				shadowFactor = 1.0 - shadowFactor;
-	//			}
-
-	//			masterShadowFactor = max(masterShadowFactor, shadowFactor);
-	//		}
-	//	}
-	//}
-#endif
-
 #else 
     float2 uv = input.TexCoords;
 #endif
@@ -265,6 +148,38 @@ float4 PSMain(VS_OUTPUT input) : SV_TARGET
 
 	float3 bumpedNormalW = mul(normalT, tbn);
     
+#if PARALLAX_SHADOW
+    float shadowFactor = 0.0f;
+    
+    float3 lightVecT = mul(normalize(input.PosW - Lights[0].Position), tbn);
+    
+    if (lightVecT.z < 0.0f && dot(-lightVecT, normalT) > 0.0f)
+    {
+        numLayers = lerp(maxLayers, minLayers, abs(dot(float3(0, 0, 1), lightVecT)));
+        
+        currentTex = uv;
+        currentDepthMapValue = HeightTex.SampleLevel(SamAnisotropicClamp, currentTex, 0).x;
+        currentLayerDepth = currentDepthMapValue;
+
+        layerDepth = (1.0f) / numLayers;
+        
+        deltaTex = (lightVecT.xy * heightScale) / numLayers;
+        
+        while (currentDepthMapValue <= currentLayerDepth && currentLayerDepth < 1.0f)
+        {
+            currentTex -= deltaTex;
+            currentDepthMapValue = HeightTex.SampleLevel(SamAnisotropicClamp, currentTex, 0).x;
+            currentLayerDepth += layerDepth;
+        }
+
+        if (currentDepthMapValue <= currentLayerDepth)
+        {
+            shadowFactor = 1.0f;
+        }
+    }
+    
+#endif
+    
 	LightingResult result = CalculateLighting(Lights, gMaterial, input.PosW, bumpedNormalW, viewVectorW);
 #else
     LightingResult result = CalculateLighting(Lights, gMaterial, input.PosW, input.NormalW, viewVectorW);
@@ -275,7 +190,7 @@ float4 PSMain(VS_OUTPUT input) : SV_TARGET
     textureColour = ColorTex.Sample(SamPointWrap, uv);
 
 #if PARALLAX_SHADOW
-	float4 litColour = saturate(textureColour * shadowFactor * (result.Ambient + result.Diffuse) + result.Specular * shadowFactor);
+    float4 litColour = saturate(textureColour * (result.Ambient + (result.Diffuse * shadowFactor)) + result.Specular * shadowFactor);
 #else
 	float4 litColour = saturate(textureColour * (result.Ambient + result.Diffuse) + result.Specular);
 #endif
