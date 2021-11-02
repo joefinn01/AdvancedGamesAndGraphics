@@ -22,17 +22,28 @@ DebugCamera::DebugCamera(DirectX::XMFLOAT3 position, DirectX::XMFLOAT3 at, Direc
 	m_InputObserver.OnKeyUp = OnKeyUp;
 	m_InputObserver.OnKeyHeld = OnKeyHeld;
 
+	//InputManager::GetInstance()->Subscribe(
+	//	{
+	//		VK_CONTROL,
+	//		87,
+	//		VK_UP,
+	//		83,
+	//		VK_DOWN,
+	//		65,
+	//		VK_LEFT,
+	//		68,
+	//		VK_RIGHT
+	//	},
+	//	m_InputObserver);
+
+
 	InputManager::GetInstance()->Subscribe(
 		{
 			VK_CONTROL,
 			87,
-			VK_UP,
 			83,
-			VK_DOWN,
 			65,
-			VK_LEFT,
 			68,
-			VK_RIGHT
 		},
 		m_InputObserver);
 }

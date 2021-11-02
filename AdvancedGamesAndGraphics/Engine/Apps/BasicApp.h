@@ -79,8 +79,10 @@ protected:
 	void CreateIMGUIWindow();
 
 	static void OnKeyDown(void* pObject, int iKeycode);
+	static void OnKeyHeld(void* pObject, int iKeycode, const Timer& ktimer);
 
 	InputObserver m_Observer;
+	InputObserver m_CubeObserver;
 
 	Microsoft::WRL::ComPtr<ID3D12RootSignature> m_pRootSignature;
 

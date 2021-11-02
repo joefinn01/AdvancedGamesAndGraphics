@@ -77,7 +77,13 @@ bool BasicApp::Init()
 	m_Observer.OnKeyHeld = nullptr;
 	m_Observer.OnKeyUp = nullptr;
 
-	InputManager::GetInstance()->Subscribe({ 48, 49, 50, 51, 52, 53, 54 }, m_Observer);
+	m_CubeObserver.Object = this;
+	m_CubeObserver.OnKeyDown = nullptr;
+	m_CubeObserver.OnKeyHeld = OnKeyHeld;
+	m_CubeObserver.OnKeyUp = nullptr;
+
+	InputManager::GetInstance()->Subscribe({ VK_LEFT, VK_RIGHT, VK_UP, VK_DOWN }, m_CubeObserver);
+	InputManager::GetInstance()->Subscribe({ 48, 49, 50, 51, 52, 53, 54, 55 }, m_Observer);
 
 	InitIMGUI();
 
@@ -97,7 +103,7 @@ void BasicApp::Update(const Timer& kTimer)
 	VisibleGameObjectCB visibleGameObjectCB;
 
 	GameObject* pGameObject = ObjectManager::GetInstance()->GetGameObject("Box1");
-	pGameObject->Rotate(0.0f, 10.0f * kTimer.DeltaTime(), 0.0f);
+	//pGameObject->Rotate(0.0f, 10.0f * kTimer.DeltaTime(), 0.0f);
 
 	//GameObject* pGameObject = ObjectManager::GetInstance()->GetGameObject("Box2");
 	//pGameObject->Rotate(0.0f, 10.0f * kTimer.DeltaTime(), 0.0f);
@@ -404,13 +410,13 @@ void BasicApp::CreateShadersAndUploadBuffers()
 		NULL, NULL
 	};
 
-	//D3D_SHADER_MACRO parallaxOcclusion[] = 
-	//{
-	//	"PARALLAX_OCCLUSION", "1",
-	//	NULL, NULL
-	//};	
-	
 	D3D_SHADER_MACRO parallaxOcclusion[] = 
+	{
+		"PARALLAX_OCCLUSION", "1",
+		NULL, NULL
+	};	
+	
+	D3D_SHADER_MACRO parallaxShadow[] = 
 	{
 		"PARALLAX_SHADOW", "1",
 		NULL, NULL
@@ -422,6 +428,7 @@ void BasicApp::CreateShadersAndUploadBuffers()
 	ShaderManager::GetInstance()->CompileShaderPS<VisibleGameObjectCB>(L"Shaders/PixelShaders/PixelShader.hlsl", "PS_Normal", normal, "PSMain", "ps_5_0", visibleCBUploadBuffer);
 	ShaderManager::GetInstance()->CompileShaderPS<VisibleGameObjectCB>(L"Shaders/PixelShaders/PixelShader.hlsl", "PS_Parallax", parallax, "PSMain", "ps_5_0", visibleCBUploadBuffer);
 	ShaderManager::GetInstance()->CompileShaderPS<VisibleGameObjectCB>(L"Shaders/PixelShaders/PixelShader.hlsl", "PS_ParallaxOcclusion", parallaxOcclusion, "PSMain", "ps_5_0", visibleCBUploadBuffer);
+	ShaderManager::GetInstance()->CompileShaderPS<VisibleGameObjectCB>(L"Shaders/PixelShaders/PixelShader.hlsl", "PS_ParallaxShadow", parallaxShadow, "PSMain", "ps_5_0", visibleCBUploadBuffer);
 }
 
 void BasicApp::CreateInputDescriptions()
@@ -737,22 +744,61 @@ void BasicApp::OnKeyDown(void* pObject, int iKeycode)
 		break;
 
 	case 52: //4
+		psoDesc.PSName = "PS_ParallaxShadow";
+		pBasicApp->m_pPipelineState = pBasicApp->m_PipelineStates[psoDesc].Get();
+		break;
+
+	case 53: //5
 		LightManager::GetInstance()->SetLightState(0, true);
 		LightManager::GetInstance()->SetLightState(1, false);
 		LightManager::GetInstance()->SetLightState(2, false);
 		break;
 
-	case 53: //5
+	case 54: //6
 		LightManager::GetInstance()->SetLightState(0, false);
 		LightManager::GetInstance()->SetLightState(1, true);
 		LightManager::GetInstance()->SetLightState(2, false);
 		break;
 
-	case 54: //6
+	case 55: //7
 		LightManager::GetInstance()->SetLightState(0, false);
 		LightManager::GetInstance()->SetLightState(1, false);
 		LightManager::GetInstance()->SetLightState(2, true);
 		break;
 
+	}
+}
+
+float fMoveSens = 10.0f;
+
+void BasicApp::OnKeyHeld(void* pObject, int iKeycode, const Timer& ktimer)
+{
+	GameObject* pGameobject = ObjectManager::GetInstance()->GetGameObject("Box1");
+
+	XMFLOAT4 right = pGameobject->GetRightVector();
+	XMFLOAT4 up = pGameobject->GetUpVector();
+
+	XMFLOAT3 translation;
+
+	Light* pLight = LightManager::GetInstance()->GetLight(0);
+
+	switch (iKeycode)
+	{
+	case VK_RIGHT:
+		XMStoreFloat3(&translation, XMLoadFloat4(&right) * fMoveSens * ktimer.DeltaTime());
+		pGameobject->Translate(translation);
+		break;
+	case VK_LEFT:
+		XMStoreFloat3(&translation, XMLoadFloat4(&right) * fMoveSens * ktimer.DeltaTime() * -1.0f);
+		pGameobject->Translate(translation);
+		break;
+	case VK_UP:
+		XMStoreFloat3(&translation, XMLoadFloat4(&up) * fMoveSens * ktimer.DeltaTime());
+		pGameobject->Translate(translation);
+		break;
+	case VK_DOWN:
+		XMStoreFloat3(&translation, XMLoadFloat4(&up) * fMoveSens * ktimer.DeltaTime() * -1.0f);
+		pGameobject->Translate(translation);
+		break;
 	}
 }
