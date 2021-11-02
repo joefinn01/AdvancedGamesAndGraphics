@@ -39,6 +39,12 @@ Texture2D ColorTex : register(t3);
 Texture2D NormalTex : register(t4);
 Texture2D HeightTex : register(t5);
 
+//Add defines to allow easier editing
+//#define NORMAL_MAPPING 1
+//#define PARALLAX_MAPPING 1
+//#define PARALLAX_OCCLUSION 1
+//#define PARALLAX_SHADOW 1
+
 float4 PSMain(PS_INPUT input) : SV_TARGET
 {
     input.NormalW = normalize(input.NormalW);
@@ -110,6 +116,7 @@ float4 PSMain(PS_INPUT input) : SV_TARGET
 #endif
 
 #if NORMAL_MAPPING || PARALLAX_MAPPING || PARALLAX_OCCLUSION || PARALLAX_SHADOW
+    //Sample and decompress normal
     float3 normalT = NormalTex.Sample(SamAnisotropicWrap, uv).xyz;
 	normalT *= 2.0f;
 	normalT -= 1.0f;
@@ -119,9 +126,9 @@ float4 PSMain(PS_INPUT input) : SV_TARGET
 	float3 bumpedNormalW = mul(normalT, tbn);
     
 #if PARALLAX_SHADOW
-    float shadowFactor = 1.0f;
+    float shadowFactor = 0.0f;
     
-    float3 lightVecT = mul(normalize(input.PosW - Lights[0].Position), tbn);
+    float3 lightVecT = mul(normalize(input.PosW - Lights[0].Position), transpose(tbn));
     
     if (lightVecT.z < 0.0f && dot(-lightVecT, normalT) > 0.0f)
     {
@@ -146,8 +153,7 @@ float4 PSMain(PS_INPUT input) : SV_TARGET
         {
             shadowFactor = 1.0f;
         }
-    }
-    
+    }    
 #endif
     
 	LightingResult result = CalculateLighting(Lights, gMaterial, input.PosW, bumpedNormalW, viewVectorW);
