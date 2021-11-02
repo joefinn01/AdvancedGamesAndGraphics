@@ -1,79 +1,49 @@
-#include "LightHelper.hlsl"
+#include "../Common/LightHelper.hlsl"
 
-//#define PARALLAX_SHADOW 1
+#include "../Common/Samplers.hlsl"
 
-struct VS_INPUT
+struct PS_INPUT
 {
-	float3 PosL  : POSITION;
-	float3 NormalL : NORMAL;
-	float2 TexCoords : TEXCOORD;
-	float3 Tangent : TANGENT;
-};
-
-struct VS_OUTPUT
-{
-	float4 PosH    : SV_POSITION;
-	float3 PosW    : POSITION;
-	float3 NormalW : NORMAL;
-	float2 TexCoords : TEXCOORD;
-	float3 TangentW : TANGENT;
+    float4 PosH : SV_POSITION;
+    float3 PosW : POSITION;
+    float3 NormalW : NORMAL;
+    float2 TexCoords : TEXCOORD;
+    float3 TangentW : TANGENT;
 };
 
 cbuffer PerFrameCB : register(b0)
 {
-	float4x4 ViewProjection;
-	float4x4 InvTransposeViewProjection;
+    float4x4 ViewProjection;
+    float4x4 InvTransposeViewProjection;
 
-	Light Lights[MAX_LIGHTS];
+    Light Lights[MAX_LIGHTS];
 
-	float4 Ambient;
+    float4 Ambient;
 
-	float3 EyePosW;
-	float pad;
+    float3 EyePosW;
+    float pad;
 };
 
 cbuffer PerObjectCB : register(b1)
 {
-	float4x4 World;
-	float4x4 TransposeInvWorld;
+    float4x4 World;
+    float4x4 TransposeInvWorld;
 }
 
 cbuffer MaterialCB : register(b2)
 {
-	Material gMaterial;
+    Material gMaterial;
 }
 
 Texture2D ColorTex : register(t3);
 Texture2D NormalTex : register(t4);
 Texture2D HeightTex : register(t5);
 
-SamplerState SamPointWrap        : register(s0);
-SamplerState SamPointClamp       : register(s1);
-SamplerState SamLinearWrap       : register(s2);
-SamplerState SamLinearClamp      : register(s3);
-SamplerState SamAnisotropicWrap  : register(s4);
-SamplerState SamAnisotropicClamp : register(s5);
-
-VS_OUTPUT VSMain(VS_INPUT input)
+float4 PSMain(PS_INPUT input) : SV_TARGET
 {
-	VS_OUTPUT result;
-
-	result.PosW = mul(float4(input.PosL, 1.0f), World).xyz;
-	result.PosH = mul(float4(result.PosW, 1.0f), ViewProjection);
-	 
-	result.NormalW = normalize(mul(float4(input.NormalL, 0), TransposeInvWorld).xyz);
-	result.TangentW = normalize(mul(float4(input.Tangent, 0), TransposeInvWorld).xyz);
-
-	result.TexCoords = input.TexCoords;
-
-	return result;
-}
-
-float4 PSMain(VS_OUTPUT input) : SV_TARGET
-{
-	input.NormalW = normalize(input.NormalW);
+    input.NormalW = normalize(input.NormalW);
     
-	float3 viewVectorW = normalize(EyePosW - input.PosW);
+    float3 viewVectorW = normalize(EyePosW - input.PosW);
 
 #if NORMAL_MAPPING || PARALLAX_MAPPING || PARALLAX_OCCLUSION || PARALLAX_SHADOW
     input.TangentW = normalize(input.TangentW);
@@ -104,12 +74,12 @@ float4 PSMain(VS_OUTPUT input) : SV_TARGET
 #elif PARALLAX_OCCLUSION || PARALLAX_SHADOW
     float3 viewVectorT = mul(viewVectorW, transpose(tbn));
     
-	int minLayers = 5;
-	int maxLayers = 15;
+	int minLayers = 50;
+	int maxLayers = 100;
 	
 	int numLayers = lerp(maxLayers, minLayers, abs(dot(float3(0, 0, 1), viewVectorT)));
 	
-	float2 deltaTex = (viewVectorT.xy * heightScale) / numLayers;
+    float2 deltaTex = (viewVectorT.xy * heightScale) / (numLayers);
 	
 	float2 currentTex = input.TexCoords;
 	
@@ -149,7 +119,7 @@ float4 PSMain(VS_OUTPUT input) : SV_TARGET
 	float3 bumpedNormalW = mul(normalT, tbn);
     
 #if PARALLAX_SHADOW
-    float shadowFactor = 0.0f;
+    float shadowFactor = 1.0f;
     
     float3 lightVecT = mul(normalize(input.PosW - Lights[0].Position), tbn);
     
@@ -163,7 +133,7 @@ float4 PSMain(VS_OUTPUT input) : SV_TARGET
 
         layerDepth = (1.0f) / numLayers;
         
-        deltaTex = (lightVecT.xy * heightScale) / numLayers;
+        deltaTex = (lightVecT.xy * heightScale) / (numLayers);
         
         while (currentDepthMapValue <= currentLayerDepth && currentLayerDepth < 1.0f)
         {
@@ -185,17 +155,17 @@ float4 PSMain(VS_OUTPUT input) : SV_TARGET
     LightingResult result = CalculateLighting(Lights, gMaterial, input.PosW, input.NormalW, viewVectorW);
 #endif
 
-	float4 textureColour = { 1, 1, 1, 1 };
+    float4 textureColour = { 1, 1, 1, 1 };
 
     textureColour = ColorTex.Sample(SamPointWrap, uv);
 
 #if PARALLAX_SHADOW
     float4 litColour = saturate(textureColour * (result.Ambient + (result.Diffuse * shadowFactor)) + result.Specular * shadowFactor);
 #else
-	float4 litColour = saturate(textureColour * (result.Ambient + result.Diffuse) + result.Specular);
+    float4 litColour = saturate(textureColour * (result.Ambient + result.Diffuse) + result.Specular);
 #endif
 
-	litColour.a = gMaterial.Diffuse.a;
+    litColour.a = gMaterial.Diffuse.a;
 
-	return litColour;
+    return litColour;
 }

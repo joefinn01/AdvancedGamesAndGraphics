@@ -41,6 +41,15 @@
     <Filter Include="Engine\include\imgui">
       <UniqueIdentifier>{94821517-45f4-456c-bdcf-5b0cc132741a}</UniqueIdentifier>
     </Filter>
+    <Filter Include="Shaders\PixelShaders">
+      <UniqueIdentifier>{b24431ef-3373-477a-b7ed-01954cec316f}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Shaders\VertexShaders">
+      <UniqueIdentifier>{24b6242d-6f5e-4640-b61c-d7a3d2e7063b}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Shaders\Common">
+      <UniqueIdentifier>{96d285d5-70df-4f60-a916-d57433a157d4}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="Engine\Apps\App.cpp">
@@ -121,14 +130,17 @@
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
-    <FxCompile Include="Shaders\PixelShader.hlsl">
-      <Filter>Shaders</Filter>
+    <FxCompile Include="Shaders\Common\LightHelper.hlsl">
+      <Filter>Shaders\Common</Filter>
     </FxCompile>
-    <FxCompile Include="Shaders\VertexShader.hlsl">
-      <Filter>Shaders</Filter>
+    <FxCompile Include="Shaders\VertexShaders\VertexShader.hlsl">
+      <Filter>Shaders\VertexShaders</Filter>
     </FxCompile>
-    <FxCompile Include="Shaders\LightHelper.hlsl">
-      <Filter>Shaders</Filter>
+    <FxCompile Include="Shaders\PixelShaders\PixelShader.hlsl">
+      <Filter>Shaders\PixelShaders</Filter>
+    </FxCompile>
+    <FxCompile Include="Shaders\Common\Samplers.hlsl">
+      <Filter>Shaders\Common</Filter>
     </FxCompile>
   </ItemGroup>
   <ItemGroup>

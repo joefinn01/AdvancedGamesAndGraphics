@@ -417,11 +417,11 @@ void BasicApp::CreateShadersAndUploadBuffers()
 	};
 
 	//Compile shaders
-	ShaderManager::GetInstance()->CompileShaderVS<VisibleGameObjectCB>(L"Shaders/VertexShader.hlsl", "VS", nullptr, "VSMain", "vs_5_0", visibleCBUploadBuffer);
-	ShaderManager::GetInstance()->CompileShaderPS<VisibleGameObjectCB>(L"Shaders/VertexShader.hlsl", "PS_Nothing", nullptr, "PSMain", "ps_5_0", visibleCBUploadBuffer);
-	ShaderManager::GetInstance()->CompileShaderPS<VisibleGameObjectCB>(L"Shaders/VertexShader.hlsl", "PS_Normal", normal, "PSMain", "ps_5_0", visibleCBUploadBuffer);
-	ShaderManager::GetInstance()->CompileShaderPS<VisibleGameObjectCB>(L"Shaders/VertexShader.hlsl", "PS_Parallax", parallax, "PSMain", "ps_5_0", visibleCBUploadBuffer);
-	ShaderManager::GetInstance()->CompileShaderPS<VisibleGameObjectCB>(L"Shaders/VertexShader.hlsl", "PS_ParallaxOcclusion", parallaxOcclusion, "PSMain", "ps_5_0", visibleCBUploadBuffer);
+	ShaderManager::GetInstance()->CompileShaderVS<VisibleGameObjectCB>(L"Shaders/VertexShaders/VertexShader.hlsl", "VS", nullptr, "VSMain", "vs_5_0", visibleCBUploadBuffer);
+	ShaderManager::GetInstance()->CompileShaderPS<VisibleGameObjectCB>(L"Shaders/PixelShaders/PixelShader.hlsl", "PS_Nothing", nullptr, "PSMain", "ps_5_0", visibleCBUploadBuffer);
+	ShaderManager::GetInstance()->CompileShaderPS<VisibleGameObjectCB>(L"Shaders/PixelShaders/PixelShader.hlsl", "PS_Normal", normal, "PSMain", "ps_5_0", visibleCBUploadBuffer);
+	ShaderManager::GetInstance()->CompileShaderPS<VisibleGameObjectCB>(L"Shaders/PixelShaders/PixelShader.hlsl", "PS_Parallax", parallax, "PSMain", "ps_5_0", visibleCBUploadBuffer);
+	ShaderManager::GetInstance()->CompileShaderPS<VisibleGameObjectCB>(L"Shaders/PixelShaders/PixelShader.hlsl", "PS_ParallaxOcclusion", parallaxOcclusion, "PSMain", "ps_5_0", visibleCBUploadBuffer);
 }
 
 void BasicApp::CreateInputDescriptions()

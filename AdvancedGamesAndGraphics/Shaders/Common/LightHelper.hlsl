@@ -7,9 +7,9 @@
 
 struct Material
 {
-	float4 Ambient;
-	float4 Diffuse;		//4th float is the alpha
-	float4 Specular;	//4th float is the specular power
+    float4 Ambient;
+    float4 Diffuse; //4th float is the alpha
+    float4 Specular; //4th float is the specular power
 };
 
 struct LightingResult
@@ -21,21 +21,21 @@ struct LightingResult
 
 struct Light
 {
-	float3 Position;
-	float Range;
+    float3 Position;
+    float Range;
 
-	float4 Direction;
+    float4 Direction;
 
-	float3 Ambient;
-	int LightType;
+    float3 Ambient;
+    int LightType;
 
-	float3 Diffuse;
-	int Enabled;
+    float3 Diffuse;
+    int Enabled;
 
-	float4 Specular;
+    float4 Specular;
 
-	float3 Attenuation;
-	float SpotLightAngle;
+    float3 Attenuation;
+    float SpotLightAngle;
 };
 
 LightingResult InitLight()
