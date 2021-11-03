@@ -77,13 +77,13 @@ bool BasicApp::Init()
 	m_Observer.OnKeyHeld = nullptr;
 	m_Observer.OnKeyUp = nullptr;
 
-	m_CubeObserver.Object = this;
-	m_CubeObserver.OnKeyDown = nullptr;
-	m_CubeObserver.OnKeyHeld = OnKeyHeld;
-	m_CubeObserver.OnKeyUp = nullptr;
+	m_MovementObserver.Object = this;
+	m_MovementObserver.OnKeyDown = nullptr;
+	m_MovementObserver.OnKeyHeld = OnKeyHeld;
+	m_MovementObserver.OnKeyUp = nullptr;
 
-	InputManager::GetInstance()->Subscribe({ VK_LEFT, VK_RIGHT, VK_UP, VK_DOWN }, m_CubeObserver);
-	InputManager::GetInstance()->Subscribe({ 48, 49, 50, 51, 52, 53, 54, 55 }, m_Observer);
+	InputManager::GetInstance()->Subscribe({ VK_LEFT, VK_RIGHT, VK_UP, VK_DOWN, 73, 74, 75, 76 }, m_MovementObserver);
+	InputManager::GetInstance()->Subscribe({ 48, 49, 50, 51, 52, 53, 54, 55, 81 }, m_Observer);
 
 	InitIMGUI();
 
@@ -102,11 +102,14 @@ void BasicApp::Update(const Timer& kTimer)
 
 	VisibleGameObjectCB visibleGameObjectCB;
 
-	GameObject* pGameObject = ObjectManager::GetInstance()->GetGameObject("Box1");
-	//pGameObject->Rotate(0.0f, 10.0f * kTimer.DeltaTime(), 0.0f);
+	GameObject* pGameObject = ObjectManager::GetInstance()->GetGameObject("Light");
+	pGameObject->SetPosition(LightManager::GetInstance()->GetLight(0)->Position);
 
-	//GameObject* pGameObject = ObjectManager::GetInstance()->GetGameObject("Box2");
-	//pGameObject->Rotate(0.0f, 10.0f * kTimer.DeltaTime(), 0.0f);
+	if (m_bRotateCube == true)
+	{
+		pGameObject = ObjectManager::GetInstance()->GetGameObject("Box1");
+		pGameObject->Rotate(0.0f, 10.0f * kTimer.DeltaTime(), 0.0f);
+	}
 
 	for (std::unordered_map<std::string, GameObject*>::iterator it = ObjectManager::GetInstance()->GetGameObjects()->begin(); it != ObjectManager::GetInstance()->GetGameObjects()->end(); ++it)
 	{
@@ -766,6 +769,9 @@ void BasicApp::OnKeyDown(void* pObject, int iKeycode)
 		LightManager::GetInstance()->SetLightState(2, true);
 		break;
 
+	case 81: // q
+		pBasicApp->m_bRotateCube = !pBasicApp->m_bRotateCube;
+		break;
 	}
 }
 
@@ -785,20 +791,36 @@ void BasicApp::OnKeyHeld(void* pObject, int iKeycode, const Timer& ktimer)
 	switch (iKeycode)
 	{
 	case VK_RIGHT:
-		XMStoreFloat3(&translation, XMLoadFloat4(&right) * fMoveSens * ktimer.DeltaTime());
+		XMStoreFloat3(&translation, XMVectorSet(1, 0, 0, 0) * fMoveSens * ktimer.DeltaTime());
 		pGameobject->Translate(translation);
 		break;
 	case VK_LEFT:
-		XMStoreFloat3(&translation, XMLoadFloat4(&right) * fMoveSens * ktimer.DeltaTime() * -1.0f);
+		XMStoreFloat3(&translation, XMVectorSet(-1, 0, 0, 0) * fMoveSens * ktimer.DeltaTime());
 		pGameobject->Translate(translation);
 		break;
 	case VK_UP:
-		XMStoreFloat3(&translation, XMLoadFloat4(&up) * fMoveSens * ktimer.DeltaTime());
+		XMStoreFloat3(&translation, XMVectorSet(0, 1, 0, 0) * fMoveSens * ktimer.DeltaTime());
 		pGameobject->Translate(translation);
 		break;
 	case VK_DOWN:
-		XMStoreFloat3(&translation, XMLoadFloat4(&up) * fMoveSens * ktimer.DeltaTime() * -1.0f);
+		XMStoreFloat3(&translation, XMVectorSet(0, -1, 0, 0) * fMoveSens * ktimer.DeltaTime());
 		pGameobject->Translate(translation);
+		break;
+
+	case 73: //i
+		XMStoreFloat3(&pLight->Position, XMLoadFloat3(&pLight->Position) + XMVectorSet(0, 1, 0, 0) * fMoveSens * ktimer.DeltaTime());
+		break;
+
+	case 74: //j
+		XMStoreFloat3(&pLight->Position, XMLoadFloat3(&pLight->Position) + XMVectorSet(-1, 0, 0, 0) * fMoveSens * ktimer.DeltaTime());
+		break;
+
+	case 75: //k
+		XMStoreFloat3(&pLight->Position, XMLoadFloat3(&pLight->Position) + XMVectorSet(0, -1, 0, 0) * fMoveSens * ktimer.DeltaTime());
+		break;
+
+	case 76: //l
+		XMStoreFloat3(&pLight->Position, XMLoadFloat3(&pLight->Position) + XMVectorSet(1, 0, 0, 0) * fMoveSens * ktimer.DeltaTime());
 		break;
 	}
 }

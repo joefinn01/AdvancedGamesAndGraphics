@@ -82,7 +82,7 @@ protected:
 	static void OnKeyHeld(void* pObject, int iKeycode, const Timer& ktimer);
 
 	InputObserver m_Observer;
-	InputObserver m_CubeObserver;
+	InputObserver m_MovementObserver;
 
 	Microsoft::WRL::ComPtr<ID3D12RootSignature> m_pRootSignature;
 
@@ -98,6 +98,7 @@ protected:
 	std::vector<D3D12_INPUT_ELEMENT_DESC> m_VertexInputLayoutDesc;
 
 	bool m_bShowDemoWindow = false;
+	bool m_bRotateCube = false;
 
 private:
 
