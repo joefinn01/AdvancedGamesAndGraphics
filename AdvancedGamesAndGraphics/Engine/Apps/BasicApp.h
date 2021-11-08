@@ -73,10 +73,16 @@ protected:
 	bool CreateRootSignature();
 	bool CreateDescriptorHeaps();
 	void PopulateTextureHeap();
+	
 	bool CreatePSOs();
+	bool CreateGBufferPSO();
 
 	void InitIMGUI();
 	void CreateIMGUIWindow();
+
+	void PopulateGBuffer();
+	void RenderToTexture();
+	void PostProcessing();
 
 	static void OnKeyDown(void* pObject, int iKeycode);
 	static void OnKeyHeld(void* pObject, int iKeycode, const Timer& ktimer);
@@ -99,6 +105,13 @@ protected:
 
 	bool m_bShowDemoWindow = false;
 	bool m_bRotateCube = false;
+
+	Vertex* m_QuadVertices;
+
+	Microsoft::WRL::ComPtr<ID3D12Resource> m_pScreenQuadVertexBufferGPU = nullptr;
+	Microsoft::WRL::ComPtr<ID3D12Resource> m_pScreenQuadVertexBufferUploader = nullptr;
+
+	D3D12_VERTEX_BUFFER_VIEW m_ScreenQuadVBView;
 
 private:
 

@@ -109,6 +109,8 @@ protected:
 	Microsoft::WRL::ComPtr<ID3D12Resource> m_pSwapChainBuffer[s_kuiSwapChainBufferCount];
 	Microsoft::WRL::ComPtr<ID3D12Resource> m_pDepthStencilBuffer;
 
+	Microsoft::WRL::ComPtr<ID3D12Resource> m_pPostProcessingRTV;
+
 	bool m_b4xMSAAState = false;
 	UINT m_uiMSAAQuality = 0;
 

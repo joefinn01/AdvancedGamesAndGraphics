@@ -9,6 +9,7 @@
 #include "Engine/Managers/LightManager.h"
 #include "Engine/Managers/TextureManager.h"
 #include "Engine/DirectX/Light.h"
+#include "Engine/DirectX/Vertices.h"
 
 #if PIX
 #include "pix3.h"
@@ -183,135 +184,9 @@ void BasicApp::Draw()
 
 	CreateIMGUIWindow();
 
-	PIX_ONLY(PIXBeginEvent(m_pGraphicsCommandList.Get(), PIX_COLOR(50, 50, 50), "Populate G buffer"));
-
-	m_pGraphicsCommandList->SetGraphicsRootSignature(m_pRootSignature.Get());
-	m_pGraphicsCommandList->RSSetViewports(1, &m_Viewport);
-	m_pGraphicsCommandList->RSSetScissorRects(1, &m_ScissorRect);
-
-	const float GBufferClearColor[] = { 0.0f, 0.0f, 0.0f, 1.0f };
-
-	// Set the render target
-	CD3DX12_RESOURCE_BARRIER* pResourceBarriers = new CD3DX12_RESOURCE_BARRIER[GBUFFER_NUM];
-	pResourceBarriers[0] = CD3DX12_RESOURCE_BARRIER::Transition(m_GBuffer.m_pAlbedo.Get(), D3D12_RESOURCE_STATE_GENERIC_READ, D3D12_RESOURCE_STATE_RENDER_TARGET);
-	pResourceBarriers[1] = CD3DX12_RESOURCE_BARRIER::Transition(m_GBuffer.m_pNormal.Get(), D3D12_RESOURCE_STATE_GENERIC_READ, D3D12_RESOURCE_STATE_RENDER_TARGET);
-	pResourceBarriers[2] = CD3DX12_RESOURCE_BARRIER::Transition(m_GBuffer.m_pTangent.Get(), D3D12_RESOURCE_STATE_GENERIC_READ, D3D12_RESOURCE_STATE_RENDER_TARGET);
-	pResourceBarriers[3] = CD3DX12_RESOURCE_BARRIER::Transition(m_GBuffer.m_pDiffuse.Get(), D3D12_RESOURCE_STATE_GENERIC_READ, D3D12_RESOURCE_STATE_RENDER_TARGET);
-	pResourceBarriers[4] = CD3DX12_RESOURCE_BARRIER::Transition(m_GBuffer.m_pSpecular.Get(), D3D12_RESOURCE_STATE_GENERIC_READ, D3D12_RESOURCE_STATE_RENDER_TARGET);
-	pResourceBarriers[5] = CD3DX12_RESOURCE_BARRIER::Transition(m_GBuffer.m_pAmbient.Get(), D3D12_RESOURCE_STATE_GENERIC_READ, D3D12_RESOURCE_STATE_RENDER_TARGET);
-
-	m_pGraphicsCommandList->ResourceBarrier(GBUFFER_NUM, pResourceBarriers);
-
-	delete[] pResourceBarriers;
-
-	//Clear g buffer
-	for (int i = 0; i < GBUFFER_NUM; ++i)
-	{
-		m_pGraphicsCommandList->ClearRenderTargetView(CD3DX12_CPU_DESCRIPTOR_HANDLE(m_pRTVHeap->GetCPUDescriptorHandleForHeapStart(), s_kuiSwapChainBufferCount + i, m_uiRTVDescSize), GBufferClearColor, 0, nullptr);
-	}
-
-	//Clear depth stencil view
-	m_pGraphicsCommandList->ClearDepthStencilView(GetDepthStencilView(), D3D12_CLEAR_FLAG_DEPTH | D3D12_CLEAR_FLAG_STENCIL, 1.0f, 0, 0, nullptr);
-
-	m_pGraphicsCommandList->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
-
-	//Set the per frame constant buffer
-	m_pGraphicsCommandList->SetGraphicsRootConstantBufferView(0, m_pPerFrameCB->Get()->GetGPUVirtualAddress());
-
-	std::unordered_map<std::string, GameObject*>* pGameObjects = ObjectManager::GetInstance()->GetGameObjects();
-
-	D3D12_CPU_DESCRIPTOR_HANDLE* pRenderTargetDescs = new D3D12_CPU_DESCRIPTOR_HANDLE[GBUFFER_NUM];
-
-	for (int i = 0; i < GBUFFER_NUM; ++i)
-	{
-		pRenderTargetDescs[i] = CD3DX12_CPU_DESCRIPTOR_HANDLE(m_pRTVHeap->GetCPUDescriptorHandleForHeapStart(), s_kuiSwapChainBufferCount + i, m_uiRTVDescSize);
-	}
-
-	// Bind the depth buffer
-	m_pGraphicsCommandList->OMSetRenderTargets(GBUFFER_NUM, pRenderTargetDescs, FALSE, &GetDepthStencilView());
-
-	ID3D12DescriptorHeap* descriptorHeaps[] = { m_pTextureDescHeap.Get() };
-	m_pGraphicsCommandList->SetDescriptorHeaps(_countof(descriptorHeaps), descriptorHeaps);
-
-	//Draw the gameobjects
-	UINT uiPerObjByteSize = DirectXHelper::CalculatePaddedConstantBufferSize(sizeof(VisibleGameObjectCB));
-	D3D12_GPU_VIRTUAL_ADDRESS perObjCBAddress = ShaderManager::GetInstance()->GetShaderConstantUploadBuffer<VisibleGameObjectCB>("VS")->Get()->GetGPUVirtualAddress();
-
-	UINT uiMatByteSize = DirectXHelper::CalculatePaddedConstantBufferSize(sizeof(MaterialCB));
-	D3D12_GPU_VIRTUAL_ADDRESS matCBAdress;
-
-	CD3DX12_GPU_DESCRIPTOR_HANDLE textureAddress;
-
-	std::vector<D3DTextureData*> pTextures;
-
-	for (std::unordered_map<std::string, GameObject*>::iterator it = pGameObjects->begin(); it != pGameObjects->end(); ++it)
-	{
-		//Set the per object constant buffer
-		m_pGraphicsCommandList->SetGraphicsRootConstantBufferView(1, perObjCBAddress);
-
-		switch (it->second->GetType())
-		{
-		case GameObjectType::VISIBLE:
-		{
-			VisibleGameObject* pVisibleGameObject = (VisibleGameObject*)it->second;
-
-			matCBAdress = m_pMaterialCB->Get()->GetGPUVirtualAddress() + uiMatByteSize * pVisibleGameObject->GetMaterial()->CBIndex;
-
-			//Set the material constant buffer
-			m_pGraphicsCommandList->SetGraphicsRootConstantBufferView(2, matCBAdress);
-
-			pTextures = pVisibleGameObject->GetTextures();
-
-			for (int i = 0; i < pTextures.size(); ++i)
-			{
-				textureAddress = m_pTextureDescHeap->GetGPUDescriptorHandleForHeapStart();
-				textureAddress.Offset(pTextures[i]->HeapIndex, m_uiCBVSRVDescSize);
-
-				m_pGraphicsCommandList->SetGraphicsRootDescriptorTable(3 + i, textureAddress);
-			}
-
-			pVisibleGameObject->Draw();
-
-			break;
-		}
-
-		default:
-			break;
-		}
-
-		perObjCBAddress += uiPerObjByteSize;
-	}
-
-	//transistion g buffer to read state
-	pResourceBarriers = new CD3DX12_RESOURCE_BARRIER[GBUFFER_NUM];
-	pResourceBarriers[0] = CD3DX12_RESOURCE_BARRIER::Transition(m_GBuffer.m_pAlbedo.Get(), D3D12_RESOURCE_STATE_RENDER_TARGET, D3D12_RESOURCE_STATE_GENERIC_READ);
-	pResourceBarriers[1] = CD3DX12_RESOURCE_BARRIER::Transition(m_GBuffer.m_pNormal.Get(), D3D12_RESOURCE_STATE_RENDER_TARGET, D3D12_RESOURCE_STATE_GENERIC_READ);
-	pResourceBarriers[2] = CD3DX12_RESOURCE_BARRIER::Transition(m_GBuffer.m_pTangent.Get(), D3D12_RESOURCE_STATE_RENDER_TARGET, D3D12_RESOURCE_STATE_GENERIC_READ);
-	pResourceBarriers[3] = CD3DX12_RESOURCE_BARRIER::Transition(m_GBuffer.m_pDiffuse.Get(), D3D12_RESOURCE_STATE_RENDER_TARGET, D3D12_RESOURCE_STATE_GENERIC_READ);
-	pResourceBarriers[4] = CD3DX12_RESOURCE_BARRIER::Transition(m_GBuffer.m_pSpecular.Get(), D3D12_RESOURCE_STATE_RENDER_TARGET, D3D12_RESOURCE_STATE_GENERIC_READ);
-	pResourceBarriers[5] = CD3DX12_RESOURCE_BARRIER::Transition(m_GBuffer.m_pAmbient.Get(), D3D12_RESOURCE_STATE_RENDER_TARGET, D3D12_RESOURCE_STATE_GENERIC_READ);
-
-	m_pGraphicsCommandList->ResourceBarrier(GBUFFER_NUM, pResourceBarriers);
-
-	PIX_ONLY(PIXEndEvent(m_pGraphicsCommandList.Get()));
-
-	//ACTUAL PASS
-
-	PIX_ONLY(PIXBeginEvent(m_pGraphicsCommandList.Get(), PIX_COLOR(50, 50, 50), "Render frame"));
-
-	m_pGraphicsCommandList->SetPipelineState(m_pPipelineState);
-
-	const float RTVClearColor[] = { 0.5f, 0.3f, 0.7f, 1.0f };
-
-	// Set the render target
-	m_pGraphicsCommandList->ResourceBarrier(1, &CD3DX12_RESOURCE_BARRIER::Transition(GetCurrentBackBuffer(), D3D12_RESOURCE_STATE_PRESENT, D3D12_RESOURCE_STATE_RENDER_TARGET));
-
-	// Bind the depth buffer
-	m_pGraphicsCommandList->OMSetRenderTargets(1, &GetCurrentBackBufferView(), FALSE, &GetDepthStencilView());
-
-	m_pGraphicsCommandList->ClearRenderTargetView(GetCurrentBackBufferView(), RTVClearColor, 0, nullptr);
-
-	PIX_ONLY(PIXEndEvent(m_pGraphicsCommandList.Get()));
+	PopulateGBuffer();
+	RenderToTexture();
+	PostProcessing();
 
 	PIX_ONLY(PIXBeginEvent(m_pGraphicsCommandList.Get(), PIX_COLOR(50, 50, 50), "Draw IMGUI"));
 
@@ -399,6 +274,26 @@ void BasicApp::CreateGameObjects()
 	Light* pDirectionalLight = new DirectionalLight(XMFLOAT3(0.2f, 0.2f, 0.2f), XMFLOAT3(0.5f, 0.5f, 0.5f), XMFLOAT4(0.5f, 0.5f, 0.5f, 10), XMFLOAT4(0, 0, 1, 0), false);
 	LightManager::GetInstance()->AddLight(pPointLight);
 	//LightManager::GetInstance()->AddLight(pPointLight);
+
+	//Create screen quad
+	std::array<Vertex, 4> vertices =
+	{
+		//Front face
+		Vertex(XMFLOAT3(-1, 1, 0), XMFLOAT3(0, 0, -1), XMFLOAT2(0, 0), XMFLOAT3(1.0f, 0.0f, 0.0f)),
+		Vertex(XMFLOAT3(1, 1, 0), XMFLOAT3(0, 0, -1), XMFLOAT2(1, 0), XMFLOAT3(1.0f, 0.0f, 0.0f)),
+		Vertex(XMFLOAT3(-1, -1, 0), XMFLOAT3(0, 0, -1), XMFLOAT2(0, 1), XMFLOAT3(1.0f, 0.0f, 0.0f)),
+		Vertex(XMFLOAT3(1, -1, 0), XMFLOAT3(0, 0, -1), XMFLOAT2(1, 1), XMFLOAT3(1.0f, 0.0f, 0.0f))
+	};
+
+	m_pScreenQuadVertexBufferGPU = DirectXHelper::CreateDefaultBuffer(m_pDevice.Get(),
+		m_pGraphicsCommandList.Get(),
+		vertices.data(),
+		(UINT)sizeof(Vertex) * 4,
+		m_pScreenQuadVertexBufferUploader);
+
+	m_ScreenQuadVBView.BufferLocation = m_pScreenQuadVertexBufferGPU->GetGPUVirtualAddress();
+	m_ScreenQuadVBView.StrideInBytes = sizeof(Vertex);
+	m_ScreenQuadVBView.SizeInBytes = (UINT)sizeof(Vertex) * 4;
 }
 
 void BasicApp::CreateMaterials()
@@ -681,28 +576,15 @@ void BasicApp::PopulateTextureHeap()
 
 	srvDesc.Texture2D.MipLevels = 1;
 	srvDesc.Format = m_BackBufferFormat;
-
-	//Create g buffer SRVs
-	m_pDevice->CreateShaderResourceView(m_GBuffer.m_pAlbedo.Get(), &srvDesc, descHandle);
-	descHandle.Offset(1, m_uiCBVSRVDescSize);
-
-	m_pDevice->CreateShaderResourceView(m_GBuffer.m_pNormal.Get(), &srvDesc, descHandle);
-	descHandle.Offset(1, m_uiCBVSRVDescSize);
-
-	m_pDevice->CreateShaderResourceView(m_GBuffer.m_pTangent.Get(), &srvDesc, descHandle);
-	descHandle.Offset(1, m_uiCBVSRVDescSize);
-
-	m_pDevice->CreateShaderResourceView(m_GBuffer.m_pDiffuse.Get(), &srvDesc, descHandle);
-	descHandle.Offset(1, m_uiCBVSRVDescSize);
-
-	m_pDevice->CreateShaderResourceView(m_GBuffer.m_pSpecular.Get(), &srvDesc, descHandle);
-	descHandle.Offset(1, m_uiCBVSRVDescSize);
-
-	m_pDevice->CreateShaderResourceView(m_GBuffer.m_pAmbient.Get(), &srvDesc, descHandle);
 }
 
 bool BasicApp::CreatePSOs()
 {
+	if (CreateGBufferPSO() == false)
+	{
+		return false;
+	}
+
 	//Initialise constant pipeline desc propertires
 	D3D12_GRAPHICS_PIPELINE_STATE_DESC psoDesc = {};
 	psoDesc.InputLayout = { m_VertexInputLayoutDesc.data(), (UINT)m_VertexInputLayoutDesc.size() };
@@ -712,37 +594,17 @@ bool BasicApp::CreatePSOs()
 	psoDesc.DepthStencilState = CD3DX12_DEPTH_STENCIL_DESC(D3D12_DEFAULT);
 	psoDesc.SampleMask = UINT_MAX;
 	psoDesc.PrimitiveTopologyType = D3D12_PRIMITIVE_TOPOLOGY_TYPE_TRIANGLE;
-	psoDesc.NumRenderTargets = GBUFFER_NUM;
+	psoDesc.NumRenderTargets = 1;
+	psoDesc.RTVFormats[0] = m_BackBufferFormat;
 	psoDesc.SampleDesc.Count = m_b4xMSAAState ? 4 : 1;
 	psoDesc.SampleDesc.Quality = m_b4xMSAAState ? (m_uiMSAAQuality - 1) : 0;
 	psoDesc.DSVFormat = m_DepthStencilFormat;
 
-	for (int i = 0; i < GBUFFER_NUM; ++i)
-	{
-		psoDesc.RTVFormats[i] = m_BackBufferFormat;
-	}
+	Microsoft::WRL::ComPtr<ID3D12PipelineState>* ppPipelineState;
 
-	Microsoft::WRL::ComPtr<ID3D12PipelineState>* ppPipelineState = new Microsoft::WRL::ComPtr<ID3D12PipelineState>();
+	HRESULT hr;
 
 	PSODesc psoDescription;
-
-	//Create GBUFFER PSO
-	psoDesc.VS = CD3DX12_SHADER_BYTECODE(ShaderManager::GetInstance()->GetShader<VisibleGameObjectCB>("VS_GBuffer")->GetShaderBlob().Get());
-	psoDesc.PS = CD3DX12_SHADER_BYTECODE(ShaderManager::GetInstance()->GetShader<VisibleGameObjectCB>("PS_GBuffer")->GetShaderBlob().Get());
-
-	HRESULT hr = m_pDevice->CreateGraphicsPipelineState(&psoDesc, IID_PPV_ARGS(ppPipelineState->GetAddressOf()));
-
-	if (FAILED(hr))
-	{
-		LOG_ERROR(tag, L"Failed to create the GBuffer pipeline state object!");
-
-		return false;
-	}
-
-	psoDescription.VSName = "GBufferVS";
-	psoDescription.PSName = "GBufferPS";
-
-	m_PipelineStates[psoDescription] = ppPipelineState->Get();
 
 	//Create back buffer PSO's
 	for (std::unordered_map<std::string, void*>::iterator itA = ShaderManager::GetInstance()->GetShaders()->begin(); itA != ShaderManager::GetInstance()->GetShaders()->end(); ++itA)
@@ -787,6 +649,52 @@ bool BasicApp::CreatePSOs()
 	return true;
 }
 
+bool BasicApp::CreateGBufferPSO()
+{
+	//Initialise constant pipeline desc propertires
+	D3D12_GRAPHICS_PIPELINE_STATE_DESC psoDesc = {};
+	psoDesc.InputLayout = { m_VertexInputLayoutDesc.data(), (UINT)m_VertexInputLayoutDesc.size() };
+	psoDesc.pRootSignature = m_pRootSignature.Get();
+	psoDesc.RasterizerState = CD3DX12_RASTERIZER_DESC(D3D12_DEFAULT);
+	psoDesc.BlendState = CD3DX12_BLEND_DESC(D3D12_DEFAULT);
+	psoDesc.DepthStencilState = CD3DX12_DEPTH_STENCIL_DESC(D3D12_DEFAULT);
+	psoDesc.SampleMask = UINT_MAX;
+	psoDesc.PrimitiveTopologyType = D3D12_PRIMITIVE_TOPOLOGY_TYPE_TRIANGLE;
+	psoDesc.NumRenderTargets = GBUFFER_NUM;
+	psoDesc.SampleDesc.Count = m_b4xMSAAState ? 4 : 1;
+	psoDesc.SampleDesc.Quality = m_b4xMSAAState ? (m_uiMSAAQuality - 1) : 0;
+	psoDesc.DSVFormat = m_DepthStencilFormat;
+
+	for (int i = 0; i < GBUFFER_NUM; ++i)
+	{
+		psoDesc.RTVFormats[i] = m_BackBufferFormat;
+	}
+
+	Microsoft::WRL::ComPtr<ID3D12PipelineState>* ppPipelineState = new Microsoft::WRL::ComPtr<ID3D12PipelineState>();
+
+	PSODesc psoDescription;
+
+	//Create GBUFFER PSO
+	psoDesc.VS = CD3DX12_SHADER_BYTECODE(ShaderManager::GetInstance()->GetShader<VisibleGameObjectCB>("VS_GBuffer")->GetShaderBlob().Get());
+	psoDesc.PS = CD3DX12_SHADER_BYTECODE(ShaderManager::GetInstance()->GetShader<VisibleGameObjectCB>("PS_GBuffer")->GetShaderBlob().Get());
+
+	HRESULT hr = m_pDevice->CreateGraphicsPipelineState(&psoDesc, IID_PPV_ARGS(ppPipelineState->GetAddressOf()));
+
+	if (FAILED(hr))
+	{
+		LOG_ERROR(tag, L"Failed to create the GBuffer pipeline state object!");
+
+		return false;
+	}
+
+	psoDescription.VSName = "GBufferVS";
+	psoDescription.PSName = "GBufferPS";
+
+	m_PipelineStates[psoDescription] = ppPipelineState->Get();
+
+	return true;
+}
+
 void BasicApp::InitIMGUI()
 {
 	IMGUI_CHECKVERSION();
@@ -821,6 +729,154 @@ void BasicApp::CreateIMGUIWindow()
 	{
 		ImGui::ShowDemoWindow(&m_bShowDemoWindow);
 	}
+}
+
+void BasicApp::PopulateGBuffer()
+{
+	PIX_ONLY(PIXBeginEvent(m_pGraphicsCommandList.Get(), PIX_COLOR(50, 50, 50), "Populate G buffer"));
+
+	m_pGraphicsCommandList->SetGraphicsRootSignature(m_pRootSignature.Get());
+	m_pGraphicsCommandList->RSSetViewports(1, &m_Viewport);
+	m_pGraphicsCommandList->RSSetScissorRects(1, &m_ScissorRect);
+
+	const float GBufferClearColor[] = { 0.0f, 0.0f, 0.0f, 1.0f };
+
+	CD3DX12_RESOURCE_BARRIER* pResourceBarriers = new CD3DX12_RESOURCE_BARRIER[GBUFFER_NUM];
+	pResourceBarriers[0] = CD3DX12_RESOURCE_BARRIER::Transition(m_GBuffer.m_pAlbedo.Get(), D3D12_RESOURCE_STATE_GENERIC_READ, D3D12_RESOURCE_STATE_RENDER_TARGET);
+	pResourceBarriers[1] = CD3DX12_RESOURCE_BARRIER::Transition(m_GBuffer.m_pNormal.Get(), D3D12_RESOURCE_STATE_GENERIC_READ, D3D12_RESOURCE_STATE_RENDER_TARGET);
+	pResourceBarriers[2] = CD3DX12_RESOURCE_BARRIER::Transition(m_GBuffer.m_pTangent.Get(), D3D12_RESOURCE_STATE_GENERIC_READ, D3D12_RESOURCE_STATE_RENDER_TARGET);
+	pResourceBarriers[3] = CD3DX12_RESOURCE_BARRIER::Transition(m_GBuffer.m_pDiffuse.Get(), D3D12_RESOURCE_STATE_GENERIC_READ, D3D12_RESOURCE_STATE_RENDER_TARGET);
+	pResourceBarriers[4] = CD3DX12_RESOURCE_BARRIER::Transition(m_GBuffer.m_pSpecular.Get(), D3D12_RESOURCE_STATE_GENERIC_READ, D3D12_RESOURCE_STATE_RENDER_TARGET);
+	pResourceBarriers[5] = CD3DX12_RESOURCE_BARRIER::Transition(m_GBuffer.m_pAmbient.Get(), D3D12_RESOURCE_STATE_GENERIC_READ, D3D12_RESOURCE_STATE_RENDER_TARGET);
+
+	m_pGraphicsCommandList->ResourceBarrier(GBUFFER_NUM, pResourceBarriers);
+
+	delete[] pResourceBarriers;
+
+	//Clear g buffer
+	for (int i = 0; i < GBUFFER_NUM; ++i)
+	{
+		m_pGraphicsCommandList->ClearRenderTargetView(CD3DX12_CPU_DESCRIPTOR_HANDLE(m_pRTVHeap->GetCPUDescriptorHandleForHeapStart(), s_kuiSwapChainBufferCount + i, m_uiRTVDescSize), GBufferClearColor, 0, nullptr);
+	}
+
+	//Clear depth stencil view
+	m_pGraphicsCommandList->ClearDepthStencilView(GetDepthStencilView(), D3D12_CLEAR_FLAG_DEPTH | D3D12_CLEAR_FLAG_STENCIL, 1.0f, 0, 0, nullptr);
+
+	m_pGraphicsCommandList->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
+
+	//Set the per frame constant buffer
+	m_pGraphicsCommandList->SetGraphicsRootConstantBufferView(0, m_pPerFrameCB->Get()->GetGPUVirtualAddress());
+
+	std::unordered_map<std::string, GameObject*>* pGameObjects = ObjectManager::GetInstance()->GetGameObjects();
+
+	D3D12_CPU_DESCRIPTOR_HANDLE* pRenderTargetDescs = new D3D12_CPU_DESCRIPTOR_HANDLE[GBUFFER_NUM];
+
+	for (int i = 0; i < GBUFFER_NUM; ++i)
+	{
+		pRenderTargetDescs[i] = CD3DX12_CPU_DESCRIPTOR_HANDLE(m_pRTVHeap->GetCPUDescriptorHandleForHeapStart(), s_kuiSwapChainBufferCount + i, m_uiRTVDescSize);
+	}
+
+	// Bind the depth buffer
+	m_pGraphicsCommandList->OMSetRenderTargets(GBUFFER_NUM, pRenderTargetDescs, FALSE, &GetDepthStencilView());
+
+	ID3D12DescriptorHeap* descriptorHeaps[] = { m_pTextureDescHeap.Get() };
+	m_pGraphicsCommandList->SetDescriptorHeaps(_countof(descriptorHeaps), descriptorHeaps);
+
+	//Draw the gameobjects
+	UINT uiPerObjByteSize = DirectXHelper::CalculatePaddedConstantBufferSize(sizeof(VisibleGameObjectCB));
+	D3D12_GPU_VIRTUAL_ADDRESS perObjCBAddress = ShaderManager::GetInstance()->GetShaderConstantUploadBuffer<VisibleGameObjectCB>("VS")->Get()->GetGPUVirtualAddress();
+
+	UINT uiMatByteSize = DirectXHelper::CalculatePaddedConstantBufferSize(sizeof(MaterialCB));
+	D3D12_GPU_VIRTUAL_ADDRESS matCBAdress;
+
+	CD3DX12_GPU_DESCRIPTOR_HANDLE textureAddress;
+
+	std::vector<D3DTextureData*> pTextures;
+
+	for (std::unordered_map<std::string, GameObject*>::iterator it = pGameObjects->begin(); it != pGameObjects->end(); ++it)
+	{
+		//Set the per object constant buffer
+		m_pGraphicsCommandList->SetGraphicsRootConstantBufferView(1, perObjCBAddress);
+
+		switch (it->second->GetType())
+		{
+		case GameObjectType::VISIBLE:
+		{
+			VisibleGameObject* pVisibleGameObject = (VisibleGameObject*)it->second;
+
+			matCBAdress = m_pMaterialCB->Get()->GetGPUVirtualAddress() + uiMatByteSize * pVisibleGameObject->GetMaterial()->CBIndex;
+
+			//Set the material constant buffer
+			m_pGraphicsCommandList->SetGraphicsRootConstantBufferView(2, matCBAdress);
+
+			pTextures = pVisibleGameObject->GetTextures();
+
+			for (int i = 0; i < pTextures.size(); ++i)
+			{
+				textureAddress = m_pTextureDescHeap->GetGPUDescriptorHandleForHeapStart();
+				textureAddress.Offset(pTextures[i]->HeapIndex, m_uiCBVSRVDescSize);
+
+				m_pGraphicsCommandList->SetGraphicsRootDescriptorTable(3 + i, textureAddress);
+			}
+
+			pVisibleGameObject->Draw();
+
+			break;
+		}
+
+		default:
+			break;
+		}
+
+		perObjCBAddress += uiPerObjByteSize;
+	}
+
+	//transistion g buffer to read state
+	pResourceBarriers = new CD3DX12_RESOURCE_BARRIER[GBUFFER_NUM];
+	pResourceBarriers[0] = CD3DX12_RESOURCE_BARRIER::Transition(m_GBuffer.m_pAlbedo.Get(), D3D12_RESOURCE_STATE_RENDER_TARGET, D3D12_RESOURCE_STATE_GENERIC_READ);
+	pResourceBarriers[1] = CD3DX12_RESOURCE_BARRIER::Transition(m_GBuffer.m_pNormal.Get(), D3D12_RESOURCE_STATE_RENDER_TARGET, D3D12_RESOURCE_STATE_GENERIC_READ);
+	pResourceBarriers[2] = CD3DX12_RESOURCE_BARRIER::Transition(m_GBuffer.m_pTangent.Get(), D3D12_RESOURCE_STATE_RENDER_TARGET, D3D12_RESOURCE_STATE_GENERIC_READ);
+	pResourceBarriers[3] = CD3DX12_RESOURCE_BARRIER::Transition(m_GBuffer.m_pDiffuse.Get(), D3D12_RESOURCE_STATE_RENDER_TARGET, D3D12_RESOURCE_STATE_GENERIC_READ);
+	pResourceBarriers[4] = CD3DX12_RESOURCE_BARRIER::Transition(m_GBuffer.m_pSpecular.Get(), D3D12_RESOURCE_STATE_RENDER_TARGET, D3D12_RESOURCE_STATE_GENERIC_READ);
+	pResourceBarriers[5] = CD3DX12_RESOURCE_BARRIER::Transition(m_GBuffer.m_pAmbient.Get(), D3D12_RESOURCE_STATE_RENDER_TARGET, D3D12_RESOURCE_STATE_GENERIC_READ);
+
+	m_pGraphicsCommandList->ResourceBarrier(GBUFFER_NUM, pResourceBarriers);
+
+	PIX_ONLY(PIXEndEvent(m_pGraphicsCommandList.Get()));
+}
+
+void BasicApp::RenderToTexture()
+{
+	PIX_ONLY(PIXBeginEvent(m_pGraphicsCommandList.Get(), PIX_COLOR(50, 50, 50), "Render to texture"));
+
+	PSODesc ToTexPSODesc = { "VS_ToTex", "PS_ToTex" };
+
+	m_pGraphicsCommandList->SetPipelineState(m_PipelineStates[ToTexPSODesc].Get());
+
+	const float RTVClearColor[] = { 0.5f, 0.3f, 0.7f, 1.0f };
+
+	m_pGraphicsCommandList->ResourceBarrier(1, &CD3DX12_RESOURCE_BARRIER::Transition(m_pPostProcessingRTV.Get(), D3D12_RESOURCE_STATE_GENERIC_READ, D3D12_RESOURCE_STATE_RENDER_TARGET));
+
+	m_pGraphicsCommandList->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLESTRIP);
+
+	m_pGraphicsCommandList->OMSetRenderTargets(1, &CD3DX12_CPU_DESCRIPTOR_HANDLE(m_pRTVHeap->GetCPUDescriptorHandleForHeapStart(), s_kuiSwapChainBufferCount + GBUFFER_NUM, m_uiRTVDescSize), FALSE, &GetDepthStencilView());
+
+	m_pGraphicsCommandList->ClearRenderTargetView(CD3DX12_CPU_DESCRIPTOR_HANDLE(m_pRTVHeap->GetCPUDescriptorHandleForHeapStart(), s_kuiSwapChainBufferCount + GBUFFER_NUM, m_uiRTVDescSize), RTVClearColor, 0, nullptr);
+
+	m_pGraphicsCommandList->IASetVertexBuffers(0, 1, &m_ScreenQuadVBView);
+
+	m_pGraphicsCommandList->DrawInstanced(4, 1, 0, 0);
+
+	m_pGraphicsCommandList->ResourceBarrier(1, &CD3DX12_RESOURCE_BARRIER::Transition(m_pPostProcessingRTV.Get(), D3D12_RESOURCE_STATE_RENDER_TARGET, D3D12_RESOURCE_STATE_GENERIC_READ));
+
+	PIX_ONLY(PIXEndEvent(m_pGraphicsCommandList.Get()));
+}
+
+void BasicApp::PostProcessing()
+{
+	PIX_ONLY(PIXBeginEvent(m_pGraphicsCommandList.Get(), PIX_COLOR(50, 50, 50), "Carry out post processing"));
+
+	PIX_ONLY(PIXEndEvent(m_pGraphicsCommandList.Get()));
 }
 
 void BasicApp::OnKeyDown(void* pObject, int iKeycode)

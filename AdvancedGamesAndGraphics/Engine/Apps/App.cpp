@@ -312,6 +312,24 @@ void App::OnResize()
 	// Set the render target
 	m_pGraphicsCommandList->ResourceBarrier(GBUFFER_NUM, pResourceBarriers);
 
+	//Create post processing render target
+	hr = m_pDevice->CreateCommittedResource(&CD3DX12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_DEFAULT),
+		D3D12_HEAP_FLAG_NONE,
+		&texDesc,
+		D3D12_RESOURCE_STATE_COMMON,
+		&gBufferClear,
+		IID_PPV_ARGS(&m_pPostProcessingRTV));
+
+	if (FAILED(hr))
+	{
+		LOG_ERROR(tag, L"Failed to Create albedo committed resource when resizing screen!");
+
+		return;
+	}
+
+	//Transition post processing texture to read state
+	m_pGraphicsCommandList->ResourceBarrier(1, &CD3DX12_RESOURCE_BARRIER::Transition(m_pPostProcessingRTV.Get(), D3D12_RESOURCE_STATE_COMMON, D3D12_RESOURCE_STATE_GENERIC_READ));
+
 	//Create g buffer render target views
 	D3D12_RENDER_TARGET_VIEW_DESC  GBufferRTVDesc;
 	ZeroMemory(&GBufferRTVDesc, sizeof(GBufferRTVDesc));
@@ -338,6 +356,9 @@ void App::OnResize()
 
 	m_pDevice->CreateRenderTargetView(m_GBuffer.m_pAmbient.Get(), &GBufferRTVDesc, rtvHeapHandle);
 	rtvHeapHandle.Offset(1, m_uiRTVDescSize);
+
+	//Create Post processing RTV
+	m_pDevice->CreateRenderTargetView(m_pPostProcessingRTV.Get(), &GBufferRTVDesc, rtvHeapHandle);
 
 	// Create the depth/stencil buffer and view.
 	D3D12_RESOURCE_DESC depthStencilDesc;
@@ -805,7 +826,7 @@ bool App::InitDirectX3D()
 
 	//Create RTV heap
 	D3D12_DESCRIPTOR_HEAP_DESC RTVHeapDesc = {};
-	RTVHeapDesc.NumDescriptors = s_kuiSwapChainBufferCount + GBUFFER_NUM;
+	RTVHeapDesc.NumDescriptors = s_kuiSwapChainBufferCount + GBUFFER_NUM + 1;
 	RTVHeapDesc.Type = D3D12_DESCRIPTOR_HEAP_TYPE_RTV;
 	RTVHeapDesc.Flags = D3D12_DESCRIPTOR_HEAP_FLAG_NONE;
 	RTVHeapDesc.NodeMask = 0;
