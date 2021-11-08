@@ -191,6 +191,19 @@ void BasicApp::Draw()
 
 	const float GBufferClearColor[] = { 0.0f, 0.0f, 0.0f, 1.0f };
 
+	// Set the render target
+	CD3DX12_RESOURCE_BARRIER* pResourceBarriers = new CD3DX12_RESOURCE_BARRIER[GBUFFER_NUM];
+	pResourceBarriers[0] = CD3DX12_RESOURCE_BARRIER::Transition(m_GBuffer.m_pAlbedo.Get(), D3D12_RESOURCE_STATE_GENERIC_READ, D3D12_RESOURCE_STATE_RENDER_TARGET);
+	pResourceBarriers[1] = CD3DX12_RESOURCE_BARRIER::Transition(m_GBuffer.m_pNormal.Get(), D3D12_RESOURCE_STATE_GENERIC_READ, D3D12_RESOURCE_STATE_RENDER_TARGET);
+	pResourceBarriers[2] = CD3DX12_RESOURCE_BARRIER::Transition(m_GBuffer.m_pTangent.Get(), D3D12_RESOURCE_STATE_GENERIC_READ, D3D12_RESOURCE_STATE_RENDER_TARGET);
+	pResourceBarriers[3] = CD3DX12_RESOURCE_BARRIER::Transition(m_GBuffer.m_pDiffuse.Get(), D3D12_RESOURCE_STATE_GENERIC_READ, D3D12_RESOURCE_STATE_RENDER_TARGET);
+	pResourceBarriers[4] = CD3DX12_RESOURCE_BARRIER::Transition(m_GBuffer.m_pSpecular.Get(), D3D12_RESOURCE_STATE_GENERIC_READ, D3D12_RESOURCE_STATE_RENDER_TARGET);
+	pResourceBarriers[5] = CD3DX12_RESOURCE_BARRIER::Transition(m_GBuffer.m_pAmbient.Get(), D3D12_RESOURCE_STATE_GENERIC_READ, D3D12_RESOURCE_STATE_RENDER_TARGET);
+
+	m_pGraphicsCommandList->ResourceBarrier(GBUFFER_NUM, pResourceBarriers);
+
+	delete[] pResourceBarriers;
+
 	//Clear g buffer
 	for (int i = 0; i < GBUFFER_NUM; ++i)
 	{
@@ -202,23 +215,10 @@ void BasicApp::Draw()
 
 	m_pGraphicsCommandList->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
 
-	CD3DX12_RESOURCE_BARRIER* pResourceBarriers = new CD3DX12_RESOURCE_BARRIER[GBUFFER_NUM];
-	pResourceBarriers[0] = CD3DX12_RESOURCE_BARRIER::Transition(m_GBuffer.m_pAlbedo.Get(), D3D12_RESOURCE_STATE_GENERIC_READ, D3D12_RESOURCE_STATE_RENDER_TARGET);
-	pResourceBarriers[1] = CD3DX12_RESOURCE_BARRIER::Transition(m_GBuffer.m_pNormal.Get(), D3D12_RESOURCE_STATE_GENERIC_READ, D3D12_RESOURCE_STATE_RENDER_TARGET);
-	pResourceBarriers[2] = CD3DX12_RESOURCE_BARRIER::Transition(m_GBuffer.m_pTangent.Get(), D3D12_RESOURCE_STATE_GENERIC_READ, D3D12_RESOURCE_STATE_RENDER_TARGET);
-	pResourceBarriers[3] = CD3DX12_RESOURCE_BARRIER::Transition(m_GBuffer.m_pDiffuse.Get(), D3D12_RESOURCE_STATE_GENERIC_READ, D3D12_RESOURCE_STATE_RENDER_TARGET);
-	pResourceBarriers[4] = CD3DX12_RESOURCE_BARRIER::Transition(m_GBuffer.m_pSpecular.Get(), D3D12_RESOURCE_STATE_GENERIC_READ, D3D12_RESOURCE_STATE_RENDER_TARGET);
-	pResourceBarriers[5] = CD3DX12_RESOURCE_BARRIER::Transition(m_GBuffer.m_pAmbient.Get(), D3D12_RESOURCE_STATE_GENERIC_READ, D3D12_RESOURCE_STATE_RENDER_TARGET);
-
 	//Set the per frame constant buffer
 	m_pGraphicsCommandList->SetGraphicsRootConstantBufferView(0, m_pPerFrameCB->Get()->GetGPUVirtualAddress());
 
 	std::unordered_map<std::string, GameObject*>* pGameObjects = ObjectManager::GetInstance()->GetGameObjects();
-
-	// Set the render target
-	m_pGraphicsCommandList->ResourceBarrier(GBUFFER_NUM, pResourceBarriers);
-
-	delete[] pResourceBarriers;
 
 	D3D12_CPU_DESCRIPTOR_HANDLE* pRenderTargetDescs = new D3D12_CPU_DESCRIPTOR_HANDLE[GBUFFER_NUM];
 
