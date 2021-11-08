@@ -54,8 +54,8 @@ PS_OUTPUT main(PS_INPUT input)
     PS_OUTPUT output;
     
     output.Albedo = ColorTex.Sample(SamPointWrap, input.TexCoords);
-    output.NormalW = float4(normalize(input.NormalW), 0);
-    output.TangentW = float4(normalize(input.TangentW), 0);
+    output.NormalW = float4((normalize(input.NormalW) + float3(1, 1, 1)) * 0.5f, 0);    //Need to remap vector values to be between 0 and 1
+    output.TangentW = float4((normalize(input.TangentW) + float3(1, 1, 1)) * 0.5f, 0);
     output.Diffuse = gMaterial.Diffuse;
     output.Specular = gMaterial.Specular;
     output.Ambient = gMaterial.Ambient;
