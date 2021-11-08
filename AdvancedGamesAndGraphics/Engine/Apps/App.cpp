@@ -195,6 +195,150 @@ void App::OnResize()
 		rtvHeapHandle.Offset(1, m_uiRTVDescSize);
 	}
 
+	D3D12_CLEAR_VALUE gBufferClear;
+	gBufferClear.Format = m_BackBufferFormat;
+	gBufferClear.Color[0] = 0.0f;
+	gBufferClear.Color[1] = 0.0f;
+	gBufferClear.Color[2] = 0.0f;
+	gBufferClear.Color[3] = 1.0f;
+
+	//Create g buffer textures
+	D3D12_RESOURCE_DESC texDesc;
+	ZeroMemory(&texDesc, sizeof(D3D12_RESOURCE_DESC));
+	texDesc.Dimension = D3D12_RESOURCE_DIMENSION_TEXTURE2D;
+	texDesc.Alignment = 0;
+	texDesc.Width = WindowManager::GetInstance()->GetWindowWidth();
+	texDesc.Height = WindowManager::GetInstance()->GetWindowHeight();
+	texDesc.DepthOrArraySize = 1;
+	texDesc.MipLevels = 1;
+	texDesc.Format = m_BackBufferFormat;
+	texDesc.SampleDesc.Count = m_b4xMSAAState ? 4 : 1;
+	texDesc.SampleDesc.Quality = m_b4xMSAAState ? (m_uiMSAAQuality - 1) : 0;
+	texDesc.Layout = D3D12_TEXTURE_LAYOUT_UNKNOWN;
+	texDesc.Flags = D3D12_RESOURCE_FLAG_ALLOW_RENDER_TARGET;
+
+	hr = m_pDevice->CreateCommittedResource(&CD3DX12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_DEFAULT),
+		D3D12_HEAP_FLAG_NONE,
+		&texDesc,
+		D3D12_RESOURCE_STATE_COMMON,
+		&gBufferClear,
+		IID_PPV_ARGS(&m_GBuffer.m_pAlbedo));
+
+	if (FAILED(hr))
+	{
+		LOG_ERROR(tag, L"Failed to Create albedo committed resource when resizing screen!");
+
+		return;
+	}
+
+	hr = m_pDevice->CreateCommittedResource(&CD3DX12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_DEFAULT),
+		D3D12_HEAP_FLAG_NONE,
+		&texDesc,
+		D3D12_RESOURCE_STATE_COMMON,
+		&gBufferClear,
+		IID_PPV_ARGS(&m_GBuffer.m_pNormal));
+
+	if (FAILED(hr))
+	{
+		LOG_ERROR(tag, L"Failed to Create albedo committed resource when resizing screen!");
+
+		return;
+	}
+
+	hr = m_pDevice->CreateCommittedResource(&CD3DX12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_DEFAULT),
+		D3D12_HEAP_FLAG_NONE,
+		&texDesc,
+		D3D12_RESOURCE_STATE_COMMON,
+		&gBufferClear,
+		IID_PPV_ARGS(&m_GBuffer.m_pTangent));
+
+	if (FAILED(hr))
+	{
+		LOG_ERROR(tag, L"Failed to Create albedo committed resource when resizing screen!");
+
+		return;
+	}
+
+	hr = m_pDevice->CreateCommittedResource(&CD3DX12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_DEFAULT),
+		D3D12_HEAP_FLAG_NONE,
+		&texDesc,
+		D3D12_RESOURCE_STATE_COMMON,
+		&gBufferClear,
+		IID_PPV_ARGS(&m_GBuffer.m_pDiffuse));
+
+	if (FAILED(hr))
+	{
+		LOG_ERROR(tag, L"Failed to Create albedo committed resource when resizing screen!");
+
+		return;
+	}
+
+	hr = m_pDevice->CreateCommittedResource(&CD3DX12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_DEFAULT),
+		D3D12_HEAP_FLAG_NONE,
+		&texDesc,
+		D3D12_RESOURCE_STATE_COMMON,
+		&gBufferClear,
+		IID_PPV_ARGS(&m_GBuffer.m_pSpecular));
+
+	if (FAILED(hr))
+	{
+		LOG_ERROR(tag, L"Failed to Create albedo committed resource when resizing screen!");
+
+		return;
+	}
+
+	hr = m_pDevice->CreateCommittedResource(&CD3DX12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_DEFAULT),
+		D3D12_HEAP_FLAG_NONE,
+		&texDesc,
+		D3D12_RESOURCE_STATE_COMMON,
+		&gBufferClear,
+		IID_PPV_ARGS(&m_GBuffer.m_pAmbient));
+
+	if (FAILED(hr))
+	{
+		LOG_ERROR(tag, L"Failed to Create albedo committed resource when resizing screen!");
+
+		return;
+	}
+
+	CD3DX12_RESOURCE_BARRIER* pResourceBarriers = new CD3DX12_RESOURCE_BARRIER[GBUFFER_NUM];
+	pResourceBarriers[0] = CD3DX12_RESOURCE_BARRIER::Transition(m_GBuffer.m_pAlbedo.Get(), D3D12_RESOURCE_STATE_COMMON, D3D12_RESOURCE_STATE_GENERIC_READ);
+	pResourceBarriers[1] = CD3DX12_RESOURCE_BARRIER::Transition(m_GBuffer.m_pNormal.Get(), D3D12_RESOURCE_STATE_COMMON, D3D12_RESOURCE_STATE_GENERIC_READ);
+	pResourceBarriers[2] = CD3DX12_RESOURCE_BARRIER::Transition(m_GBuffer.m_pTangent.Get(), D3D12_RESOURCE_STATE_COMMON, D3D12_RESOURCE_STATE_GENERIC_READ);
+	pResourceBarriers[3] = CD3DX12_RESOURCE_BARRIER::Transition(m_GBuffer.m_pDiffuse.Get(), D3D12_RESOURCE_STATE_COMMON, D3D12_RESOURCE_STATE_GENERIC_READ);
+	pResourceBarriers[4] = CD3DX12_RESOURCE_BARRIER::Transition(m_GBuffer.m_pSpecular.Get(), D3D12_RESOURCE_STATE_COMMON, D3D12_RESOURCE_STATE_GENERIC_READ);
+	pResourceBarriers[5] = CD3DX12_RESOURCE_BARRIER::Transition(m_GBuffer.m_pAmbient.Get(), D3D12_RESOURCE_STATE_COMMON, D3D12_RESOURCE_STATE_GENERIC_READ);
+
+	// Set the render target
+	m_pGraphicsCommandList->ResourceBarrier(GBUFFER_NUM, pResourceBarriers);
+
+	//Create g buffer render target views
+	D3D12_RENDER_TARGET_VIEW_DESC  GBufferRTVDesc;
+	ZeroMemory(&GBufferRTVDesc, sizeof(GBufferRTVDesc));
+	GBufferRTVDesc.Texture2D.MipSlice = 0;
+	GBufferRTVDesc.Texture2D.PlaneSlice = 0;
+
+	GBufferRTVDesc.ViewDimension = D3D12_RTV_DIMENSION_TEXTURE2D;
+	GBufferRTVDesc.Format = m_BackBufferFormat;
+
+	m_pDevice->CreateRenderTargetView(m_GBuffer.m_pAlbedo.Get(), &GBufferRTVDesc, rtvHeapHandle);
+	rtvHeapHandle.Offset(1, m_uiRTVDescSize);
+
+	m_pDevice->CreateRenderTargetView(m_GBuffer.m_pNormal.Get(), &GBufferRTVDesc, rtvHeapHandle);
+	rtvHeapHandle.Offset(1, m_uiRTVDescSize);
+
+	m_pDevice->CreateRenderTargetView(m_GBuffer.m_pTangent.Get(), &GBufferRTVDesc, rtvHeapHandle);
+	rtvHeapHandle.Offset(1, m_uiRTVDescSize);
+
+	m_pDevice->CreateRenderTargetView(m_GBuffer.m_pDiffuse.Get(), &GBufferRTVDesc, rtvHeapHandle);
+	rtvHeapHandle.Offset(1, m_uiRTVDescSize);
+
+	m_pDevice->CreateRenderTargetView(m_GBuffer.m_pSpecular.Get(), &GBufferRTVDesc, rtvHeapHandle);
+	rtvHeapHandle.Offset(1, m_uiRTVDescSize);
+
+	m_pDevice->CreateRenderTargetView(m_GBuffer.m_pAmbient.Get(), &GBufferRTVDesc, rtvHeapHandle);
+	rtvHeapHandle.Offset(1, m_uiRTVDescSize);
+
 	// Create the depth/stencil buffer and view.
 	D3D12_RESOURCE_DESC depthStencilDesc;
 	depthStencilDesc.Dimension = D3D12_RESOURCE_DIMENSION_TEXTURE2D;
@@ -225,7 +369,7 @@ void App::OnResize()
 
 	if (FAILED(hr))
 	{
-		LOG_ERROR(tag, L"Failed to Create a committed resource when resizing screen!");
+		LOG_ERROR(tag, L"Failed to Create depth stencil committed resource when resizing screen!");
 
 		return;
 	}
@@ -661,7 +805,7 @@ bool App::InitDirectX3D()
 
 	//Create RTV heap
 	D3D12_DESCRIPTOR_HEAP_DESC RTVHeapDesc = {};
-	RTVHeapDesc.NumDescriptors = s_kuiSwapChainBufferCount;
+	RTVHeapDesc.NumDescriptors = s_kuiSwapChainBufferCount + GBUFFER_NUM;
 	RTVHeapDesc.Type = D3D12_DESCRIPTOR_HEAP_TYPE_RTV;
 	RTVHeapDesc.Flags = D3D12_DESCRIPTOR_HEAP_FLAG_NONE;
 	RTVHeapDesc.NodeMask = 0;

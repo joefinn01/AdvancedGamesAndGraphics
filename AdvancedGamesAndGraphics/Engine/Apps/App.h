@@ -8,7 +8,29 @@
 #include <DirectX\d3dx12.h>
 #include <dxgi1_4.h>
 
+#define GBUFFER_NUM 6
+
 class Timer;
+
+struct GBuffer
+{
+	GBuffer()
+	{
+		m_pAlbedo = nullptr;
+		m_pNormal = nullptr;
+		m_pTangent = nullptr;
+		m_pDiffuse = nullptr;
+		m_pSpecular = nullptr;
+		m_pAmbient = nullptr;
+	}
+
+	Microsoft::WRL::ComPtr<ID3D12Resource> m_pAlbedo;
+	Microsoft::WRL::ComPtr<ID3D12Resource> m_pNormal;
+	Microsoft::WRL::ComPtr<ID3D12Resource> m_pTangent;
+	Microsoft::WRL::ComPtr<ID3D12Resource> m_pDiffuse;
+	Microsoft::WRL::ComPtr<ID3D12Resource> m_pSpecular;
+	Microsoft::WRL::ComPtr<ID3D12Resource> m_pAmbient;
+};
 
 class App
 {
@@ -81,6 +103,8 @@ protected:
 
 	Microsoft::WRL::ComPtr<ID3D12DescriptorHeap> m_pRTVHeap = nullptr;
 	Microsoft::WRL::ComPtr<ID3D12DescriptorHeap> m_pDSVHeap = nullptr;
+
+	GBuffer m_GBuffer;
 
 	Microsoft::WRL::ComPtr<ID3D12Resource> m_pSwapChainBuffer[s_kuiSwapChainBufferCount];
 	Microsoft::WRL::ComPtr<ID3D12Resource> m_pDepthStencilBuffer;
