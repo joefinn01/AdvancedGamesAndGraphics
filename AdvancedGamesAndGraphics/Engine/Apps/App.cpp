@@ -546,6 +546,11 @@ bool App::InitDirectX3D()
 	//Create device
 	 HRESULT hr = D3D12CreateDevice(nullptr, D3D_FEATURE_LEVEL_12_1, IID_PPV_ARGS(m_pDevice.GetAddressOf()));
 
+	 if (FAILED(hr))
+	 {
+		 hr = D3D12CreateDevice(nullptr, D3D_FEATURE_LEVEL_11_0, IID_PPV_ARGS(m_pDevice.GetAddressOf()));
+	 }
+
 	if (FAILED(hr))
 	{
 		Microsoft::WRL::ComPtr<IDXGIAdapter> pWarpAdapter;
