@@ -1,0 +1,16 @@
+Controls:
+0 - turns off all parallax and normal mapping
+1 - turns on normal mapping
+2 - turns on parallax mapping
+3 - turns on parallax occlusion mapping
+4 - turns on self shadowing occlusion mapping
+
+wasd - Move camera
+left ctrl - toggles wether the mouse is locked to the screen
+mouse - rotates camera when it is locked
+
+ijkl - moves the light (it is denoted by the smaller cube)
+
+arrow keys - moves the cube
+
+q - toggles rotation on the cube
