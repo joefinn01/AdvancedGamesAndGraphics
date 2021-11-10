@@ -12,6 +12,7 @@
 class Timer;
 
 struct Light;
+struct Vertex;
 
 struct PSODesc
 {
