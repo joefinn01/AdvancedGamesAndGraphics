@@ -104,7 +104,6 @@ protected:
 	std::unordered_map<PSODesc, Microsoft::WRL::ComPtr<ID3D12PipelineState>> m_PipelineStates;
 	ID3D12PipelineState* m_pPipelineState;
 
-	UploadBuffer<LightPassCB>* m_pLightPassCB = nullptr;
 	UploadBuffer<LightPassPerFrameCB>* m_pLightPassPerFrameCB = nullptr;
 	UploadBuffer<GBufferPerFrameCB>* m_pGBufferPerFrameCB = nullptr;
 	UploadBuffer<MaterialCB>* m_pMaterialCB = nullptr;

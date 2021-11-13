@@ -1,25 +1,38 @@
 #pragma once
 #include "Engine/Structure/Singleton.h"
+#include "Engine/DirectX/UploadBuffer.h"
+
+#include <unordered_map>
 
 #define MAX_LIGHTS 16
 
 struct Light;
+struct LightCB;
 
 class LightManager : public Singleton<LightManager>
 {
 public:
 	LightManager();
 
-	Light* GetLight(int iIndex);
+	Light* GetLight(std::string sName);
 
-	bool AddLight(Light* pLight);
+	bool AddLight(std::string sName, Light* pLight);
+	bool RemoveLight(std::string sName);
 
-	void ToggleLight(int iIndex);
-	void SetLightState(int iIndex, bool bEnabled);
+	void ToggleLight(std::string sName);
+	void SetLightState(std::string sName, bool bEnabled);
+
+	UploadBuffer<LightCB>* GetUploadBuffer();
+
+	std::unordered_map<std::string, Light*>* GetLights();
 
 protected:
 
 private:
-	Light* m_Lights[MAX_LIGHTS];
+	void ResizeUploadBuffer();
+
+	std::unordered_map<std::string, Light*> m_Lights;
+
+	UploadBuffer<LightCB>* m_pUploadBuffer;
 };
 

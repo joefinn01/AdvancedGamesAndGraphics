@@ -1,46 +1,105 @@
 #include "LightManager.h"
+#include "Engine/DirectX/ConstantBuffers.h"
 #include "Engine/DirectX/Light.h"
 #include "Engine/Helpers/DebugHelper.h"
+#include "Engine/Apps/App.h"
 
 Tag tag = L"LightManager";
 
 LightManager::LightManager()
 {
-	for (int i = 0; i < MAX_LIGHTS; ++i)
-	{
-		m_Lights[i] = new Light();
-	}
+	m_pUploadBuffer = new UploadBuffer<LightCB>(App::GetApp()->GetDevice(), 0, true);
 }
 
-Light* LightManager::GetLight(int iIndex)
+Light* LightManager::GetLight(std::string sName)
 {
-	return m_Lights[iIndex];
+	return m_Lights[sName];
 }
 
-bool LightManager::AddLight(Light* pLight)
+bool LightManager::AddLight(std::string sName, Light* pLight)
 {
-	for (int i = 0; i < MAX_LIGHTS; ++i)
+	if (m_Lights.count(sName) == 1)
 	{
-		if (m_Lights[i]->Enabled == false)
-		{
-			delete m_Lights[i];
-			m_Lights[i] = pLight;
+		LOG_ERROR(tag, L"Tried to add light called %s but one with that name already exists!", sName);
 
-			return true;
-		}
+		return false;
 	}
 
-	LOG_ERROR(tag, L"Tried to add a light but all lights are in use!");
+	m_Lights[sName] = pLight;
 
-	return false;
+	ResizeUploadBuffer();
+
+	return true;
 }
 
-void LightManager::ToggleLight(int iIndex)
+bool LightManager::RemoveLight(std::string sName)
 {
-	m_Lights[iIndex]->Enabled = 1 - m_Lights[iIndex]->Enabled;
+	if (m_Lights.count(sName) == 0)
+	{
+		LOG_ERROR(tag, L"Tried to remove light called %s but one with that name doesn't exist!", sName);
+
+		return false;
+	}
+
+	m_Lights.erase(sName);
+
+	ResizeUploadBuffer();
+
+	return true;
 }
 
-void LightManager::SetLightState(int iIndex, bool bEnabled)
+void LightManager::ToggleLight(std::string sName)
 {
-	m_Lights[iIndex]->Enabled = (int)bEnabled;
+	if (m_Lights.count(sName) == 0)
+	{
+		LOG_ERROR(tag, L"Tried to toggle light called %s but none with that name exist!", sName);
+
+		return;
+	}
+
+	m_Lights[sName]->Enabled = 1 - m_Lights[sName]->Enabled;
+}
+
+void LightManager::SetLightState(std::string sName, bool bEnabled)
+{
+	if (m_Lights.count(sName) == 0)
+	{
+		LOG_ERROR(tag, L"Tried to set light called %s state but none with that name exist!", sName);
+
+		return;
+	}
+
+	m_Lights[sName]->Enabled = (int)bEnabled;
+}
+
+UploadBuffer<LightCB>* LightManager::GetUploadBuffer()
+{
+	return m_pUploadBuffer;
+}
+
+std::unordered_map<std::string, Light*>* LightManager::GetLights()
+{
+	return &m_Lights;
+}
+
+void LightManager::ResizeUploadBuffer()
+{
+	delete m_pUploadBuffer;
+
+	m_pUploadBuffer = new UploadBuffer<LightCB>(App::GetApp()->GetDevice(), m_Lights.size(), true);
+
+	LightCB lightCB;
+
+	int iCount = 0;
+
+	for (std::unordered_map<std::string, Light*>::iterator it = m_Lights.begin(); it != m_Lights.end(); ++it)
+	{
+		it->second->Index = iCount;
+
+		lightCB = it->second->lightCB;
+
+		m_pUploadBuffer->CopyData(iCount, lightCB);
+
+		++iCount;
+	}
 }

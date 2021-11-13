@@ -104,7 +104,7 @@ void BasicApp::Update(const Timer& kTimer)
 	VisibleGameObjectCB visibleGameObjectCB;
 
 	GameObject* pGameObject = ObjectManager::GetInstance()->GetGameObject("Light");
-	pGameObject->SetPosition(LightManager::GetInstance()->GetLight(0)->Position);
+	pGameObject->SetPosition(LightManager::GetInstance()->GetLight("point")->lightCB.Position);
 
 	if (m_bRotateCube == true)
 	{
@@ -261,10 +261,11 @@ void BasicApp::CreateGameObjects()
 	pGameObject->Init("Light", XMFLOAT3(0, 0, 0), XMFLOAT3(0, 0, 0), XMFLOAT3(0.2f, 0.2f, 0.2f), "test", { "color" });
 
 	Light* pPointLight = new PointLight(XMFLOAT3(0, 0, 0), XMFLOAT3(0.2f, 0.2f, 0.2f), XMFLOAT3(0.5f, 0.5f, 0.5f), XMFLOAT4(0.5f, 0.5f, 0.5f, 10.0f), XMFLOAT3(0.2f, 0.09f, 0.0f), 1000.0f);
-	Light* pSpotLight = new SpotLight(XMFLOAT3(), XMFLOAT3(0.2f, 0.2f, 0.2f), XMFLOAT3(0.5f, 0.5f, 0.5f), XMFLOAT4(0.5f, 0.5f, 0.5f, 10.0f), XMFLOAT3(0.2f, 0.09f, 0.0f), 1000.0f, XMFLOAT4(0, 0, 1, 0), 45.0f, false);
+	Light* pSpotLight = new SpotLight(XMFLOAT3(), XMFLOAT3(0.2f, 0.2f, 0.2f), XMFLOAT3(0.5f, 0.5f, 0.5f), XMFLOAT4(0.5f, 0.5f, 0.5f, 10.0f), XMFLOAT3(0.2f, 0.09f, 0.0f), 1000.0f, XMFLOAT4(0, 0, 1, 0), 45.0f);
 	Light* pDirectionalLight = new DirectionalLight(XMFLOAT3(0.2f, 0.2f, 0.2f), XMFLOAT3(0.5f, 0.5f, 0.5f), XMFLOAT4(0.5f, 0.5f, 0.5f, 10), XMFLOAT4(0, 0, 1, 0), false);
-	LightManager::GetInstance()->AddLight(pPointLight);
-	//LightManager::GetInstance()->AddLight(pPointLight);
+	LightManager::GetInstance()->AddLight("point", pPointLight);
+	LightManager::GetInstance()->AddLight("spot", pSpotLight);
+	LightManager::GetInstance()->AddLight("direction", pDirectionalLight);
 
 	//Create screen quad
 	std::array<ScreenQuadVertex, 4> vertices =
@@ -343,7 +344,6 @@ void BasicApp::CreateShadersAndUploadBuffers()
 	UploadBuffer<VisibleGameObjectCB>* visibleCBUploadBuffer = new UploadBuffer<VisibleGameObjectCB>(m_pDevice.Get(), ObjectManager::GetInstance()->GetNumGameObjects(), true);
 
 	m_pGBufferPerFrameCB = new UploadBuffer<GBufferPerFrameCB>(m_pDevice.Get(), 1, true);
-	m_pLightPassCB = new UploadBuffer<LightPassCB>(m_pDevice.Get(), 1, true);
 	m_pLightPassPerFrameCB = new UploadBuffer<LightPassPerFrameCB>(m_pDevice.Get(), 1, true);
 
 	D3D_SHADER_MACRO normal[] = 
@@ -1074,19 +1074,18 @@ void BasicApp::DoLightPass()
 
 	//Bind the light pass constant buffers
 	m_pGraphicsCommandList->SetGraphicsRootConstantBufferView(0, m_pLightPassPerFrameCB->Get()->GetGPUVirtualAddress());
-	m_pGraphicsCommandList->SetGraphicsRootConstantBufferView(1, m_pLightPassCB->Get()->GetGPUVirtualAddress());
 
-	LightPassCB lightPassCB;
+	UINT uiLightByteSize = DirectXHelper::CalculatePaddedConstantBufferSize(sizeof(LightCB));
+	D3D12_GPU_VIRTUAL_ADDRESS lightAddress;
 
 	//Draw once for each enabled light
-	for (int i = 0; i < MAX_LIGHTS; ++i)
+	for (std::unordered_map<std::string, Light*>::iterator it = LightManager::GetInstance()->GetLights()->begin(); it != LightManager::GetInstance()->GetLights()->end(); ++it)
 	{
-		if (LightManager::GetInstance()->GetLight(i)->Enabled == (int)true)
+		if (it->second->Enabled == (int)true)
 		{
-			//Update light cb with correct info
-			lightPassCB.light = *LightManager::GetInstance()->GetLight(i);
-
-			m_pLightPassCB->CopyData(0, lightPassCB);
+			//Set light constant buffer
+			lightAddress = LightManager::GetInstance()->GetUploadBuffer()->Get()->GetGPUVirtualAddress() + uiLightByteSize * it->second->Index;
+			m_pGraphicsCommandList->SetGraphicsRootConstantBufferView(1, lightAddress);
 
 			//Draw for each enabled light
 			m_pGraphicsCommandList->DrawInstanced(4, 1, 0, 0);
@@ -1148,21 +1147,15 @@ void BasicApp::OnKeyDown(void* pObject, int iKeycode)
 		break;
 
 	case 53: //5
-		LightManager::GetInstance()->SetLightState(0, true);
-		LightManager::GetInstance()->SetLightState(1, false);
-		LightManager::GetInstance()->SetLightState(2, false);
+		LightManager::GetInstance()->ToggleLight("point");
 		break;
 
 	case 54: //6
-		LightManager::GetInstance()->SetLightState(0, false);
-		LightManager::GetInstance()->SetLightState(1, true);
-		LightManager::GetInstance()->SetLightState(2, false);
+		LightManager::GetInstance()->ToggleLight("spot");
 		break;
 
 	case 55: //7
-		LightManager::GetInstance()->SetLightState(0, false);
-		LightManager::GetInstance()->SetLightState(1, false);
-		LightManager::GetInstance()->SetLightState(2, true);
+		LightManager::GetInstance()->ToggleLight("direction");
 		break;
 
 	case 81: // q
@@ -1182,7 +1175,7 @@ void BasicApp::OnKeyHeld(void* pObject, int iKeycode, const Timer& ktimer)
 
 	XMFLOAT3 translation;
 
-	Light* pLight = LightManager::GetInstance()->GetLight(0);
+	Light* pLight = LightManager::GetInstance()->GetLight("point");
 
 	switch (iKeycode)
 	{
@@ -1204,19 +1197,19 @@ void BasicApp::OnKeyHeld(void* pObject, int iKeycode, const Timer& ktimer)
 		break;
 
 	case 73: //i
-		XMStoreFloat3(&pLight->Position, XMLoadFloat3(&pLight->Position) + XMVectorSet(0, 1, 0, 0) * fMoveSens * ktimer.DeltaTime());
+		XMStoreFloat3(&pLight->lightCB.Position, XMLoadFloat3(&pLight->lightCB.Position) + XMVectorSet(0, 1, 0, 0) * fMoveSens * ktimer.DeltaTime());
 		break;
 
 	case 74: //j
-		XMStoreFloat3(&pLight->Position, XMLoadFloat3(&pLight->Position) + XMVectorSet(-1, 0, 0, 0) * fMoveSens * ktimer.DeltaTime());
+		XMStoreFloat3(&pLight->lightCB.Position, XMLoadFloat3(&pLight->lightCB.Position) + XMVectorSet(-1, 0, 0, 0) * fMoveSens * ktimer.DeltaTime());
 		break;
 
 	case 75: //k
-		XMStoreFloat3(&pLight->Position, XMLoadFloat3(&pLight->Position) + XMVectorSet(0, -1, 0, 0) * fMoveSens * ktimer.DeltaTime());
+		XMStoreFloat3(&pLight->lightCB.Position, XMLoadFloat3(&pLight->lightCB.Position) + XMVectorSet(0, -1, 0, 0) * fMoveSens * ktimer.DeltaTime());
 		break;
 
 	case 76: //l
-		XMStoreFloat3(&pLight->Position, XMLoadFloat3(&pLight->Position) + XMVectorSet(1, 0, 0, 0) * fMoveSens * ktimer.DeltaTime());
+		XMStoreFloat3(&pLight->lightCB.Position, XMLoadFloat3(&pLight->lightCB.Position) + XMVectorSet(1, 0, 0, 0) * fMoveSens * ktimer.DeltaTime());
 		break;
 	}
 }

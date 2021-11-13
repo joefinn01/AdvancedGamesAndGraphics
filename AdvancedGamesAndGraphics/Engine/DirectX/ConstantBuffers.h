@@ -1,7 +1,6 @@
 #pragma once
 
 #include "Engine/Managers/LightManager.h"
-#include "Engine/DirectX/Light.h"
 
 #include <DirectXMath.h>
 
@@ -18,9 +17,23 @@ struct LightPassPerFrameCB
 	float pad;
 };
 
-struct LightPassCB
+struct LightCB
 {
-	Light light;
+	DirectX::XMFLOAT3 Position;
+	float Range;
+
+	DirectX::XMFLOAT4 Direction;
+
+	DirectX::XMFLOAT3 Ambient;
+	int Type;
+
+	DirectX::XMFLOAT3 Diffuse;
+	float pad;
+
+	DirectX::XMFLOAT4 Specular;
+
+	DirectX::XMFLOAT3 Attenuation;
+	float SpotLightAngle;
 };
 
 struct VisibleGameObjectCB
