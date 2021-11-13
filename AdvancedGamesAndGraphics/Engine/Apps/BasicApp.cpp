@@ -143,8 +143,6 @@ void BasicApp::Update(const Timer& kTimer)
 	//Update light pass per frame CB
 	LightPassPerFrameCB lightPassPerFrameCB;
 	lightPassPerFrameCB.EyePosition = ObjectManager::GetInstance()->GetActiveCamera()->GetPosition();
-	lightPassPerFrameCB.ScreenWidth = WindowManager::GetInstance()->GetWindowWidth();
-	lightPassPerFrameCB.ScreenHeight = WindowManager::GetInstance()->GetWindowHeight();
 
 	XMStoreFloat4x4(&lightPassPerFrameCB.InvViewProjection, XMMatrixTranspose(XMMatrixInverse(nullptr, viewProj)));
 

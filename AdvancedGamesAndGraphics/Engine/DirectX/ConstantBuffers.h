@@ -15,10 +15,7 @@ struct LightPassPerFrameCB
 	DirectX::XMFLOAT4X4 InvViewProjection;
 
 	DirectX::XMFLOAT3 EyePosition;
-	int ScreenWidth;
-
-	int ScreenHeight;
-	DirectX::XMFLOAT3 pad;
+	float pad;
 };
 
 struct LightPassCB

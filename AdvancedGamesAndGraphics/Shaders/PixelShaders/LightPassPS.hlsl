@@ -13,10 +13,7 @@ cbuffer PerFrameCB : register(b0)
 	float4x4 InvTransposeViewProjection;
 
 	float3 EyePosW;
-	int ScreenWidth;
-	
-    int ScreenHeight;
-    float3 pad;
+    float pad;
 };
 
 cbuffer LigtPassCB : register(b1)
