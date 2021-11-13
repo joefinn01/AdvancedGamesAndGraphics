@@ -58,7 +58,7 @@ void DebugCamera::Update(const Timer& kTimer)
 		int iCentreX = WindowManager::GetInstance()->GetWindowWidth() / 2;
 		int iCentreY = WindowManager::GetInstance()->GetWindowHeight() / 2;
 
-		XMFLOAT2 deltaMousePosition = XMFLOAT2(iCentreX - mousePosition.x, iCentreY - mousePosition.y);
+		XMFLOAT2 deltaMousePosition = XMFLOAT2((float)(iCentreX - mousePosition.x), (float)(iCentreY - mousePosition.y));
 
 		//Calculate the change in yaw
 		XMMATRIX rotationMatrix = XMMatrixRotationY(deltaMousePosition.x * kTimer.DeltaTime() * -m_fMouseSensitivity);

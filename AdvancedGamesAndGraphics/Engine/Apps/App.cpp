@@ -359,6 +359,7 @@ void App::OnResize()
 
 	//Create Post processing RTV
 	m_pDevice->CreateRenderTargetView(m_pPostProcessingRTV.Get(), &GBufferRTVDesc, rtvHeapHandle);
+	rtvHeapHandle.Offset(1, m_uiRTVDescSize);
 
 	// Create the depth/stencil buffer and view.
 	D3D12_RESOURCE_DESC depthStencilDesc;
@@ -378,8 +379,6 @@ void App::OnResize()
 	optClear.Format = m_DepthStencilFormat;
 	optClear.DepthStencil.Depth = 1.0f;
 	optClear.DepthStencil.Stencil = 0;
-
-
 
 	hr = m_pDevice->CreateCommittedResource(&CD3DX12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_DEFAULT),
 		D3D12_HEAP_FLAG_NONE,
@@ -683,8 +682,8 @@ bool App::InitWindow()
 		WS_OVERLAPPEDWINDOW,
 		CW_USEDEFAULT,
 		CW_USEDEFAULT,
-		iWidth / fDPIScale,
-		iHeight / fDPIScale,
+		(int)(iWidth / fDPIScale),
+		(int)(iHeight / fDPIScale),
 		0,
 		0,
 		m_AppInstance,
@@ -709,7 +708,7 @@ bool App::InitWindow()
 bool App::InitDirectX3D()
 {
 	//Create device
-	 HRESULT hr = D3D12CreateDevice(nullptr, D3D_FEATURE_LEVEL_12_1, IID_PPV_ARGS(m_pDevice.GetAddressOf()));
+	 HRESULT hr = D3D12CreateDevice(nullptr, D3D_FEATURE_LEVEL_11_0, IID_PPV_ARGS(m_pDevice.GetAddressOf()));
 
 	if (FAILED(hr))
 	{
@@ -826,7 +825,7 @@ bool App::InitDirectX3D()
 
 	//Create RTV heap
 	D3D12_DESCRIPTOR_HEAP_DESC RTVHeapDesc = {};
-	RTVHeapDesc.NumDescriptors = s_kuiSwapChainBufferCount + GBUFFER_NUM + 1;
+	RTVHeapDesc.NumDescriptors = s_kuiSwapChainBufferCount + GBUFFER_NUM + 2;
 	RTVHeapDesc.Type = D3D12_DESCRIPTOR_HEAP_TYPE_RTV;
 	RTVHeapDesc.Flags = D3D12_DESCRIPTOR_HEAP_FLAG_NONE;
 	RTVHeapDesc.NodeMask = 0;

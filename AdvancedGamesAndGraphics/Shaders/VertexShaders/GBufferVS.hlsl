@@ -21,14 +21,6 @@ struct VS_OUTPUT
 cbuffer PerFrameCB : register(b0)
 {
     float4x4 ViewProjection;
-    float4x4 InvTransposeViewProjection;
-
-    Light Lights[MAX_LIGHTS];
-
-    float4 Ambient;
-
-    float3 EyePosW;
-    float pad;
 };
 
 cbuffer PerObjectCB : register(b1)
@@ -41,6 +33,10 @@ cbuffer MaterialCB : register(b2)
 {
     Material gMaterial;
 }
+
+Texture2D ColorTex : register(t0);
+Texture2D NormalTex : register(t1);
+Texture2D HeightTex : register(t2);
 
 VS_OUTPUT main(VS_INPUT input)
 {

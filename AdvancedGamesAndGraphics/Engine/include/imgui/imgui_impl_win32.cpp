@@ -248,7 +248,7 @@ static void ImGui_ImplWin32_UpdateMousePos()
     {
         POINT pos = { (int)mouse_pos_prev.x, (int)mouse_pos_prev.y };
         if (::ClientToScreen(bd->hWnd, &pos))
-            ::SetCursorPos(pos.x * fDPIScale, pos.y * fDPIScale);
+            ::SetCursorPos((int)(pos.x * fDPIScale), (int)(pos.y * fDPIScale));
     }
 
 

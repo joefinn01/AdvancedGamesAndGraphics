@@ -148,6 +148,12 @@
     <FxCompile Include="Shaders\VertexShaders\GBufferVS.hlsl">
       <Filter>Shaders\VertexShaders</Filter>
     </FxCompile>
+    <FxCompile Include="Shaders\VertexShaders\ScreenQuadVS.hlsl">
+      <Filter>Shaders\VertexShaders</Filter>
+    </FxCompile>
+    <FxCompile Include="Shaders\PixelShaders\LightPassPS.hlsl">
+      <Filter>Shaders\PixelShaders</Filter>
+    </FxCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Engine\Structure\Singleton.h">

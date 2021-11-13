@@ -27,8 +27,6 @@ bool TextureManager::AddTexture(std::string sName, std::wstring wsFilename)
 		return false;
 	}
 
-	D3D12_RESOURCE_DESC test = pTexData->Resource->GetDesc();
-
 	m_Textures[sName] = pTexData;
 
 	return true;

@@ -5,28 +5,31 @@
 
 #include <DirectXMath.h>
 
-struct PerFrameCB
+struct GBufferPerFrameCB
 {
-	DirectX::XMMATRIX ViewProjection;
-	DirectX::XMMATRIX InvTransposeViewProjection;
-
-	Light Lights[MAX_LIGHTS];
-
-	DirectX::XMFLOAT4 Ambient;
-
-	DirectX::XMFLOAT3 EyePosition;
-	float pad;
+	DirectX::XMFLOAT4X4 ViewProjection;
 };
 
-struct GameObjectCB
+struct LightPassPerFrameCB
 {
-	DirectX::XMMATRIX World;
+	DirectX::XMFLOAT4X4 InvViewProjection;
+
+	DirectX::XMFLOAT3 EyePosition;
+	int ScreenWidth;
+
+	int ScreenHeight;
+	DirectX::XMFLOAT3 pad;
+};
+
+struct LightPassCB
+{
+	Light light;
 };
 
 struct VisibleGameObjectCB
 {
-	DirectX::XMMATRIX World;
-	DirectX::XMMATRIX InvWorld;
+	DirectX::XMFLOAT4X4 World;
+	DirectX::XMFLOAT4X4 InvWorld;
 };
 
 struct MaterialCB

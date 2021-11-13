@@ -49,3 +49,15 @@ struct Vertex
 		Tangent = DirectX::XMFLOAT3(0, 0, 0);
 	}
 };
+
+struct ScreenQuadVertex
+{
+	DirectX::XMFLOAT3 Position;
+	DirectX::XMFLOAT2 TexCoords;
+
+	ScreenQuadVertex(DirectX::XMFLOAT3 pos, DirectX::XMFLOAT2 texCoords)
+	{
+		Position = pos;
+		TexCoords = texCoords;
+	}
+};

@@ -36,8 +36,8 @@ void WindowManager::UpdateWindowDimensions()
 		UINT dpi = GetDpiForWindow(GetDesktopWindow());
 		float fDPIScale = dpi / 96.0f;
 
-		m_WindowSettings.Width = (rect.right - rect.left) * fDPIScale;
-		m_WindowSettings.Height = (rect.bottom - rect.top) * fDPIScale;
+		m_WindowSettings.Width = (UINT)((rect.right - rect.left) * fDPIScale);
+		m_WindowSettings.Height = (UINT)((rect.bottom - rect.top) * fDPIScale);
 	}
 }
 

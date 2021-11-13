@@ -24,14 +24,6 @@ struct PS_OUTPUT
 cbuffer PerFrameCB : register(b0)
 {
     float4x4 ViewProjection;
-    float4x4 InvTransposeViewProjection;
-
-    Light Lights[MAX_LIGHTS];
-
-    float4 Ambient;
-
-    float3 EyePosW;
-    float pad;
 };
 
 cbuffer PerObjectCB : register(b1)
@@ -45,16 +37,18 @@ cbuffer MaterialCB : register(b2)
     Material gMaterial;
 }
 
-Texture2D ColorTex : register(t3);
-Texture2D NormalTex : register(t4);
-Texture2D HeightTex : register(t5);
+Texture2D ColorTex : register(t0);
+Texture2D NormalTex : register(t1);
+Texture2D HeightTex : register(t2);
 
 PS_OUTPUT main(PS_INPUT input)
 {
     PS_OUTPUT output;
     
+    float4 red = float4(1.0f, 0.0f, 0.0f, 1.0f);
+    
     output.Albedo = ColorTex.Sample(SamPointWrap, input.TexCoords);
-    output.NormalW = float4((normalize(input.NormalW) + float3(1, 1, 1)) * 0.5f, 0);    //Need to remap vector values to be between 0 and 1
+    output.NormalW = float4((normalize(input.NormalW) + float3(1, 1, 1)) * 0.5f, 0); //Need to remap vector values to be between 0 and 1
     output.TangentW = float4((normalize(input.TangentW) + float3(1, 1, 1)) * 0.5f, 0);
     output.Diffuse = gMaterial.Diffuse;
     output.Specular = gMaterial.Specular;

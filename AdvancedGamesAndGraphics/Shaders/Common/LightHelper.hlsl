@@ -6,11 +6,21 @@
 #define DIRECTIONAL 2
 
 struct Material
-{
+{	
     float4 Ambient;
     float4 Diffuse; //4th float is the alpha
     float4 Specular; //4th float is the specular power
 };
+
+Material InitMaterial(float4 ambient, float4 diffuse, float4 specular)
+{
+	Material mat;
+	mat.Ambient = ambient;
+	mat.Diffuse = diffuse;
+	mat.Specular = specular;
+	
+	return mat;
+}
 
 struct LightingResult
 {
@@ -84,6 +94,10 @@ LightingResult CalculatePoint(Light light, Material material, float3 position, f
 	result.Diffuse *= attenuation;
 	result.Specular *= attenuation;
 
+	result.Ambient = saturate(result.Ambient);
+	result.Diffuse = saturate(result.Diffuse);
+	result.Specular = saturate(result.Specular);
+	
 	return result;
 }
 
@@ -123,6 +137,10 @@ LightingResult CalculateSpot(Light light, Material material, float3 position, fl
 	result.Diffuse *= attenuation * spotLightIntensity;
 	result.Specular *= attenuation * spotLightIntensity;
 
+	result.Ambient = saturate(result.Ambient);
+	result.Diffuse = saturate(result.Diffuse);
+	result.Specular = saturate(result.Specular);
+	
 	return result;
 }
 
@@ -145,6 +163,10 @@ LightingResult CalculateDirectional(Light light, Material material, float3 norma
 		result.Specular = specularIntensity * material.Specular * light.Specular;
 	}
 
+	result.Ambient = saturate(result.Ambient);
+	result.Diffuse = saturate(result.Diffuse);
+	result.Specular = saturate(result.Specular);
+	
 	return result;
 }
 

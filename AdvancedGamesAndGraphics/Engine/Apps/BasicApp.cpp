@@ -59,7 +59,7 @@ bool BasicApp::Init()
 
 	PopulateTextureHeap();
 
-	if (CreateRootSignature() == false)
+	if (CreateRootSignatures() == false)
 	{
 		return false;
 	}
@@ -118,11 +118,11 @@ void BasicApp::Update(const Timer& kTimer)
 
 		XMMATRIX world = XMLoadFloat4x4(&it->second->GetWorldMatrix());
 
-		visibleGameObjectCB.World = XMMatrixTranspose(world);
+		XMStoreFloat4x4(&visibleGameObjectCB.World, XMMatrixTranspose(world));
 
 		world.r[3] = XMVectorSet(0, 0, 0, 1);
 
-		visibleGameObjectCB.InvWorld = XMMatrixInverse(nullptr, world);
+		XMStoreFloat4x4(&visibleGameObjectCB.InvWorld, XMMatrixInverse(nullptr, world));
 
 		pUploadBuffer->CopyData(uiCount, visibleGameObjectCB);
 
@@ -131,31 +131,24 @@ void BasicApp::Update(const Timer& kTimer)
 
 	ObjectManager::GetInstance()->GetActiveCamera()->Update(kTimer);
 
-	//Update per frame constant buffer
-	PerFrameCB constants;
+	//Update g buffer per frame CB
+	GBufferPerFrameCB GBufferPerFrameCB;
 
 	XMMATRIX viewProj = XMLoadFloat4x4(&ObjectManager::GetInstance()->GetActiveCamera()->GetViewProjectionMatrix());
 
-	//transpose the matrix to ensure it's in the right major
-	constants.ViewProjection = XMMatrixTranspose(viewProj);
+	XMStoreFloat4x4(&GBufferPerFrameCB.ViewProjection, XMMatrixTranspose(viewProj));
 
-	//Zero out the translation component so it doesn't cause issues when transforming the normal
-	viewProj.r[3] = XMVectorSet(0, 0, 0, 1);
+	m_pGBufferPerFrameCB->CopyData(0, GBufferPerFrameCB);
 
-	constants.InvTransposeViewProjection = XMMatrixInverse(&XMMatrixDeterminant(viewProj), viewProj);
+	//Update light pass per frame CB
+	LightPassPerFrameCB lightPassPerFrameCB;
+	lightPassPerFrameCB.EyePosition = ObjectManager::GetInstance()->GetActiveCamera()->GetPosition();
+	lightPassPerFrameCB.ScreenWidth = WindowManager::GetInstance()->GetWindowWidth();
+	lightPassPerFrameCB.ScreenHeight = WindowManager::GetInstance()->GetWindowHeight();
 
-	Light* pLight = nullptr;
+	XMStoreFloat4x4(&lightPassPerFrameCB.InvViewProjection, XMMatrixTranspose(XMMatrixInverse(nullptr, viewProj)));
 
-	//Update the light constant buffer
-	for (int i = 0; i < MAX_LIGHTS; ++i)
-	{
-		constants.Lights[i] = *LightManager::GetInstance()->GetLight(i);
-	}
-
-	constants.Ambient = XMFLOAT4(0.0f, 0.0f, 0.0f, 1);
-	constants.EyePosition = ObjectManager::GetInstance()->GetActiveCamera()->GetPosition();
-
-	m_pPerFrameCB->CopyData(0, constants);
+	m_pLightPassPerFrameCB->CopyData(0, lightPassPerFrameCB);
 }
 
 void BasicApp::Draw()
@@ -169,7 +162,7 @@ void BasicApp::Draw()
 		return;
 	}
 
-	PSODesc GBufferPSODesc = { "GBufferVS", "GBufferPS" };
+	PSODesc GBufferPSODesc = { "VS_GBuffer", "PS_GBuffer" };
 
 	hr = m_pGraphicsCommandList->Reset(m_pCommandAllocator.Get(), m_PipelineStates[GBufferPSODesc].Get());
 
@@ -185,8 +178,8 @@ void BasicApp::Draw()
 	CreateIMGUIWindow();
 
 	PopulateGBuffer();
-	RenderToTexture();
-	PostProcessing();
+	DoLightPass();
+	//DoPostProcessing();
 
 	PIX_ONLY(PIXBeginEvent(m_pGraphicsCommandList.Get(), PIX_COLOR(50, 50, 50), "Draw IMGUI"));
 
@@ -276,13 +269,12 @@ void BasicApp::CreateGameObjects()
 	//LightManager::GetInstance()->AddLight(pPointLight);
 
 	//Create screen quad
-	std::array<Vertex, 4> vertices =
+	std::array<ScreenQuadVertex, 4> vertices =
 	{
-		//Front face
-		Vertex(XMFLOAT3(-1, 1, 0), XMFLOAT3(0, 0, -1), XMFLOAT2(0, 0), XMFLOAT3(1.0f, 0.0f, 0.0f)),
-		Vertex(XMFLOAT3(1, 1, 0), XMFLOAT3(0, 0, -1), XMFLOAT2(1, 0), XMFLOAT3(1.0f, 0.0f, 0.0f)),
-		Vertex(XMFLOAT3(-1, -1, 0), XMFLOAT3(0, 0, -1), XMFLOAT2(0, 1), XMFLOAT3(1.0f, 0.0f, 0.0f)),
-		Vertex(XMFLOAT3(1, -1, 0), XMFLOAT3(0, 0, -1), XMFLOAT2(1, 1), XMFLOAT3(1.0f, 0.0f, 0.0f))
+		ScreenQuadVertex(XMFLOAT3(-1, 1, 0), XMFLOAT2(0, 0)),	//Top left
+		ScreenQuadVertex(XMFLOAT3(1, 1, 0), XMFLOAT2(1, 0)),	//Top right
+		ScreenQuadVertex(XMFLOAT3(-1, -1, 0), XMFLOAT2(0, 1)),	//Bottom left
+		ScreenQuadVertex(XMFLOAT3(1, -1, 0), XMFLOAT2(1, 1))	//Bottom right
 	};
 
 	m_pScreenQuadVertexBufferGPU = DirectXHelper::CreateDefaultBuffer(m_pDevice.Get(),
@@ -292,8 +284,8 @@ void BasicApp::CreateGameObjects()
 		m_pScreenQuadVertexBufferUploader);
 
 	m_ScreenQuadVBView.BufferLocation = m_pScreenQuadVertexBufferGPU->GetGPUVirtualAddress();
-	m_ScreenQuadVBView.StrideInBytes = sizeof(Vertex);
-	m_ScreenQuadVBView.SizeInBytes = (UINT)sizeof(Vertex) * 4;
+	m_ScreenQuadVBView.StrideInBytes = sizeof(ScreenQuadVertex);
+	m_ScreenQuadVBView.SizeInBytes = (UINT)sizeof(ScreenQuadVertex) * 4;
 }
 
 void BasicApp::CreateMaterials()
@@ -301,7 +293,7 @@ void BasicApp::CreateMaterials()
 	Material* pMat = new Material();
 	pMat->name = "test";
 	pMat->Ambient = XMFLOAT4(0.75f, 0.75f, 0.75f, 1.0f);
-	pMat->Diffuse = XMFLOAT4(0.5f, 0.5f, 0.5f, 0.745f);
+	pMat->Diffuse = XMFLOAT4(0.5f, 0.5f, 0.5f, 1.0f);
 	pMat->Specular = XMFLOAT4(0.5f, 0.5f, 0.5f, 10.0f);
 
 	MaterialManager::GetInstance()->AddMaterial(pMat);
@@ -352,7 +344,9 @@ void BasicApp::CreateShadersAndUploadBuffers()
 	//Create upload buffers
 	UploadBuffer<VisibleGameObjectCB>* visibleCBUploadBuffer = new UploadBuffer<VisibleGameObjectCB>(m_pDevice.Get(), ObjectManager::GetInstance()->GetNumGameObjects(), true);
 
-	m_pPerFrameCB = new UploadBuffer<PerFrameCB>(m_pDevice.Get(), 1, true);
+	m_pGBufferPerFrameCB = new UploadBuffer<GBufferPerFrameCB>(m_pDevice.Get(), 1, true);
+	m_pLightPassCB = new UploadBuffer<LightPassCB>(m_pDevice.Get(), 1, true);
+	m_pLightPassPerFrameCB = new UploadBuffer<LightPassPerFrameCB>(m_pDevice.Get(), 1, true);
 
 	D3D_SHADER_MACRO normal[] = 
 	{ 
@@ -380,26 +374,33 @@ void BasicApp::CreateShadersAndUploadBuffers()
 
 	//Compile shaders
 	ShaderManager::GetInstance()->CompileShaderVS<VisibleGameObjectCB>(L"Shaders/VertexShaders/VertexShader.hlsl", "VS", nullptr, "VSMain", "vs_5_0", visibleCBUploadBuffer);
+	ShaderManager::GetInstance()->CompileShaderVS<VisibleGameObjectCB>(L"Shaders/VertexShaders/ScreenQuadVS.hlsl", "VS_ScreenQuad", nullptr, "main", "vs_5_0", visibleCBUploadBuffer);
+	ShaderManager::GetInstance()->CompileShaderVS<VisibleGameObjectCB>(L"Shaders/VertexShaders/GBufferVS.hlsl", "VS_GBuffer", nullptr, "main", "vs_5_0", visibleCBUploadBuffer);
+
 	ShaderManager::GetInstance()->CompileShaderPS<VisibleGameObjectCB>(L"Shaders/PixelShaders/PixelShader.hlsl", "PS_Nothing", nullptr, "PSMain", "ps_5_0", visibleCBUploadBuffer);
 	ShaderManager::GetInstance()->CompileShaderPS<VisibleGameObjectCB>(L"Shaders/PixelShaders/PixelShader.hlsl", "PS_Normal", normal, "PSMain", "ps_5_0", visibleCBUploadBuffer);
 	ShaderManager::GetInstance()->CompileShaderPS<VisibleGameObjectCB>(L"Shaders/PixelShaders/PixelShader.hlsl", "PS_Parallax", parallax, "PSMain", "ps_5_0", visibleCBUploadBuffer);
 	ShaderManager::GetInstance()->CompileShaderPS<VisibleGameObjectCB>(L"Shaders/PixelShaders/PixelShader.hlsl", "PS_ParallaxOcclusion", parallaxOcclusion, "PSMain", "ps_5_0", visibleCBUploadBuffer);
 	ShaderManager::GetInstance()->CompileShaderPS<VisibleGameObjectCB>(L"Shaders/PixelShaders/PixelShader.hlsl", "PS_ParallaxShadow", parallaxShadow, "PSMain", "ps_5_0", visibleCBUploadBuffer);
-
-	//G buffer shaders
-	ShaderManager::GetInstance()->CompileShaderVS<VisibleGameObjectCB>(L"Shaders/VertexShaders/GBufferVS.hlsl", "VS_GBuffer", nullptr, "main", "vs_5_0", visibleCBUploadBuffer);
 	ShaderManager::GetInstance()->CompileShaderPS<VisibleGameObjectCB>(L"Shaders/PixelShaders/GBufferPS.hlsl", "PS_GBuffer", nullptr, "main", "ps_5_0", visibleCBUploadBuffer);
+	ShaderManager::GetInstance()->CompileShaderPS<VisibleGameObjectCB>(L"Shaders/PixelShaders/LightPassPS.hlsl", "PS_LightPass", nullptr, "main", "ps_5_0", visibleCBUploadBuffer);
 }
 
 void BasicApp::CreateInputDescriptions()
 {
 	// Define the vertex input layout.
-	m_VertexInputLayoutDesc =
+	m_GBufferVertexInputLayoutDesc =
 	{
 		{ "POSITION", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, 0, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0 },
 		{ "NORMAL", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, 12, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0},
 		{ "TEXCOORD", 0, DXGI_FORMAT_R32G32_FLOAT, 0, 24, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0},
 		{ "TANGENT", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, 32, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0}
+	};
+
+	m_ScreenQuadVertexInputLayoutDesc =
+	{
+		{ "POSITION", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, 0, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0 },
+		{ "TEXCOORD", 0, DXGI_FORMAT_R32G32_FLOAT, 0, 12, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0}
 	};
 }
 
@@ -457,16 +458,36 @@ std::array<const CD3DX12_STATIC_SAMPLER_DESC, 6> BasicApp::GetStaticSamplers()
 		anisotropicWrap, anisotropicClamp };
 }
 
-bool BasicApp::CreateRootSignature()
+bool BasicApp::CreateRootSignatures()
+{
+	if (CreateGBufferRootSignature() == false)
+	{
+		return false;
+	}
+
+	if (CreateLightPassRootSignature() == false)
+	{
+		return false;
+	}
+
+	if (CreatePostProcessingRootSignature() == false)
+	{
+		return false;
+	}
+
+	return true;
+}
+
+bool BasicApp::CreateGBufferRootSignature()
 {
 	CD3DX12_DESCRIPTOR_RANGE albedoTable;
-	albedoTable.Init(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, (UINT)1, 3);
+	albedoTable.Init(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, (UINT)1, 0);
 
 	CD3DX12_DESCRIPTOR_RANGE normalTable;
-	normalTable.Init(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, (UINT)1, 4);
+	normalTable.Init(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, (UINT)1, 1);
 
 	CD3DX12_DESCRIPTOR_RANGE heightTable;
-	heightTable.Init(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, (UINT)1, 5);
+	heightTable.Init(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, (UINT)1, 2);
 
 	CD3DX12_ROOT_PARAMETER slotRootParameter[6] = {};
 
@@ -481,8 +502,6 @@ bool BasicApp::CreateRootSignature()
 
 	std::array<const CD3DX12_STATIC_SAMPLER_DESC, 6> staticSamplers = GetStaticSamplers();
 
-
-
 	CD3DX12_ROOT_SIGNATURE_DESC rootSignatureDesc;
 	rootSignatureDesc.Init((UINT)_countof(slotRootParameter), slotRootParameter, (UINT)staticSamplers.size(), staticSamplers.data(), D3D12_ROOT_SIGNATURE_FLAG_ALLOW_INPUT_ASSEMBLER_INPUT_LAYOUT);
 
@@ -493,20 +512,77 @@ bool BasicApp::CreateRootSignature()
 
 	if (FAILED(hr))
 	{
-		LOG_ERROR(tag, L"Failed to create the serialize root signature!");
+		LOG_ERROR(tag, L"Failed to create GBuffer serialize root signature!");
 
 		return false;
 	}
 
-	hr = m_pDevice->CreateRootSignature(0, signature->GetBufferPointer(), signature->GetBufferSize(), IID_PPV_ARGS(m_pRootSignature.GetAddressOf()));
+	hr = m_pDevice->CreateRootSignature(0, signature->GetBufferPointer(), signature->GetBufferSize(), IID_PPV_ARGS(m_pGBufferSignature.GetAddressOf()));
 
 	if (FAILED(hr))
 	{
-		LOG_ERROR(tag, L"Failed to create the root signature!");
+		LOG_ERROR(tag, L"Failed to create GBuffer root signature!");
 
 		return false;
 	}
 
+	return true;
+}
+
+bool BasicApp::CreateLightPassRootSignature()
+{
+	//+2 for constant buffers and +1 for depth texture
+	CD3DX12_ROOT_PARAMETER slotRootParameter[GBUFFER_NUM + 3] = {};
+
+	slotRootParameter[0].InitAsConstantBufferView(0, 0U, D3D12_SHADER_VISIBILITY_PIXEL);	//Per frame CB
+	slotRootParameter[1].InitAsConstantBufferView(1, 0U, D3D12_SHADER_VISIBILITY_PIXEL);	//Per light CB
+
+	//g buffer textures
+	CD3DX12_DESCRIPTOR_RANGE ranges[GBUFFER_NUM + 1];
+
+	for (int i = 0; i < GBUFFER_NUM + 1; ++i)
+	{
+		ranges[i].Init(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, (UINT)1, i);
+
+		slotRootParameter[i + 2].InitAsDescriptorTable(1, &ranges[i], D3D12_SHADER_VISIBILITY_PIXEL);
+	}
+
+	std::array<const CD3DX12_STATIC_SAMPLER_DESC, 6> staticSamplers = GetStaticSamplers();
+
+	CD3DX12_ROOT_SIGNATURE_DESC rootSignatureDesc;
+	rootSignatureDesc.Init((UINT)_countof(slotRootParameter), slotRootParameter, (UINT)staticSamplers.size(), staticSamplers.data(), D3D12_ROOT_SIGNATURE_FLAG_ALLOW_INPUT_ASSEMBLER_INPUT_LAYOUT);
+
+	ComPtr<ID3DBlob> pSignature;
+	ComPtr<ID3DBlob> pError;
+
+	HRESULT hr = D3D12SerializeRootSignature(&rootSignatureDesc, D3D_ROOT_SIGNATURE_VERSION_1, pSignature.GetAddressOf(), pError.GetAddressOf());
+
+	if (FAILED(hr))
+	{
+		if (pError != nullptr)
+		{
+			OutputDebugStringA((char*)pError->GetBufferPointer());
+		}
+
+		LOG_ERROR(tag, L"Failed to create light pass serialize root signature!");
+
+		return false;
+	}
+
+	hr = m_pDevice->CreateRootSignature(0, pSignature->GetBufferPointer(), pSignature->GetBufferSize(), IID_PPV_ARGS(m_pLightSignature.GetAddressOf()));
+
+	if (FAILED(hr))
+	{
+		LOG_ERROR(tag, L"Failed to create light pass root signature!");
+
+		return false;
+	}
+
+	return true;
+}
+
+bool BasicApp::CreatePostProcessingRootSignature()
+{
 	return true;
 }
 
@@ -528,7 +604,7 @@ bool BasicApp::CreateDescriptorHeaps()
 	}
 
 	D3D12_DESCRIPTOR_HEAP_DESC srvDesc = {};
-	srvDesc.NumDescriptors = (UINT)TextureManager::GetInstance()->GetTextures()->size() + GBUFFER_NUM;
+	srvDesc.NumDescriptors = (UINT)TextureManager::GetInstance()->GetTextures()->size() + GBUFFER_NUM + 1;
 	srvDesc.Type = D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV;
 	srvDesc.Flags = D3D12_DESCRIPTOR_HEAP_FLAG_SHADER_VISIBLE;
 
@@ -576,6 +652,30 @@ void BasicApp::PopulateTextureHeap()
 
 	srvDesc.Texture2D.MipLevels = 1;
 	srvDesc.Format = m_BackBufferFormat;
+
+	//Create SRV for g buffer textures
+	m_pDevice->CreateShaderResourceView(m_GBuffer.m_pAlbedo.Get(), &srvDesc, descHandle);
+	descHandle.Offset(1, m_uiCBVSRVDescSize);
+
+	m_pDevice->CreateShaderResourceView(m_GBuffer.m_pNormal.Get(), &srvDesc, descHandle);
+	descHandle.Offset(1, m_uiCBVSRVDescSize);
+
+	m_pDevice->CreateShaderResourceView(m_GBuffer.m_pTangent.Get(), &srvDesc, descHandle);
+	descHandle.Offset(1, m_uiCBVSRVDescSize);
+
+	m_pDevice->CreateShaderResourceView(m_GBuffer.m_pDiffuse.Get(), &srvDesc, descHandle);
+	descHandle.Offset(1, m_uiCBVSRVDescSize);
+
+	m_pDevice->CreateShaderResourceView(m_GBuffer.m_pSpecular.Get(), &srvDesc, descHandle);
+	descHandle.Offset(1, m_uiCBVSRVDescSize);
+
+	m_pDevice->CreateShaderResourceView(m_GBuffer.m_pAmbient.Get(), &srvDesc, descHandle);
+	descHandle.Offset(1, m_uiCBVSRVDescSize);
+
+	//Create srv for depth buffer
+	srvDesc.Format = DXGI_FORMAT_R24_UNORM_X8_TYPELESS;
+
+	m_pDevice->CreateShaderResourceView(m_pDepthStencilBuffer.Get(), &srvDesc, descHandle);
 }
 
 bool BasicApp::CreatePSOs()
@@ -585,66 +685,55 @@ bool BasicApp::CreatePSOs()
 		return false;
 	}
 
-	//Initialise constant pipeline desc propertires
-	D3D12_GRAPHICS_PIPELINE_STATE_DESC psoDesc = {};
-	psoDesc.InputLayout = { m_VertexInputLayoutDesc.data(), (UINT)m_VertexInputLayoutDesc.size() };
-	psoDesc.pRootSignature = m_pRootSignature.Get();
-	psoDesc.RasterizerState = CD3DX12_RASTERIZER_DESC(D3D12_DEFAULT);
-	psoDesc.BlendState = CD3DX12_BLEND_DESC(D3D12_DEFAULT);
-	psoDesc.DepthStencilState = CD3DX12_DEPTH_STENCIL_DESC(D3D12_DEFAULT);
-	psoDesc.SampleMask = UINT_MAX;
-	psoDesc.PrimitiveTopologyType = D3D12_PRIMITIVE_TOPOLOGY_TYPE_TRIANGLE;
-	psoDesc.NumRenderTargets = 1;
-	psoDesc.RTVFormats[0] = m_BackBufferFormat;
-	psoDesc.SampleDesc.Count = m_b4xMSAAState ? 4 : 1;
-	psoDesc.SampleDesc.Quality = m_b4xMSAAState ? (m_uiMSAAQuality - 1) : 0;
-	psoDesc.DSVFormat = m_DepthStencilFormat;
-
-	Microsoft::WRL::ComPtr<ID3D12PipelineState>* ppPipelineState;
-
-	HRESULT hr;
-
-	PSODesc psoDescription;
-
-	//Create back buffer PSO's
-	for (std::unordered_map<std::string, void*>::iterator itA = ShaderManager::GetInstance()->GetShaders()->begin(); itA != ShaderManager::GetInstance()->GetShaders()->end(); ++itA)
+	if (CreateLightPassPSO() == false)
 	{
-		if (static_cast<Shader<VisibleGameObjectCB>*>(itA->second)->GetShaderType() != ShaderType::Vertex)
-		{
-			continue;
-		}
-
-		for (std::unordered_map<std::string, void*>::iterator itB = ShaderManager::GetInstance()->GetShaders()->begin(); itB != ShaderManager::GetInstance()->GetShaders()->end(); ++itB)
-		{
-			if (static_cast<Shader<VisibleGameObjectCB>*>(itB->second)->GetShaderType() != ShaderType::Pixel)
-			{
-				continue;
-			}
-
-			psoDesc.VS = CD3DX12_SHADER_BYTECODE(ShaderManager::GetInstance()->GetShader<VisibleGameObjectCB>(itA->first)->GetShaderBlob().Get());
-			psoDesc.PS = CD3DX12_SHADER_BYTECODE(ShaderManager::GetInstance()->GetShader<VisibleGameObjectCB>(itB->first)->GetShaderBlob().Get());
-
-			ppPipelineState = new Microsoft::WRL::ComPtr<ID3D12PipelineState>();
-
-			hr = m_pDevice->CreateGraphicsPipelineState(&psoDesc, IID_PPV_ARGS(ppPipelineState->GetAddressOf()));
-
-			if (FAILED(hr))
-			{
-				LOG_ERROR(tag, L"Failed to create the pipeline state object!");
-
-				return false;
-			}
-
-			psoDescription.VSName = itA->first;
-			psoDescription.PSName = itB->first;
-
-			m_PipelineStates[psoDescription] = ppPipelineState->Get();
-		}
+		return false;
 	}
 
-	PSODesc desc = { "VS", "PS_ParallaxOcclusion" };
+	//if (CreatePostProcessingPSO() == false)
+	//{
+	//	return false;
+	//}
 
-	m_pPipelineState = m_PipelineStates[desc].Get();
+	//Create back buffer PSO's
+	//for (std::unordered_map<std::string, void*>::iterator itA = ShaderManager::GetInstance()->GetShaders()->begin(); itA != ShaderManager::GetInstance()->GetShaders()->end(); ++itA)
+	//{
+	//	if (static_cast<Shader<VisibleGameObjectCB>*>(itA->second)->GetShaderType() != ShaderType::Vertex)
+	//	{
+	//		continue;
+	//	}
+
+	//	for (std::unordered_map<std::string, void*>::iterator itB = ShaderManager::GetInstance()->GetShaders()->begin(); itB != ShaderManager::GetInstance()->GetShaders()->end(); ++itB)
+	//	{
+	//		if (static_cast<Shader<VisibleGameObjectCB>*>(itB->second)->GetShaderType() != ShaderType::Pixel)
+	//		{
+	//			continue;
+	//		}
+
+	//		psoDesc.VS = CD3DX12_SHADER_BYTECODE(ShaderManager::GetInstance()->GetShader<VisibleGameObjectCB>(itA->first)->GetShaderBlob().Get());
+	//		psoDesc.PS = CD3DX12_SHADER_BYTECODE(ShaderManager::GetInstance()->GetShader<VisibleGameObjectCB>(itB->first)->GetShaderBlob().Get());
+
+	//		ppPipelineState = new Microsoft::WRL::ComPtr<ID3D12PipelineState>();
+
+	//		hr = m_pDevice->CreateGraphicsPipelineState(&psoDesc, IID_PPV_ARGS(ppPipelineState->GetAddressOf()));
+
+	//		if (FAILED(hr))
+	//		{
+	//			LOG_ERROR(tag, L"Failed to create the pipeline state object!");
+
+	//			return false;
+	//		}
+
+	//		psoDescription.VSName = itA->first;
+	//		psoDescription.PSName = itB->first;
+
+	//		m_PipelineStates[psoDescription] = ppPipelineState->Get();
+	//	}
+	//}
+
+	//PSODesc desc = { "VS", "PS_ParallaxOcclusion" };
+
+	//m_pPipelineState = m_PipelineStates[desc].Get();
 
 	return true;
 }
@@ -653,8 +742,8 @@ bool BasicApp::CreateGBufferPSO()
 {
 	//Initialise constant pipeline desc propertires
 	D3D12_GRAPHICS_PIPELINE_STATE_DESC psoDesc = {};
-	psoDesc.InputLayout = { m_VertexInputLayoutDesc.data(), (UINT)m_VertexInputLayoutDesc.size() };
-	psoDesc.pRootSignature = m_pRootSignature.Get();
+	psoDesc.InputLayout = { m_GBufferVertexInputLayoutDesc.data(), (UINT)m_GBufferVertexInputLayoutDesc.size() };
+	psoDesc.pRootSignature = m_pGBufferSignature.Get();
 	psoDesc.RasterizerState = CD3DX12_RASTERIZER_DESC(D3D12_DEFAULT);
 	psoDesc.BlendState = CD3DX12_BLEND_DESC(D3D12_DEFAULT);
 	psoDesc.DepthStencilState = CD3DX12_DEPTH_STENCIL_DESC(D3D12_DEFAULT);
@@ -687,8 +776,105 @@ bool BasicApp::CreateGBufferPSO()
 		return false;
 	}
 
-	psoDescription.VSName = "GBufferVS";
-	psoDescription.PSName = "GBufferPS";
+	psoDescription.VSName = "VS_GBuffer";
+	psoDescription.PSName = "PS_GBuffer";
+
+	m_PipelineStates[psoDescription] = ppPipelineState->Get();
+
+	return true;
+}
+
+bool BasicApp::CreateLightPassPSO()
+{
+	//Create blend state so it accumulates rather than overwrites
+	D3D12_RENDER_TARGET_BLEND_DESC blendState;
+	blendState.BlendEnable = TRUE;
+	blendState.LogicOpEnable = FALSE;
+	blendState.SrcBlend = D3D12_BLEND_ONE;
+	blendState.DestBlend = D3D12_BLEND_ONE;
+	blendState.BlendOp = D3D12_BLEND_OP_ADD;
+	blendState.SrcBlendAlpha = D3D12_BLEND_ONE;
+	blendState.DestBlendAlpha = D3D12_BLEND_ZERO;
+	blendState.BlendOpAlpha = D3D12_BLEND_OP_ADD;
+	blendState.LogicOp = D3D12_LOGIC_OP_NOOP;
+	blendState.RenderTargetWriteMask = D3D12_COLOR_WRITE_ENABLE_ALL;
+
+	//Initialise constant pipeline desc properties
+	D3D12_GRAPHICS_PIPELINE_STATE_DESC psoDesc = {};
+	psoDesc.InputLayout = { m_ScreenQuadVertexInputLayoutDesc.data(), (UINT)m_ScreenQuadVertexInputLayoutDesc.size() };
+	psoDesc.pRootSignature = m_pLightSignature.Get();
+	psoDesc.RasterizerState = CD3DX12_RASTERIZER_DESC(D3D12_DEFAULT);
+	psoDesc.BlendState.RenderTarget[0] = blendState;
+	psoDesc.DepthStencilState = CD3DX12_DEPTH_STENCIL_DESC(D3D12_DEFAULT);
+	psoDesc.SampleMask = UINT_MAX;
+	psoDesc.PrimitiveTopologyType = D3D12_PRIMITIVE_TOPOLOGY_TYPE_TRIANGLE;
+	psoDesc.NumRenderTargets = 1;
+	psoDesc.RTVFormats[0] = m_BackBufferFormat;
+	psoDesc.SampleDesc.Count = m_b4xMSAAState ? 4 : 1;
+	psoDesc.SampleDesc.Quality = m_b4xMSAAState ? (m_uiMSAAQuality - 1) : 0;
+	psoDesc.DSVFormat = DXGI_FORMAT_UNKNOWN;
+
+	Microsoft::WRL::ComPtr<ID3D12PipelineState>* ppPipelineState = new Microsoft::WRL::ComPtr<ID3D12PipelineState>();
+
+	PSODesc psoDescription;
+
+	//Create light pass PSO
+	psoDesc.VS = CD3DX12_SHADER_BYTECODE(ShaderManager::GetInstance()->GetShader<VisibleGameObjectCB>("VS_ScreenQuad")->GetShaderBlob().Get());
+	psoDesc.PS = CD3DX12_SHADER_BYTECODE(ShaderManager::GetInstance()->GetShader<VisibleGameObjectCB>("PS_LightPass")->GetShaderBlob().Get());
+
+	HRESULT hr = m_pDevice->CreateGraphicsPipelineState(&psoDesc, IID_PPV_ARGS(ppPipelineState->GetAddressOf()));
+
+	if (FAILED(hr))
+	{
+		LOG_ERROR(tag, L"Failed to create the light pass pipeline state object!");
+
+		return false;
+	}
+
+	psoDescription.VSName = "VS_ScreenQuad";
+	psoDescription.PSName = "PS_LightPass";
+
+	m_PipelineStates[psoDescription] = ppPipelineState->Get();
+
+	return true;
+}
+
+bool BasicApp::CreatePostProcessingPSO()
+{
+	//Initialise constant pipeline desc properties
+	D3D12_GRAPHICS_PIPELINE_STATE_DESC psoDesc = {};
+	psoDesc.InputLayout = { m_ScreenQuadVertexInputLayoutDesc.data(), (UINT)m_ScreenQuadVertexInputLayoutDesc.size() };
+	psoDesc.pRootSignature = m_pPostProcessingSignature.Get();
+	psoDesc.RasterizerState = CD3DX12_RASTERIZER_DESC(D3D12_DEFAULT);
+	psoDesc.BlendState = CD3DX12_BLEND_DESC(D3D12_DEFAULT);
+	psoDesc.DepthStencilState = CD3DX12_DEPTH_STENCIL_DESC(D3D12_DEFAULT);
+	psoDesc.SampleMask = UINT_MAX;
+	psoDesc.PrimitiveTopologyType = D3D12_PRIMITIVE_TOPOLOGY_TYPE_TRIANGLE;
+	psoDesc.NumRenderTargets = 1;
+	psoDesc.RTVFormats[0] = m_BackBufferFormat;
+	psoDesc.SampleDesc.Count = m_b4xMSAAState ? 4 : 1;
+	psoDesc.SampleDesc.Quality = m_b4xMSAAState ? (m_uiMSAAQuality - 1) : 0;
+	psoDesc.DSVFormat = m_DepthStencilFormat;
+
+	Microsoft::WRL::ComPtr<ID3D12PipelineState>* ppPipelineState = new Microsoft::WRL::ComPtr<ID3D12PipelineState>();
+
+	PSODesc psoDescription;
+
+	//Create post processing PSO
+	psoDesc.VS = CD3DX12_SHADER_BYTECODE(ShaderManager::GetInstance()->GetShader<VisibleGameObjectCB>("VS_ScreenQuad")->GetShaderBlob().Get());
+	psoDesc.PS = CD3DX12_SHADER_BYTECODE(ShaderManager::GetInstance()->GetShader<VisibleGameObjectCB>("PS_PostProcessing")->GetShaderBlob().Get());
+
+	HRESULT hr = m_pDevice->CreateGraphicsPipelineState(&psoDesc, IID_PPV_ARGS(ppPipelineState->GetAddressOf()));
+
+	if (FAILED(hr))
+	{
+		LOG_ERROR(tag, L"Failed to create the post processing pipeline state object!");
+
+		return false;
+	}
+
+	psoDescription.VSName = "VS_ScreenQuad";
+	psoDescription.PSName = "PS_PostProcessing";
 
 	m_PipelineStates[psoDescription] = ppPipelineState->Get();
 
@@ -735,7 +921,11 @@ void BasicApp::PopulateGBuffer()
 {
 	PIX_ONLY(PIXBeginEvent(m_pGraphicsCommandList.Get(), PIX_COLOR(50, 50, 50), "Populate G buffer"));
 
-	m_pGraphicsCommandList->SetGraphicsRootSignature(m_pRootSignature.Get());
+	PSODesc psoDesc = { "VS_GBuffer", "PS_GBuffer" };
+
+	m_pGraphicsCommandList->SetPipelineState(m_PipelineStates[psoDesc].Get());
+
+	m_pGraphicsCommandList->SetGraphicsRootSignature(m_pGBufferSignature.Get());
 	m_pGraphicsCommandList->RSSetViewports(1, &m_Viewport);
 	m_pGraphicsCommandList->RSSetScissorRects(1, &m_ScissorRect);
 
@@ -765,7 +955,7 @@ void BasicApp::PopulateGBuffer()
 	m_pGraphicsCommandList->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
 
 	//Set the per frame constant buffer
-	m_pGraphicsCommandList->SetGraphicsRootConstantBufferView(0, m_pPerFrameCB->Get()->GetGPUVirtualAddress());
+	m_pGraphicsCommandList->SetGraphicsRootConstantBufferView(0, m_pGBufferPerFrameCB->Get()->GetGPUVirtualAddress());
 
 	std::unordered_map<std::string, GameObject*>* pGameObjects = ObjectManager::GetInstance()->GetGameObjects();
 
@@ -787,7 +977,7 @@ void BasicApp::PopulateGBuffer()
 	D3D12_GPU_VIRTUAL_ADDRESS perObjCBAddress = ShaderManager::GetInstance()->GetShaderConstantUploadBuffer<VisibleGameObjectCB>("VS")->Get()->GetGPUVirtualAddress();
 
 	UINT uiMatByteSize = DirectXHelper::CalculatePaddedConstantBufferSize(sizeof(MaterialCB));
-	D3D12_GPU_VIRTUAL_ADDRESS matCBAdress;
+	D3D12_GPU_VIRTUAL_ADDRESS matCBAddress;
 
 	CD3DX12_GPU_DESCRIPTOR_HANDLE textureAddress;
 
@@ -804,10 +994,10 @@ void BasicApp::PopulateGBuffer()
 		{
 			VisibleGameObject* pVisibleGameObject = (VisibleGameObject*)it->second;
 
-			matCBAdress = m_pMaterialCB->Get()->GetGPUVirtualAddress() + uiMatByteSize * pVisibleGameObject->GetMaterial()->CBIndex;
+			matCBAddress = m_pMaterialCB->Get()->GetGPUVirtualAddress() + uiMatByteSize * pVisibleGameObject->GetMaterial()->CBIndex;
 
 			//Set the material constant buffer
-			m_pGraphicsCommandList->SetGraphicsRootConstantBufferView(2, matCBAdress);
+			m_pGraphicsCommandList->SetGraphicsRootConstantBufferView(2, matCBAddress);
 
 			pTextures = pVisibleGameObject->GetTextures();
 
@@ -845,36 +1035,82 @@ void BasicApp::PopulateGBuffer()
 	PIX_ONLY(PIXEndEvent(m_pGraphicsCommandList.Get()));
 }
 
-void BasicApp::RenderToTexture()
+void BasicApp::DoLightPass()
 {
 	PIX_ONLY(PIXBeginEvent(m_pGraphicsCommandList.Get(), PIX_COLOR(50, 50, 50), "Render to texture"));
 
-	PSODesc ToTexPSODesc = { "VS_ToTex", "PS_ToTex" };
+	PSODesc lightPassPSODesc = { "VS_ScreenQuad", "PS_LightPass" };
 
-	m_pGraphicsCommandList->SetPipelineState(m_PipelineStates[ToTexPSODesc].Get());
+	m_pGraphicsCommandList->SetPipelineState(m_PipelineStates[lightPassPSODesc].Get());
 
-	const float RTVClearColor[] = { 0.5f, 0.3f, 0.7f, 1.0f };
+	m_pGraphicsCommandList->SetGraphicsRootSignature(m_pLightSignature.Get());
 
-	m_pGraphicsCommandList->ResourceBarrier(1, &CD3DX12_RESOURCE_BARRIER::Transition(m_pPostProcessingRTV.Get(), D3D12_RESOURCE_STATE_GENERIC_READ, D3D12_RESOURCE_STATE_RENDER_TARGET));
+	const float RTVClearColor[] = { 0.0f, 0.0f, 0.0f, 0.0f };
+
+	//Transition resources
+	//m_pGraphicsCommandList->ResourceBarrier(1, &CD3DX12_RESOURCE_BARRIER::Transition(m_pPostProcessingRTV.Get(), D3D12_RESOURCE_STATE_GENERIC_READ, D3D12_RESOURCE_STATE_RENDER_TARGET));
+	m_pGraphicsCommandList->ResourceBarrier(1, &CD3DX12_RESOURCE_BARRIER::Transition(GetCurrentBackBuffer(), D3D12_RESOURCE_STATE_PRESENT, D3D12_RESOURCE_STATE_RENDER_TARGET));
+	m_pGraphicsCommandList->ResourceBarrier(1, &CD3DX12_RESOURCE_BARRIER::Transition(m_pDepthStencilBuffer.Get(), D3D12_RESOURCE_STATE_DEPTH_WRITE, D3D12_RESOURCE_STATE_DEPTH_READ));
 
 	m_pGraphicsCommandList->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLESTRIP);
 
-	m_pGraphicsCommandList->OMSetRenderTargets(1, &CD3DX12_CPU_DESCRIPTOR_HANDLE(m_pRTVHeap->GetCPUDescriptorHandleForHeapStart(), s_kuiSwapChainBufferCount + GBUFFER_NUM, m_uiRTVDescSize), FALSE, &GetDepthStencilView());
+	//m_pGraphicsCommandList->OMSetRenderTargets(1, &CD3DX12_CPU_DESCRIPTOR_HANDLE(m_pRTVHeap->GetCPUDescriptorHandleForHeapStart(), s_kuiSwapChainBufferCount + GBUFFER_NUM, m_uiRTVDescSize), FALSE, nullptr);
+	m_pGraphicsCommandList->OMSetRenderTargets(1, &GetCurrentBackBufferView(), FALSE, nullptr);
 
-	m_pGraphicsCommandList->ClearRenderTargetView(CD3DX12_CPU_DESCRIPTOR_HANDLE(m_pRTVHeap->GetCPUDescriptorHandleForHeapStart(), s_kuiSwapChainBufferCount + GBUFFER_NUM, m_uiRTVDescSize), RTVClearColor, 0, nullptr);
+	//m_pGraphicsCommandList->ClearRenderTargetView(CD3DX12_CPU_DESCRIPTOR_HANDLE(m_pRTVHeap->GetCPUDescriptorHandleForHeapStart(), s_kuiSwapChainBufferCount + GBUFFER_NUM, m_uiRTVDescSize), RTVClearColor, 0, nullptr);
+	m_pGraphicsCommandList->ClearRenderTargetView(GetCurrentBackBufferView(), RTVClearColor, 0, nullptr);
 
 	m_pGraphicsCommandList->IASetVertexBuffers(0, 1, &m_ScreenQuadVBView);
 
-	m_pGraphicsCommandList->DrawInstanced(4, 1, 0, 0);
+	//Bind g buffer and depth stencil textures
+	CD3DX12_GPU_DESCRIPTOR_HANDLE textureAddress;
 
-	m_pGraphicsCommandList->ResourceBarrier(1, &CD3DX12_RESOURCE_BARRIER::Transition(m_pPostProcessingRTV.Get(), D3D12_RESOURCE_STATE_RENDER_TARGET, D3D12_RESOURCE_STATE_GENERIC_READ));
+	textureAddress = m_pTextureDescHeap->GetGPUDescriptorHandleForHeapStart();
+	textureAddress.Offset(TextureManager::GetInstance()->GetTextures()->size(), m_uiCBVSRVDescSize);
+
+	for (int i = 0; i < GBUFFER_NUM + 1; ++i)
+	{
+		m_pGraphicsCommandList->SetGraphicsRootDescriptorTable(i + 2, textureAddress);
+		textureAddress.Offset(1, m_uiCBVSRVDescSize);
+	}
+
+	//Bind the light pass constant buffers
+	m_pGraphicsCommandList->SetGraphicsRootConstantBufferView(0, m_pLightPassPerFrameCB->Get()->GetGPUVirtualAddress());
+	m_pGraphicsCommandList->SetGraphicsRootConstantBufferView(1, m_pLightPassCB->Get()->GetGPUVirtualAddress());
+
+	LightPassCB lightPassCB;
+
+	//Draw once for each enabled light
+	for (int i = 0; i < MAX_LIGHTS; ++i)
+	{
+		if (LightManager::GetInstance()->GetLight(i)->Enabled == (int)true)
+		{
+			//Update light cb with correct info
+			lightPassCB.light = *LightManager::GetInstance()->GetLight(i);
+
+			m_pLightPassCB->CopyData(0, lightPassCB);
+
+			//Draw for each enabled light
+			m_pGraphicsCommandList->DrawInstanced(4, 1, 0, 0);
+		}
+	}
+
+	//Transition resources back
+	//m_pGraphicsCommandList->ResourceBarrier(1, &CD3DX12_RESOURCE_BARRIER::Transition(m_pPostProcessingRTV.Get(), D3D12_RESOURCE_STATE_RENDER_TARGET, D3D12_RESOURCE_STATE_GENERIC_READ));
+	m_pGraphicsCommandList->ResourceBarrier(1, &CD3DX12_RESOURCE_BARRIER::Transition(m_pDepthStencilBuffer.Get(), D3D12_RESOURCE_STATE_DEPTH_READ, D3D12_RESOURCE_STATE_DEPTH_WRITE));
 
 	PIX_ONLY(PIXEndEvent(m_pGraphicsCommandList.Get()));
 }
 
-void BasicApp::PostProcessing()
+void BasicApp::DoPostProcessing()
 {
 	PIX_ONLY(PIXBeginEvent(m_pGraphicsCommandList.Get(), PIX_COLOR(50, 50, 50), "Carry out post processing"));
+
+	PSODesc postProcessingPSODesc = { "VS_ScreenQuad", "PS_LightPass" };
+
+	m_pGraphicsCommandList->SetPipelineState(m_PipelineStates[postProcessingPSODesc].Get());
+
+	m_pGraphicsCommandList->SetGraphicsRootSignature(m_pPostProcessingSignature.Get());
 
 	PIX_ONLY(PIXEndEvent(m_pGraphicsCommandList.Get()));
 }

@@ -71,19 +71,25 @@ protected:
 
 	std::array<const CD3DX12_STATIC_SAMPLER_DESC, 6> GetStaticSamplers();
 
-	bool CreateRootSignature();
+	bool CreateRootSignatures();
+	bool CreateGBufferRootSignature();
+	bool CreateLightPassRootSignature();
+	bool CreatePostProcessingRootSignature();
+
 	bool CreateDescriptorHeaps();
 	void PopulateTextureHeap();
 	
 	bool CreatePSOs();
 	bool CreateGBufferPSO();
+	bool CreateLightPassPSO();
+	bool CreatePostProcessingPSO();
 
 	void InitIMGUI();
 	void CreateIMGUIWindow();
 
 	void PopulateGBuffer();
-	void RenderToTexture();
-	void PostProcessing();
+	void DoLightPass();
+	void DoPostProcessing();
 
 	static void OnKeyDown(void* pObject, int iKeycode);
 	static void OnKeyHeld(void* pObject, int iKeycode, const Timer& ktimer);
@@ -91,18 +97,23 @@ protected:
 	InputObserver m_Observer;
 	InputObserver m_MovementObserver;
 
-	Microsoft::WRL::ComPtr<ID3D12RootSignature> m_pRootSignature;
+	Microsoft::WRL::ComPtr<ID3D12RootSignature> m_pGBufferSignature;
+	Microsoft::WRL::ComPtr<ID3D12RootSignature> m_pLightSignature;
+	Microsoft::WRL::ComPtr<ID3D12RootSignature> m_pPostProcessingSignature;
 
 	std::unordered_map<PSODesc, Microsoft::WRL::ComPtr<ID3D12PipelineState>> m_PipelineStates;
 	ID3D12PipelineState* m_pPipelineState;
 
-	UploadBuffer<PerFrameCB>* m_pPerFrameCB = nullptr;
+	UploadBuffer<LightPassCB>* m_pLightPassCB = nullptr;
+	UploadBuffer<LightPassPerFrameCB>* m_pLightPassPerFrameCB = nullptr;
+	UploadBuffer<GBufferPerFrameCB>* m_pGBufferPerFrameCB = nullptr;
 	UploadBuffer<MaterialCB>* m_pMaterialCB = nullptr;
 
 	Microsoft::WRL::ComPtr<ID3D12DescriptorHeap> m_pIMGUIDescHeap = nullptr;
 	Microsoft::WRL::ComPtr<ID3D12DescriptorHeap> m_pTextureDescHeap = nullptr;
 
-	std::vector<D3D12_INPUT_ELEMENT_DESC> m_VertexInputLayoutDesc;
+	std::vector<D3D12_INPUT_ELEMENT_DESC> m_GBufferVertexInputLayoutDesc;
+	std::vector<D3D12_INPUT_ELEMENT_DESC> m_ScreenQuadVertexInputLayoutDesc;
 
 	bool m_bShowDemoWindow = false;
 	bool m_bRotateCube = false;
