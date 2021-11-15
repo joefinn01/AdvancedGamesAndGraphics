@@ -1081,7 +1081,7 @@ void BasicApp::DoLightPass()
 	//Draw once for each enabled light
 	for (std::unordered_map<std::string, Light*>::iterator it = LightManager::GetInstance()->GetLights()->begin(); it != LightManager::GetInstance()->GetLights()->end(); ++it)
 	{
-		if (it->second->Enabled == (int)true)
+		if (it->second->Enabled == true)
 		{
 			//Set light constant buffer
 			lightAddress = LightManager::GetInstance()->GetUploadBuffer()->Get()->GetGPUVirtualAddress() + uiLightByteSize * it->second->Index;
