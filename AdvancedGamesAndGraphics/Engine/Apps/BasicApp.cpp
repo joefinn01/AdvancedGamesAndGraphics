@@ -1198,18 +1198,22 @@ void BasicApp::OnKeyHeld(void* pObject, int iKeycode, const Timer& ktimer)
 
 	case 73: //i
 		XMStoreFloat3(&pLight->lightCB.Position, XMLoadFloat3(&pLight->lightCB.Position) + XMVectorSet(0, 1, 0, 0) * fMoveSens * ktimer.DeltaTime());
+		LightManager::GetInstance()->UpdateUploadBuffer("point");
 		break;
 
 	case 74: //j
 		XMStoreFloat3(&pLight->lightCB.Position, XMLoadFloat3(&pLight->lightCB.Position) + XMVectorSet(-1, 0, 0, 0) * fMoveSens * ktimer.DeltaTime());
+		LightManager::GetInstance()->UpdateUploadBuffer("point");
 		break;
 
 	case 75: //k
 		XMStoreFloat3(&pLight->lightCB.Position, XMLoadFloat3(&pLight->lightCB.Position) + XMVectorSet(0, -1, 0, 0) * fMoveSens * ktimer.DeltaTime());
+		LightManager::GetInstance()->UpdateUploadBuffer("point");
 		break;
 
 	case 76: //l
 		XMStoreFloat3(&pLight->lightCB.Position, XMLoadFloat3(&pLight->lightCB.Position) + XMVectorSet(1, 0, 0, 0) * fMoveSens * ktimer.DeltaTime());
+		LightManager::GetInstance()->UpdateUploadBuffer("point");
 		break;
 	}
 }

@@ -8,7 +8,7 @@ Tag tag = L"LightManager";
 
 LightManager::LightManager()
 {
-	m_pUploadBuffer = new UploadBuffer<LightCB>(App::GetApp()->GetDevice(), 0, true);
+	m_pUploadBuffer = new UploadBuffer<LightCB>(App::GetApp()->GetDevice(), 1, true);
 }
 
 Light* LightManager::GetLight(std::string sName)
@@ -80,6 +80,11 @@ UploadBuffer<LightCB>* LightManager::GetUploadBuffer()
 std::unordered_map<std::string, Light*>* LightManager::GetLights()
 {
 	return &m_Lights;
+}
+
+void LightManager::UpdateUploadBuffer(std::string sName)
+{
+	m_pUploadBuffer->CopyData(m_Lights[sName]->Index, m_Lights[sName]->lightCB);
 }
 
 void LightManager::ResizeUploadBuffer()

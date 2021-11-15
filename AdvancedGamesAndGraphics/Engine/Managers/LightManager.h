@@ -26,6 +26,8 @@ public:
 
 	std::unordered_map<std::string, Light*>* GetLights();
 
+	void UpdateUploadBuffer(std::string sName);
+
 protected:
 
 private:
