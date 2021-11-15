@@ -59,6 +59,8 @@ public:
 
 	virtual void Load() override;
 
+	virtual void OnResize() override;
+
 protected:
 	void ExecuteCommandList();
 
@@ -91,6 +93,8 @@ protected:
 	void DoLightPass();
 	void DoPostProcessing();
 
+	void UpdatePostProcessingCB();
+
 	static void OnKeyDown(void* pObject, int iKeycode);
 	static void OnKeyHeld(void* pObject, int iKeycode, const Timer& ktimer);
 
@@ -106,6 +110,7 @@ protected:
 
 	UploadBuffer<LightPassPerFrameCB>* m_pLightPassPerFrameCB = nullptr;
 	UploadBuffer<GBufferPerFrameCB>* m_pGBufferPerFrameCB = nullptr;
+	UploadBuffer<PostProcessingPerFrameCB>* m_pPostProcessingPerFrameCB = nullptr;
 	UploadBuffer<MaterialCB>* m_pMaterialCB = nullptr;
 
 	Microsoft::WRL::ComPtr<ID3D12DescriptorHeap> m_pIMGUIDescHeap = nullptr;
@@ -116,6 +121,9 @@ protected:
 
 	bool m_bShowDemoWindow = false;
 	bool m_bRotateCube = false;
+	bool m_bEnableBoxBlur = false;
+
+	int m_iBoxBlurLevel = 6;
 
 	Vertex* m_QuadVertices;
 

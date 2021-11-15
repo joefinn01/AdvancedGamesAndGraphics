@@ -84,7 +84,7 @@ bool BasicApp::Init()
 	m_MovementObserver.OnKeyUp = nullptr;
 
 	InputManager::GetInstance()->Subscribe({ VK_LEFT, VK_RIGHT, VK_UP, VK_DOWN, 73, 74, 75, 76 }, m_MovementObserver);
-	InputManager::GetInstance()->Subscribe({ 48, 49, 50, 51, 52, 53, 54, 55, 81 }, m_Observer);
+	InputManager::GetInstance()->Subscribe({ 48, 49, 50, 51, 52, 53, 54, 55, 56, 57, 69, 81 }, m_Observer);
 
 	InitIMGUI();
 
@@ -225,6 +225,16 @@ void BasicApp::Load()
 {
 }
 
+void BasicApp::OnResize()
+{
+	App::OnResize();
+
+	if (m_pPostProcessingPerFrameCB != nullptr)
+	{
+		UpdatePostProcessingCB();
+	}
+}
+
 void BasicApp::ExecuteCommandList()
 {
 	//Execute Init command
@@ -345,6 +355,14 @@ void BasicApp::CreateShadersAndUploadBuffers()
 
 	m_pGBufferPerFrameCB = new UploadBuffer<GBufferPerFrameCB>(m_pDevice.Get(), 1, true);
 	m_pLightPassPerFrameCB = new UploadBuffer<LightPassPerFrameCB>(m_pDevice.Get(), 1, true);
+	m_pPostProcessingPerFrameCB = new UploadBuffer<PostProcessingPerFrameCB>(m_pDevice.Get(), 1, true);
+
+	//Populate post processing constant buffer
+	PostProcessingPerFrameCB postProcessingPerFrameCB;
+	postProcessingPerFrameCB.ScreenWidth = (int)WindowManager::GetInstance()->GetWindowWidth();
+	postProcessingPerFrameCB.ScreenHeight = (int)WindowManager::GetInstance()->GetWindowHeight();
+
+	m_pPostProcessingPerFrameCB->CopyData(0, postProcessingPerFrameCB);
 
 	D3D_SHADER_MACRO normal[] = 
 	{ 
@@ -582,13 +600,15 @@ bool BasicApp::CreateLightPassRootSignature()
 
 bool BasicApp::CreatePostProcessingRootSignature()
 {
-	//+2 for constant buffers and +1 for depth texture
-	CD3DX12_ROOT_PARAMETER slotRootParameter[1] = {};
+	//+1 for rendered screen texture
+	CD3DX12_ROOT_PARAMETER slotRootParameter[2] = {};
+
+	slotRootParameter[0].InitAsConstantBufferView(0, 0U, D3D12_SHADER_VISIBILITY_PIXEL);	//Per frame CB
 
 	CD3DX12_DESCRIPTOR_RANGE range;
 	range.Init(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, (UINT)1, 0);
 
-	slotRootParameter[0].InitAsDescriptorTable(1, &range, D3D12_SHADER_VISIBILITY_PIXEL);
+	slotRootParameter[1].InitAsDescriptorTable(1, &range, D3D12_SHADER_VISIBILITY_PIXEL);
 
 	std::array<const CD3DX12_STATIC_SAMPLER_DESC, 6> staticSamplers = GetStaticSamplers();
 
@@ -607,16 +627,16 @@ bool BasicApp::CreatePostProcessingRootSignature()
 			OutputDebugStringA((char*)pError->GetBufferPointer());
 		}
 
-		LOG_ERROR(tag, L"Failed to create light pass serialize root signature!");
+		LOG_ERROR(tag, L"Failed to create post processing serialize root signature!");
 
 		return false;
 	}
 
-	hr = m_pDevice->CreateRootSignature(0, pSignature->GetBufferPointer(), pSignature->GetBufferSize(), IID_PPV_ARGS(m_pPostProcessingRTV.GetAddressOf()));
+	hr = m_pDevice->CreateRootSignature(0, pSignature->GetBufferPointer(), pSignature->GetBufferSize(), IID_PPV_ARGS(m_pPostProcessingSignature.GetAddressOf()));
 
 	if (FAILED(hr))
 	{
-		LOG_ERROR(tag, L"Failed to create light pass root signature!");
+		LOG_ERROR(tag, L"Failed to create post processing root signature!");
 
 		return false;
 	}
@@ -899,7 +919,7 @@ bool BasicApp::CreatePostProcessingPSO()
 	psoDesc.RTVFormats[0] = m_BackBufferFormat;
 	psoDesc.SampleDesc.Count = m_b4xMSAAState ? 4 : 1;
 	psoDesc.SampleDesc.Quality = m_b4xMSAAState ? (m_uiMSAAQuality - 1) : 0;
-	psoDesc.DSVFormat = m_DepthStencilFormat;
+	psoDesc.DSVFormat = DXGI_FORMAT_UNKNOWN;
 
 	Microsoft::WRL::ComPtr<ID3D12PipelineState>* ppPipelineState = new Microsoft::WRL::ComPtr<ID3D12PipelineState>();
 
@@ -1090,7 +1110,7 @@ void BasicApp::DoLightPass()
 
 	m_pGraphicsCommandList->SetGraphicsRootSignature(m_pLightSignature.Get());
 
-	const float RTVClearColor[] = { 0.0f, 0.0f, 0.0f, 0.0f };
+	const float RTVClearColor[] = { 0.0f, 0.0f, 0.0f, 1.0f };
 
 	//Transition resources
 	m_pGraphicsCommandList->ResourceBarrier(1, &CD3DX12_RESOURCE_BARRIER::Transition(m_pPostProcessingRTV.Get(), D3D12_RESOURCE_STATE_GENERIC_READ, D3D12_RESOURCE_STATE_RENDER_TARGET));
@@ -1098,9 +1118,9 @@ void BasicApp::DoLightPass()
 
 	m_pGraphicsCommandList->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLESTRIP);
 
-	m_pGraphicsCommandList->OMSetRenderTargets(1, &CD3DX12_CPU_DESCRIPTOR_HANDLE(m_pRTVHeap->GetCPUDescriptorHandleForHeapStart(), s_kuiSwapChainBufferCount + GBUFFER_NUM + 1, m_uiRTVDescSize), FALSE, nullptr);
+	m_pGraphicsCommandList->OMSetRenderTargets(1, &CD3DX12_CPU_DESCRIPTOR_HANDLE(m_pRTVHeap->GetCPUDescriptorHandleForHeapStart(), s_kuiSwapChainBufferCount + GBUFFER_NUM, m_uiRTVDescSize), FALSE, nullptr);
 
-	m_pGraphicsCommandList->ClearRenderTargetView(CD3DX12_CPU_DESCRIPTOR_HANDLE(m_pRTVHeap->GetCPUDescriptorHandleForHeapStart(), s_kuiSwapChainBufferCount + GBUFFER_NUM + 1, m_uiRTVDescSize), RTVClearColor, 0, nullptr);
+	m_pGraphicsCommandList->ClearRenderTargetView(CD3DX12_CPU_DESCRIPTOR_HANDLE(m_pRTVHeap->GetCPUDescriptorHandleForHeapStart(), s_kuiSwapChainBufferCount + GBUFFER_NUM, m_uiRTVDescSize), RTVClearColor, 0, nullptr);
 
 	m_pGraphicsCommandList->IASetVertexBuffers(0, 1, &m_ScreenQuadVBView);
 
@@ -1162,7 +1182,34 @@ void BasicApp::DoPostProcessing()
 
 	m_pGraphicsCommandList->ClearRenderTargetView(GetCurrentBackBufferView(), RTVClearColor, 0, nullptr);
 
+	//Bind rendered frame
+	CD3DX12_GPU_DESCRIPTOR_HANDLE textureAddress;
+
+	textureAddress = m_pTextureDescHeap->GetGPUDescriptorHandleForHeapStart();
+	textureAddress.Offset(TextureManager::GetInstance()->GetTextures()->size() + GBUFFER_NUM + 1, m_uiCBVSRVDescSize);
+
+	m_pGraphicsCommandList->SetGraphicsRootDescriptorTable(1, textureAddress);
+
+	//Bind the post processing constant buffers
+	m_pGraphicsCommandList->SetGraphicsRootConstantBufferView(0, m_pPostProcessingPerFrameCB->Get()->GetGPUVirtualAddress());
+
+	m_pGraphicsCommandList->DrawInstanced(4, 1, 0, 0);
+
 	PIX_ONLY(PIXEndEvent(m_pGraphicsCommandList.Get()));
+}
+
+void BasicApp::UpdatePostProcessingCB()
+{
+	PostProcessingPerFrameCB postProcessingPerFrameCB;
+	postProcessingPerFrameCB.ScreenWidth = (int)WindowManager::GetInstance()->GetWindowWidth();
+	postProcessingPerFrameCB.ScreenHeight = (int)WindowManager::GetInstance()->GetWindowHeight();
+	postProcessingPerFrameCB.Enabled = (int)m_bEnableBoxBlur;
+	postProcessingPerFrameCB.BoxBlurNumber = m_iBoxBlurLevel;
+
+	if (m_pPostProcessingPerFrameCB != nullptr)
+	{
+		m_pPostProcessingPerFrameCB->CopyData(0, postProcessingPerFrameCB);
+	}
 }
 
 void BasicApp::OnKeyDown(void* pObject, int iKeycode)
@@ -1209,6 +1256,24 @@ void BasicApp::OnKeyDown(void* pObject, int iKeycode)
 
 	case 55: //7
 		LightManager::GetInstance()->ToggleLight("direction");
+		break;
+
+	case 56: //8
+		pBasicApp->m_iBoxBlurLevel += 1;
+		pBasicApp->UpdatePostProcessingCB();
+		break;
+
+	case 57: //9
+		if (pBasicApp->m_iBoxBlurLevel - 1 > 0)
+		{
+			pBasicApp->m_iBoxBlurLevel -= 1;
+			pBasicApp->UpdatePostProcessingCB();
+		}
+		break;
+
+	case 69:	//e
+		pBasicApp->m_bEnableBoxBlur = !pBasicApp->m_bEnableBoxBlur;
+		pBasicApp->UpdatePostProcessingCB();
 		break;
 
 	case 81: // q

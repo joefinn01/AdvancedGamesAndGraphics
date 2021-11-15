@@ -17,6 +17,15 @@ struct LightPassPerFrameCB
 	float pad;
 };
 
+struct PostProcessingPerFrameCB
+{
+	int ScreenWidth;
+	int ScreenHeight;
+
+	int Enabled;
+	int BoxBlurNumber;
+};
+
 struct LightCB
 {
 	DirectX::XMFLOAT3 Position;
