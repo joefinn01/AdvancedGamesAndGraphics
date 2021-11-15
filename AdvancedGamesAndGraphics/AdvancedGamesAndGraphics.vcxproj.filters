@@ -154,6 +154,9 @@
     <FxCompile Include="Shaders\PixelShaders\LightPassPS.hlsl">
       <Filter>Shaders\PixelShaders</Filter>
     </FxCompile>
+    <FxCompile Include="Shaders\PixelShaders\PostProcessingPS.hlsl">
+      <Filter>Shaders\PixelShaders</Filter>
+    </FxCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Engine\Structure\Singleton.h">

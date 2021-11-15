@@ -177,7 +177,7 @@ void BasicApp::Draw()
 
 	PopulateGBuffer();
 	DoLightPass();
-	//DoPostProcessing();
+	DoPostProcessing();
 
 	PIX_ONLY(PIXBeginEvent(m_pGraphicsCommandList.Get(), PIX_COLOR(50, 50, 50), "Draw IMGUI"));
 
@@ -382,6 +382,7 @@ void BasicApp::CreateShadersAndUploadBuffers()
 	ShaderManager::GetInstance()->CompileShaderPS<VisibleGameObjectCB>(L"Shaders/PixelShaders/PixelShader.hlsl", "PS_ParallaxShadow", parallaxShadow, "PSMain", "ps_5_0", visibleCBUploadBuffer);
 	ShaderManager::GetInstance()->CompileShaderPS<VisibleGameObjectCB>(L"Shaders/PixelShaders/GBufferPS.hlsl", "PS_GBuffer", nullptr, "main", "ps_5_0", visibleCBUploadBuffer);
 	ShaderManager::GetInstance()->CompileShaderPS<VisibleGameObjectCB>(L"Shaders/PixelShaders/LightPassPS.hlsl", "PS_LightPass", nullptr, "main", "ps_5_0", visibleCBUploadBuffer);
+	ShaderManager::GetInstance()->CompileShaderPS<VisibleGameObjectCB>(L"Shaders/PixelShaders/PostProcessingPS.hlsl", "PS_PostProcessing", nullptr, "main", "ps_5_0", visibleCBUploadBuffer);
 }
 
 void BasicApp::CreateInputDescriptions()
@@ -581,6 +582,45 @@ bool BasicApp::CreateLightPassRootSignature()
 
 bool BasicApp::CreatePostProcessingRootSignature()
 {
+	//+2 for constant buffers and +1 for depth texture
+	CD3DX12_ROOT_PARAMETER slotRootParameter[1] = {};
+
+	CD3DX12_DESCRIPTOR_RANGE range;
+	range.Init(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, (UINT)1, 0);
+
+	slotRootParameter[0].InitAsDescriptorTable(1, &range, D3D12_SHADER_VISIBILITY_PIXEL);
+
+	std::array<const CD3DX12_STATIC_SAMPLER_DESC, 6> staticSamplers = GetStaticSamplers();
+
+	CD3DX12_ROOT_SIGNATURE_DESC rootSignatureDesc;
+	rootSignatureDesc.Init((UINT)_countof(slotRootParameter), slotRootParameter, (UINT)staticSamplers.size(), staticSamplers.data(), D3D12_ROOT_SIGNATURE_FLAG_ALLOW_INPUT_ASSEMBLER_INPUT_LAYOUT);
+
+	ComPtr<ID3DBlob> pSignature;
+	ComPtr<ID3DBlob> pError;
+
+	HRESULT hr = D3D12SerializeRootSignature(&rootSignatureDesc, D3D_ROOT_SIGNATURE_VERSION_1, pSignature.GetAddressOf(), pError.GetAddressOf());
+
+	if (FAILED(hr))
+	{
+		if (pError != nullptr)
+		{
+			OutputDebugStringA((char*)pError->GetBufferPointer());
+		}
+
+		LOG_ERROR(tag, L"Failed to create light pass serialize root signature!");
+
+		return false;
+	}
+
+	hr = m_pDevice->CreateRootSignature(0, pSignature->GetBufferPointer(), pSignature->GetBufferSize(), IID_PPV_ARGS(m_pPostProcessingRTV.GetAddressOf()));
+
+	if (FAILED(hr))
+	{
+		LOG_ERROR(tag, L"Failed to create light pass root signature!");
+
+		return false;
+	}
+
 	return true;
 }
 
@@ -602,7 +642,8 @@ bool BasicApp::CreateDescriptorHeaps()
 	}
 
 	D3D12_DESCRIPTOR_HEAP_DESC srvDesc = {};
-	srvDesc.NumDescriptors = (UINT)TextureManager::GetInstance()->GetTextures()->size() + GBUFFER_NUM + 1;
+	//+1 for depth buffer, +1 for post processing rtv
+	srvDesc.NumDescriptors = (UINT)TextureManager::GetInstance()->GetTextures()->size() + GBUFFER_NUM + 2;
 	srvDesc.Type = D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV;
 	srvDesc.Flags = D3D12_DESCRIPTOR_HEAP_FLAG_SHADER_VISIBLE;
 
@@ -634,7 +675,7 @@ void BasicApp::PopulateTextureHeap()
 
 	for (std::unordered_map<std::string, D3DTextureData*>::iterator it = pTextures->begin(); it != pTextures->end(); ++it)
 	{
-		//Cerate shader resource view
+		//Create shader resource view
 		srvDesc.Texture2D.MipLevels = it->second->Resource->GetDesc().MipLevels;
 		srvDesc.Format = it->second->Resource->GetDesc().Format;
 
@@ -674,6 +715,12 @@ void BasicApp::PopulateTextureHeap()
 	srvDesc.Format = DXGI_FORMAT_R24_UNORM_X8_TYPELESS;
 
 	m_pDevice->CreateShaderResourceView(m_pDepthStencilBuffer.Get(), &srvDesc, descHandle);
+	descHandle.Offset(1, m_uiCBVSRVDescSize);
+
+	//Create srv for post processing rtv
+	srvDesc.Format = m_BackBufferFormat;
+
+	m_pDevice->CreateShaderResourceView(m_pPostProcessingRTV.Get(), &srvDesc, descHandle);
 }
 
 bool BasicApp::CreatePSOs()
@@ -688,10 +735,10 @@ bool BasicApp::CreatePSOs()
 		return false;
 	}
 
-	//if (CreatePostProcessingPSO() == false)
-	//{
-	//	return false;
-	//}
+	if (CreatePostProcessingPSO() == false)
+	{
+		return false;
+	}
 
 	//Create back buffer PSO's
 	//for (std::unordered_map<std::string, void*>::iterator itA = ShaderManager::GetInstance()->GetShaders()->begin(); itA != ShaderManager::GetInstance()->GetShaders()->end(); ++itA)
@@ -1046,17 +1093,14 @@ void BasicApp::DoLightPass()
 	const float RTVClearColor[] = { 0.0f, 0.0f, 0.0f, 0.0f };
 
 	//Transition resources
-	//m_pGraphicsCommandList->ResourceBarrier(1, &CD3DX12_RESOURCE_BARRIER::Transition(m_pPostProcessingRTV.Get(), D3D12_RESOURCE_STATE_GENERIC_READ, D3D12_RESOURCE_STATE_RENDER_TARGET));
-	m_pGraphicsCommandList->ResourceBarrier(1, &CD3DX12_RESOURCE_BARRIER::Transition(GetCurrentBackBuffer(), D3D12_RESOURCE_STATE_PRESENT, D3D12_RESOURCE_STATE_RENDER_TARGET));
+	m_pGraphicsCommandList->ResourceBarrier(1, &CD3DX12_RESOURCE_BARRIER::Transition(m_pPostProcessingRTV.Get(), D3D12_RESOURCE_STATE_GENERIC_READ, D3D12_RESOURCE_STATE_RENDER_TARGET));
 	m_pGraphicsCommandList->ResourceBarrier(1, &CD3DX12_RESOURCE_BARRIER::Transition(m_pDepthStencilBuffer.Get(), D3D12_RESOURCE_STATE_DEPTH_WRITE, D3D12_RESOURCE_STATE_DEPTH_READ));
 
 	m_pGraphicsCommandList->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLESTRIP);
 
-	//m_pGraphicsCommandList->OMSetRenderTargets(1, &CD3DX12_CPU_DESCRIPTOR_HANDLE(m_pRTVHeap->GetCPUDescriptorHandleForHeapStart(), s_kuiSwapChainBufferCount + GBUFFER_NUM, m_uiRTVDescSize), FALSE, nullptr);
-	m_pGraphicsCommandList->OMSetRenderTargets(1, &GetCurrentBackBufferView(), FALSE, nullptr);
+	m_pGraphicsCommandList->OMSetRenderTargets(1, &CD3DX12_CPU_DESCRIPTOR_HANDLE(m_pRTVHeap->GetCPUDescriptorHandleForHeapStart(), s_kuiSwapChainBufferCount + GBUFFER_NUM + 1, m_uiRTVDescSize), FALSE, nullptr);
 
-	//m_pGraphicsCommandList->ClearRenderTargetView(CD3DX12_CPU_DESCRIPTOR_HANDLE(m_pRTVHeap->GetCPUDescriptorHandleForHeapStart(), s_kuiSwapChainBufferCount + GBUFFER_NUM, m_uiRTVDescSize), RTVClearColor, 0, nullptr);
-	m_pGraphicsCommandList->ClearRenderTargetView(GetCurrentBackBufferView(), RTVClearColor, 0, nullptr);
+	m_pGraphicsCommandList->ClearRenderTargetView(CD3DX12_CPU_DESCRIPTOR_HANDLE(m_pRTVHeap->GetCPUDescriptorHandleForHeapStart(), s_kuiSwapChainBufferCount + GBUFFER_NUM + 1, m_uiRTVDescSize), RTVClearColor, 0, nullptr);
 
 	m_pGraphicsCommandList->IASetVertexBuffers(0, 1, &m_ScreenQuadVBView);
 
@@ -1093,7 +1137,7 @@ void BasicApp::DoLightPass()
 	}
 
 	//Transition resources back
-	//m_pGraphicsCommandList->ResourceBarrier(1, &CD3DX12_RESOURCE_BARRIER::Transition(m_pPostProcessingRTV.Get(), D3D12_RESOURCE_STATE_RENDER_TARGET, D3D12_RESOURCE_STATE_GENERIC_READ));
+	m_pGraphicsCommandList->ResourceBarrier(1, &CD3DX12_RESOURCE_BARRIER::Transition(m_pPostProcessingRTV.Get(), D3D12_RESOURCE_STATE_RENDER_TARGET, D3D12_RESOURCE_STATE_GENERIC_READ));
 	m_pGraphicsCommandList->ResourceBarrier(1, &CD3DX12_RESOURCE_BARRIER::Transition(m_pDepthStencilBuffer.Get(), D3D12_RESOURCE_STATE_DEPTH_READ, D3D12_RESOURCE_STATE_DEPTH_WRITE));
 
 	PIX_ONLY(PIXEndEvent(m_pGraphicsCommandList.Get()));
@@ -1103,11 +1147,20 @@ void BasicApp::DoPostProcessing()
 {
 	PIX_ONLY(PIXBeginEvent(m_pGraphicsCommandList.Get(), PIX_COLOR(50, 50, 50), "Carry out post processing"));
 
-	PSODesc postProcessingPSODesc = { "VS_ScreenQuad", "PS_LightPass" };
+	PSODesc postProcessingPSODesc = { "VS_ScreenQuad", "PS_PostProcessing" };
 
 	m_pGraphicsCommandList->SetPipelineState(m_PipelineStates[postProcessingPSODesc].Get());
 
 	m_pGraphicsCommandList->SetGraphicsRootSignature(m_pPostProcessingSignature.Get());
+
+	const float RTVClearColor[] = { 0.0f, 0.0f, 0.0f, 0.0f };
+
+	//Transition resources
+	m_pGraphicsCommandList->ResourceBarrier(1, &CD3DX12_RESOURCE_BARRIER::Transition(GetCurrentBackBuffer(), D3D12_RESOURCE_STATE_PRESENT, D3D12_RESOURCE_STATE_RENDER_TARGET));
+
+	m_pGraphicsCommandList->OMSetRenderTargets(1, &GetCurrentBackBufferView(), FALSE, nullptr);
+
+	m_pGraphicsCommandList->ClearRenderTargetView(GetCurrentBackBufferView(), RTVClearColor, 0, nullptr);
 
 	PIX_ONLY(PIXEndEvent(m_pGraphicsCommandList.Get()));
 }
