@@ -7,6 +7,9 @@
 struct GBufferPerFrameCB
 {
 	DirectX::XMFLOAT4X4 ViewProjection;
+
+	DirectX::XMFLOAT3 EyePosW;
+	float pad;
 };
 
 struct LightPassPerFrameCB

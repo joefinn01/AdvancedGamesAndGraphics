@@ -301,6 +301,20 @@ void App::OnResize()
 		return;
 	}
 
+	hr = m_pDevice->CreateCommittedResource(&CD3DX12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_DEFAULT),
+		D3D12_HEAP_FLAG_NONE,
+		&texDesc,
+		D3D12_RESOURCE_STATE_COMMON,
+		&gBufferClear,
+		IID_PPV_ARGS(&m_GBuffer.m_pShadow));
+
+	if (FAILED(hr))
+	{
+		LOG_ERROR(tag, L"Failed to Create albedo committed resource when resizing screen!");
+
+		return;
+	}
+
 	CD3DX12_RESOURCE_BARRIER* pResourceBarriers = new CD3DX12_RESOURCE_BARRIER[GBUFFER_NUM];
 	pResourceBarriers[0] = CD3DX12_RESOURCE_BARRIER::Transition(m_GBuffer.m_pAlbedo.Get(), D3D12_RESOURCE_STATE_COMMON, D3D12_RESOURCE_STATE_GENERIC_READ);
 	pResourceBarriers[1] = CD3DX12_RESOURCE_BARRIER::Transition(m_GBuffer.m_pNormal.Get(), D3D12_RESOURCE_STATE_COMMON, D3D12_RESOURCE_STATE_GENERIC_READ);
@@ -308,6 +322,7 @@ void App::OnResize()
 	pResourceBarriers[3] = CD3DX12_RESOURCE_BARRIER::Transition(m_GBuffer.m_pDiffuse.Get(), D3D12_RESOURCE_STATE_COMMON, D3D12_RESOURCE_STATE_GENERIC_READ);
 	pResourceBarriers[4] = CD3DX12_RESOURCE_BARRIER::Transition(m_GBuffer.m_pSpecular.Get(), D3D12_RESOURCE_STATE_COMMON, D3D12_RESOURCE_STATE_GENERIC_READ);
 	pResourceBarriers[5] = CD3DX12_RESOURCE_BARRIER::Transition(m_GBuffer.m_pAmbient.Get(), D3D12_RESOURCE_STATE_COMMON, D3D12_RESOURCE_STATE_GENERIC_READ);
+	pResourceBarriers[6] = CD3DX12_RESOURCE_BARRIER::Transition(m_GBuffer.m_pShadow.Get(), D3D12_RESOURCE_STATE_COMMON, D3D12_RESOURCE_STATE_GENERIC_READ);
 
 	// Set the render target
 	m_pGraphicsCommandList->ResourceBarrier(GBUFFER_NUM, pResourceBarriers);
@@ -355,6 +370,9 @@ void App::OnResize()
 	rtvHeapHandle.Offset(1, m_uiRTVDescSize);
 
 	m_pDevice->CreateRenderTargetView(m_GBuffer.m_pAmbient.Get(), &GBufferRTVDesc, rtvHeapHandle);
+	rtvHeapHandle.Offset(1, m_uiRTVDescSize);
+
+	m_pDevice->CreateRenderTargetView(m_GBuffer.m_pShadow.Get(), &GBufferRTVDesc, rtvHeapHandle);
 	rtvHeapHandle.Offset(1, m_uiRTVDescSize);
 
 	//Create Post processing RTV

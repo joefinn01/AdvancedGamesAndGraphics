@@ -27,7 +27,8 @@ Texture2D TangentTex : register(t2);
 Texture2D DiffuseTex : register(t3);
 Texture2D SpecularTex : register(t4);
 Texture2D AmbientTex : register(t5);
-Texture2D DepthTex : register(t6);
+Texture2D ShadowTex : register(t6);
+Texture2D DepthTex : register(t7);
 
 float4 main(PS_INPUT input) : SV_TARGET
 {
@@ -63,8 +64,13 @@ float4 main(PS_INPUT input) : SV_TARGET
 			break;
 	}
 	
-    float4 litColour = float4(saturate(albedo * (result.Ambient.xyz + result.Diffuse.xyz) + result.Specular.xyz), 1.0f);
-	
+#if PARALLAX_SHADOW
+	float shadowFactor = ShadowTex.Sample(SamLinearClamp, input.TexCoords).x;
+
+    float4 litColour = float4(saturate(albedo * (result.Ambient.xyz + (result.Diffuse.xyz * shadowFactor)) + result.Specular.xyz * shadowFactor), 1.0f);
+#else
+	float4 litColour = float4(saturate(albedo * (result.Ambient.xyz + result.Diffuse.xyz) + result.Specular.xyz), 1.0f);
+#endif
 	litColour.a = diffuse.a;
 	
 	return litColour;

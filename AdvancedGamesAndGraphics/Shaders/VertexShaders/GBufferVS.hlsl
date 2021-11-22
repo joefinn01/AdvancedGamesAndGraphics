@@ -21,6 +21,9 @@ struct VS_OUTPUT
 cbuffer PerFrameCB : register(b0)
 {
     float4x4 ViewProjection;
+
+    float3 EyePosW;
+    float pad;
 };
 
 cbuffer PerObjectCB : register(b1)

@@ -132,13 +132,15 @@ void BasicApp::Update(const Timer& kTimer)
 	ObjectManager::GetInstance()->GetActiveCamera()->Update(kTimer);
 
 	//Update g buffer per frame CB
-	GBufferPerFrameCB GBufferPerFrameCB;
+	GBufferPerFrameCB gBufferPerFrameCB;
 
 	XMMATRIX viewProj = XMLoadFloat4x4(&ObjectManager::GetInstance()->GetActiveCamera()->GetViewProjectionMatrix());
 
-	XMStoreFloat4x4(&GBufferPerFrameCB.ViewProjection, XMMatrixTranspose(viewProj));
+	gBufferPerFrameCB.EyePosW = ObjectManager::GetInstance()->GetActiveCamera()->GetPosition();
 
-	m_pGBufferPerFrameCB->CopyData(0, GBufferPerFrameCB);
+	XMStoreFloat4x4(&gBufferPerFrameCB.ViewProjection, XMMatrixTranspose(viewProj));
+
+	m_pGBufferPerFrameCB->CopyData(0, gBufferPerFrameCB);
 
 	//Update light pass per frame CB
 	LightPassPerFrameCB lightPassPerFrameCB;
@@ -160,7 +162,7 @@ void BasicApp::Draw()
 		return;
 	}
 
-	PSODesc GBufferPSODesc = { "VS_GBuffer", "PS_GBuffer" };
+	PSODesc GBufferPSODesc = { "VS_GBuffer", m_sCurrentGBufferPSName };
 
 	hr = m_pGraphicsCommandList->Reset(m_pCommandAllocator.Get(), m_PipelineStates[GBufferPSODesc].Get());
 
@@ -393,13 +395,13 @@ void BasicApp::CreateShadersAndUploadBuffers()
 	ShaderManager::GetInstance()->CompileShaderVS<VisibleGameObjectCB>(L"Shaders/VertexShaders/ScreenQuadVS.hlsl", "VS_ScreenQuad", nullptr, "main", "vs_5_0", visibleCBUploadBuffer);
 	ShaderManager::GetInstance()->CompileShaderVS<VisibleGameObjectCB>(L"Shaders/VertexShaders/GBufferVS.hlsl", "VS_GBuffer", nullptr, "main", "vs_5_0", visibleCBUploadBuffer);
 
-	ShaderManager::GetInstance()->CompileShaderPS<VisibleGameObjectCB>(L"Shaders/PixelShaders/PixelShader.hlsl", "PS_Nothing", nullptr, "PSMain", "ps_5_0", visibleCBUploadBuffer);
-	ShaderManager::GetInstance()->CompileShaderPS<VisibleGameObjectCB>(L"Shaders/PixelShaders/PixelShader.hlsl", "PS_Normal", normal, "PSMain", "ps_5_0", visibleCBUploadBuffer);
-	ShaderManager::GetInstance()->CompileShaderPS<VisibleGameObjectCB>(L"Shaders/PixelShaders/PixelShader.hlsl", "PS_Parallax", parallax, "PSMain", "ps_5_0", visibleCBUploadBuffer);
-	ShaderManager::GetInstance()->CompileShaderPS<VisibleGameObjectCB>(L"Shaders/PixelShaders/PixelShader.hlsl", "PS_ParallaxOcclusion", parallaxOcclusion, "PSMain", "ps_5_0", visibleCBUploadBuffer);
-	ShaderManager::GetInstance()->CompileShaderPS<VisibleGameObjectCB>(L"Shaders/PixelShaders/PixelShader.hlsl", "PS_ParallaxShadow", parallaxShadow, "PSMain", "ps_5_0", visibleCBUploadBuffer);
-	ShaderManager::GetInstance()->CompileShaderPS<VisibleGameObjectCB>(L"Shaders/PixelShaders/GBufferPS.hlsl", "PS_GBuffer", nullptr, "main", "ps_5_0", visibleCBUploadBuffer);
-	ShaderManager::GetInstance()->CompileShaderPS<VisibleGameObjectCB>(L"Shaders/PixelShaders/LightPassPS.hlsl", "PS_LightPass", nullptr, "main", "ps_5_0", visibleCBUploadBuffer);
+	ShaderManager::GetInstance()->CompileShaderPS<VisibleGameObjectCB>(L"Shaders/PixelShaders/GBufferPS.hlsl", "PS_GBuffer_Nothing", nullptr, "main", "ps_5_0", visibleCBUploadBuffer);
+	ShaderManager::GetInstance()->CompileShaderPS<VisibleGameObjectCB>(L"Shaders/PixelShaders/GBufferPS.hlsl", "PS_GBuffer_Normal", normal, "main", "ps_5_0", visibleCBUploadBuffer);
+	ShaderManager::GetInstance()->CompileShaderPS<VisibleGameObjectCB>(L"Shaders/PixelShaders/GBufferPS.hlsl", "PS_GBuffer_Parallax", parallax, "main", "ps_5_0", visibleCBUploadBuffer);
+	ShaderManager::GetInstance()->CompileShaderPS<VisibleGameObjectCB>(L"Shaders/PixelShaders/GBufferPS.hlsl", "PS_GBuffer_ParallaxOcclusion", parallaxOcclusion, "main", "ps_5_0", visibleCBUploadBuffer);
+	ShaderManager::GetInstance()->CompileShaderPS<VisibleGameObjectCB>(L"Shaders/PixelShaders/GBufferPS.hlsl", "PS_GBuffer_ParallaxShadow", parallaxShadow, "main", "ps_5_0", visibleCBUploadBuffer);
+	ShaderManager::GetInstance()->CompileShaderPS<VisibleGameObjectCB>(L"Shaders/PixelShaders/LightPassPS.hlsl", "PS_LightPass_Nothing", nullptr, "main", "ps_5_0", visibleCBUploadBuffer);
+	ShaderManager::GetInstance()->CompileShaderPS<VisibleGameObjectCB>(L"Shaders/PixelShaders/LightPassPS.hlsl", "PS_LightPass_ParallaxShadow", parallaxShadow, "main", "ps_5_0", visibleCBUploadBuffer);
 	ShaderManager::GetInstance()->CompileShaderPS<VisibleGameObjectCB>(L"Shaders/PixelShaders/PostProcessingPS.hlsl", "PS_PostProcessing", nullptr, "main", "ps_5_0", visibleCBUploadBuffer);
 }
 
@@ -731,6 +733,9 @@ void BasicApp::PopulateTextureHeap()
 	m_pDevice->CreateShaderResourceView(m_GBuffer.m_pAmbient.Get(), &srvDesc, descHandle);
 	descHandle.Offset(1, m_uiCBVSRVDescSize);
 
+	m_pDevice->CreateShaderResourceView(m_GBuffer.m_pShadow.Get(), &srvDesc, descHandle);
+	descHandle.Offset(1, m_uiCBVSRVDescSize);
+
 	//Create srv for depth buffer
 	srvDesc.Format = DXGI_FORMAT_R24_UNORM_X8_TYPELESS;
 
@@ -824,27 +829,38 @@ bool BasicApp::CreateGBufferPSO()
 		psoDesc.RTVFormats[i] = m_BackBufferFormat;
 	}
 
-	Microsoft::WRL::ComPtr<ID3D12PipelineState>* ppPipelineState = new Microsoft::WRL::ComPtr<ID3D12PipelineState>();
+	std::string psNames[] =
+	{
+		"PS_GBuffer_Nothing",
+		"PS_GBuffer_Normal",
+		"PS_GBuffer_Parallax",
+		"PS_GBuffer_ParallaxOcclusion",
+		"PS_GBuffer_ParallaxShadow"
+	};
 
 	PSODesc psoDescription;
 
-	//Create GBUFFER PSO
-	psoDesc.VS = CD3DX12_SHADER_BYTECODE(ShaderManager::GetInstance()->GetShader<VisibleGameObjectCB>("VS_GBuffer")->GetShaderBlob().Get());
-	psoDesc.PS = CD3DX12_SHADER_BYTECODE(ShaderManager::GetInstance()->GetShader<VisibleGameObjectCB>("PS_GBuffer")->GetShaderBlob().Get());
-
-	HRESULT hr = m_pDevice->CreateGraphicsPipelineState(&psoDesc, IID_PPV_ARGS(ppPipelineState->GetAddressOf()));
-
-	if (FAILED(hr))
+	for (int i = 0; i < _countof(psNames); ++i)
 	{
-		LOG_ERROR(tag, L"Failed to create the GBuffer pipeline state object!");
+		Microsoft::WRL::ComPtr<ID3D12PipelineState>* ppPipelineState = new Microsoft::WRL::ComPtr<ID3D12PipelineState>();
 
-		return false;
+		psoDesc.VS = CD3DX12_SHADER_BYTECODE(ShaderManager::GetInstance()->GetShader<VisibleGameObjectCB>("VS_GBuffer")->GetShaderBlob().Get());
+		psoDesc.PS = CD3DX12_SHADER_BYTECODE(ShaderManager::GetInstance()->GetShader<VisibleGameObjectCB>(psNames[i])->GetShaderBlob().Get());
+
+		HRESULT hr = m_pDevice->CreateGraphicsPipelineState(&psoDesc, IID_PPV_ARGS(ppPipelineState->GetAddressOf()));
+
+		if (FAILED(hr))
+		{
+			LOG_ERROR(tag, L"Failed to create the GBuffer pipeline state object!");
+
+			return false;
+		}
+
+		psoDescription.VSName = "VS_GBuffer";
+		psoDescription.PSName = psNames[i];
+
+		m_PipelineStates[psoDescription] = ppPipelineState->Get();
 	}
-
-	psoDescription.VSName = "VS_GBuffer";
-	psoDescription.PSName = "PS_GBuffer";
-
-	m_PipelineStates[psoDescription] = ppPipelineState->Get();
 
 	return true;
 }
@@ -879,27 +895,36 @@ bool BasicApp::CreateLightPassPSO()
 	psoDesc.SampleDesc.Quality = m_b4xMSAAState ? (m_uiMSAAQuality - 1) : 0;
 	psoDesc.DSVFormat = DXGI_FORMAT_UNKNOWN;
 
-	Microsoft::WRL::ComPtr<ID3D12PipelineState>* ppPipelineState = new Microsoft::WRL::ComPtr<ID3D12PipelineState>();
+	std::string psNames[] =
+	{
+		"PS_LightPass_Nothing",
+		"PS_LightPass_ParallaxShadow"
+	};
 
 	PSODesc psoDescription;
 
-	//Create light pass PSO
-	psoDesc.VS = CD3DX12_SHADER_BYTECODE(ShaderManager::GetInstance()->GetShader<VisibleGameObjectCB>("VS_ScreenQuad")->GetShaderBlob().Get());
-	psoDesc.PS = CD3DX12_SHADER_BYTECODE(ShaderManager::GetInstance()->GetShader<VisibleGameObjectCB>("PS_LightPass")->GetShaderBlob().Get());
-
-	HRESULT hr = m_pDevice->CreateGraphicsPipelineState(&psoDesc, IID_PPV_ARGS(ppPipelineState->GetAddressOf()));
-
-	if (FAILED(hr))
+	for (int i = 0; i < _countof(psNames); ++i)
 	{
-		LOG_ERROR(tag, L"Failed to create the light pass pipeline state object!");
+		Microsoft::WRL::ComPtr<ID3D12PipelineState>* ppPipelineState = new Microsoft::WRL::ComPtr<ID3D12PipelineState>();
 
-		return false;
+		psoDesc.VS = CD3DX12_SHADER_BYTECODE(ShaderManager::GetInstance()->GetShader<VisibleGameObjectCB>("VS_ScreenQuad")->GetShaderBlob().Get());
+		psoDesc.PS = CD3DX12_SHADER_BYTECODE(ShaderManager::GetInstance()->GetShader<VisibleGameObjectCB>(psNames[i])->GetShaderBlob().Get());
+
+		HRESULT hr = m_pDevice->CreateGraphicsPipelineState(&psoDesc, IID_PPV_ARGS(ppPipelineState->GetAddressOf()));
+
+		if (FAILED(hr))
+		{
+			LOG_ERROR(tag, L"Failed to create the light pass pipeline state object!");
+
+			return false;
+		}
+
+		psoDescription.VSName = "VS_ScreenQuad";
+		psoDescription.PSName = psNames[i];
+
+		m_PipelineStates[psoDescription] = ppPipelineState->Get();
 	}
 
-	psoDescription.VSName = "VS_ScreenQuad";
-	psoDescription.PSName = "PS_LightPass";
-
-	m_PipelineStates[psoDescription] = ppPipelineState->Get();
 
 	return true;
 }
@@ -986,7 +1011,7 @@ void BasicApp::PopulateGBuffer()
 {
 	PIX_ONLY(PIXBeginEvent(m_pGraphicsCommandList.Get(), PIX_COLOR(50, 50, 50), "Populate G buffer"));
 
-	PSODesc psoDesc = { "VS_GBuffer", "PS_GBuffer" };
+	PSODesc psoDesc = { "VS_GBuffer", m_sCurrentGBufferPSName };
 
 	m_pGraphicsCommandList->SetPipelineState(m_PipelineStates[psoDesc].Get());
 
@@ -1003,6 +1028,7 @@ void BasicApp::PopulateGBuffer()
 	pResourceBarriers[3] = CD3DX12_RESOURCE_BARRIER::Transition(m_GBuffer.m_pDiffuse.Get(), D3D12_RESOURCE_STATE_GENERIC_READ, D3D12_RESOURCE_STATE_RENDER_TARGET);
 	pResourceBarriers[4] = CD3DX12_RESOURCE_BARRIER::Transition(m_GBuffer.m_pSpecular.Get(), D3D12_RESOURCE_STATE_GENERIC_READ, D3D12_RESOURCE_STATE_RENDER_TARGET);
 	pResourceBarriers[5] = CD3DX12_RESOURCE_BARRIER::Transition(m_GBuffer.m_pAmbient.Get(), D3D12_RESOURCE_STATE_GENERIC_READ, D3D12_RESOURCE_STATE_RENDER_TARGET);
+	pResourceBarriers[6] = CD3DX12_RESOURCE_BARRIER::Transition(m_GBuffer.m_pShadow.Get(), D3D12_RESOURCE_STATE_GENERIC_READ, D3D12_RESOURCE_STATE_RENDER_TARGET);
 
 	m_pGraphicsCommandList->ResourceBarrier(GBUFFER_NUM, pResourceBarriers);
 
@@ -1094,6 +1120,7 @@ void BasicApp::PopulateGBuffer()
 	pResourceBarriers[3] = CD3DX12_RESOURCE_BARRIER::Transition(m_GBuffer.m_pDiffuse.Get(), D3D12_RESOURCE_STATE_RENDER_TARGET, D3D12_RESOURCE_STATE_GENERIC_READ);
 	pResourceBarriers[4] = CD3DX12_RESOURCE_BARRIER::Transition(m_GBuffer.m_pSpecular.Get(), D3D12_RESOURCE_STATE_RENDER_TARGET, D3D12_RESOURCE_STATE_GENERIC_READ);
 	pResourceBarriers[5] = CD3DX12_RESOURCE_BARRIER::Transition(m_GBuffer.m_pAmbient.Get(), D3D12_RESOURCE_STATE_RENDER_TARGET, D3D12_RESOURCE_STATE_GENERIC_READ);
+	pResourceBarriers[6] = CD3DX12_RESOURCE_BARRIER::Transition(m_GBuffer.m_pShadow.Get(), D3D12_RESOURCE_STATE_RENDER_TARGET, D3D12_RESOURCE_STATE_GENERIC_READ);
 
 	m_pGraphicsCommandList->ResourceBarrier(GBUFFER_NUM, pResourceBarriers);
 
@@ -1104,7 +1131,7 @@ void BasicApp::DoLightPass()
 {
 	PIX_ONLY(PIXBeginEvent(m_pGraphicsCommandList.Get(), PIX_COLOR(50, 50, 50), "Render to texture"));
 
-	PSODesc lightPassPSODesc = { "VS_ScreenQuad", "PS_LightPass" };
+	PSODesc lightPassPSODesc = { "VS_ScreenQuad", m_sCurrentLightPassPSName };
 
 	m_pGraphicsCommandList->SetPipelineState(m_PipelineStates[lightPassPSODesc].Get());
 
@@ -1222,28 +1249,28 @@ void BasicApp::OnKeyDown(void* pObject, int iKeycode)
 	switch (iKeycode)
 	{
 	case 48: //0
-		psoDesc.PSName = "PS_Nothing";
-		pBasicApp->m_pPipelineState = pBasicApp->m_PipelineStates[psoDesc].Get();
+		pBasicApp->m_sCurrentGBufferPSName = "PS_GBuffer_Nothing";
+		pBasicApp->m_sCurrentLightPassPSName = "PS_LightPass_Nothing";
 		break;
 
 	case 49: //1
-		psoDesc.PSName = "PS_Normal";
-		pBasicApp->m_pPipelineState = pBasicApp->m_PipelineStates[psoDesc].Get();
+		pBasicApp->m_sCurrentGBufferPSName = "PS_GBuffer_Normal";
+		pBasicApp->m_sCurrentLightPassPSName = "PS_LightPass_Nothing";
 		break;
 
 	case 50: //2
-		psoDesc.PSName = "PS_Parallax";
-		pBasicApp->m_pPipelineState = pBasicApp->m_PipelineStates[psoDesc].Get();
+		pBasicApp->m_sCurrentGBufferPSName = "PS_GBuffer_Parallax";
+		pBasicApp->m_sCurrentLightPassPSName = "PS_LightPass_Nothing";
 		break;
 
 	case 51: //3
-		psoDesc.PSName = "PS_ParallaxOcclusion";
-		pBasicApp->m_pPipelineState = pBasicApp->m_PipelineStates[psoDesc].Get();
+		pBasicApp->m_sCurrentGBufferPSName = "PS_GBuffer_ParallaxOcclusion";
+		pBasicApp->m_sCurrentLightPassPSName = "PS_LightPass_Nothing";
 		break;
 
 	case 52: //4
-		psoDesc.PSName = "PS_ParallaxShadow";
-		pBasicApp->m_pPipelineState = pBasicApp->m_PipelineStates[psoDesc].Get();
+		pBasicApp->m_sCurrentGBufferPSName = "PS_GBuffer_ParallaxShadow";
+		pBasicApp->m_sCurrentLightPassPSName = "PS_LightPass_ParallaxShadow";
 		break;
 
 	case 53: //5

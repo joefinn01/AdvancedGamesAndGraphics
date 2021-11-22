@@ -132,6 +132,9 @@ protected:
 
 	D3D12_VERTEX_BUFFER_VIEW m_ScreenQuadVBView;
 
+	std::string m_sCurrentGBufferPSName = "PS_GBuffer_Nothing";
+	std::string m_sCurrentLightPassPSName = "PS_LightPass_Nothing";
+
 private:
 
 };
