@@ -2,6 +2,7 @@
 #include "Engine/Managers/ObjectManager.h"
 #include "Engine/Managers/WindowManager.h"
 #include "Engine/Helpers/DirectXHelper.h"
+#include "Engine/Helpers/RandomHelper.h"
 #include "Engine/GameObjects/VisibleGameObject.h"
 #include "Engine/Cameras/DebugCamera.h"
 #include "Engine/Managers/ShaderManager.h"
@@ -21,6 +22,7 @@
 
 #include <DirectX/d3dx12.h>
 #include <d3dcompiler.h>
+#include <random>
 
 using namespace DirectX;
 using namespace Microsoft::WRL;
@@ -73,6 +75,8 @@ bool BasicApp::Init()
 		return false;
 	}
 
+	CreateSSAOCB();
+
 	m_Observer.Object = this;
 	m_Observer.OnKeyDown = OnKeyDown;
 	m_Observer.OnKeyHeld = nullptr;
@@ -84,7 +88,7 @@ bool BasicApp::Init()
 	m_MovementObserver.OnKeyUp = nullptr;
 
 	InputManager::GetInstance()->Subscribe({ VK_LEFT, VK_RIGHT, VK_UP, VK_DOWN, 73, 74, 75, 76 }, m_MovementObserver);
-	InputManager::GetInstance()->Subscribe({ 48, 49, 50, 51, 52, 53, 54, 55, 56, 57, 69, 81 }, m_Observer);
+	InputManager::GetInstance()->Subscribe({ 48, 49, 50, 51, 52, 53, 54, 55, 56, 57, 69, 81, 82 }, m_Observer);
 
 	InitIMGUI();
 
@@ -149,6 +153,8 @@ void BasicApp::Update(const Timer& kTimer)
 	XMStoreFloat4x4(&lightPassPerFrameCB.InvViewProjection, XMMatrixTranspose(XMMatrixInverse(nullptr, viewProj)));
 
 	m_pLightPassPerFrameCB->CopyData(0, lightPassPerFrameCB);
+
+	UpdateSSAOCB();
 }
 
 void BasicApp::Draw()
@@ -178,6 +184,23 @@ void BasicApp::Draw()
 	CreateIMGUIWindow();
 
 	PopulateGBuffer();
+
+	if (m_bEnableAmbientOcclusion == true)
+	{
+		CalculateOcclusion();
+	}
+	else
+	{
+		//If ambient occlusion is disabled then clear the occlusion render target to 1 so it has no effect
+		m_pGraphicsCommandList->ResourceBarrier(1, &CD3DX12_RESOURCE_BARRIER::Transition(m_GBuffer.m_pOcclusion.Get(), D3D12_RESOURCE_STATE_GENERIC_READ, D3D12_RESOURCE_STATE_RENDER_TARGET));
+
+		const float RTVClearColor[] = { 1.0f, 1.0f, 1.0f, 1.0f };
+
+		m_pGraphicsCommandList->ClearRenderTargetView(CD3DX12_CPU_DESCRIPTOR_HANDLE(m_pRTVHeap->GetCPUDescriptorHandleForHeapStart(), s_kuiSwapChainBufferCount + 7, m_uiRTVDescSize), RTVClearColor, 0, nullptr);
+
+		m_pGraphicsCommandList->ResourceBarrier(1, &CD3DX12_RESOURCE_BARRIER::Transition(m_GBuffer.m_pOcclusion.Get(), D3D12_RESOURCE_STATE_RENDER_TARGET, D3D12_RESOURCE_STATE_GENERIC_READ));
+	}
+
 	DoLightPass();
 	DoPostProcessing();
 
@@ -235,6 +258,11 @@ void BasicApp::OnResize()
 	{
 		UpdatePostProcessingCB();
 	}
+
+	if (m_pSSAOPerFrameCB != nullptr)
+	{
+		UpdateSSAOCB();
+	}
 }
 
 void BasicApp::ExecuteCommandList()
@@ -260,14 +288,10 @@ void BasicApp::CreateGameObjects()
 	ObjectManager::GetInstance()->SetActiveCamera(pCamera);
 
 	VisibleGameObject* pGameObject = new VisibleGameObject();
-	//pGameObject->Init("Box1", XMFLOAT3(0, 0, 10), XMFLOAT3(5, 21, 11), XMFLOAT3(0.2f, 0.2f, 0.2f), "test");
 	pGameObject->Init("Box1", XMFLOAT3(0, 0, 10), XMFLOAT3(0, 0, 0), XMFLOAT3(3, 3, 3), "test", { "color", "normal", "height" });
 
-	//pGameObject = new VisibleGameObject();
-	//pGameObject->Init("Box2", XMFLOAT3(-5, 0, 10), XMFLOAT3(75, 44, 0), XMFLOAT3(3, 2, 1), "test");
-
-	//pGameObject = new VisibleGameObject();
-	//pGameObject->Init("Box3", XMFLOAT3(5, 0, 10), XMFLOAT3(45, 45, 45), XMFLOAT3(1, 1, 1), "test");
+	pGameObject = new VisibleGameObject();
+	pGameObject->Init("Box2", XMFLOAT3(6, 0, 9), XMFLOAT3(0, 0, 0), XMFLOAT3(3, 3, 3), "test", { "color", "normal", "height" });
 
 	pGameObject = new VisibleGameObject();
 	pGameObject->Init("Light", XMFLOAT3(0, 0, 0), XMFLOAT3(0, 0, 0), XMFLOAT3(0.2f, 0.2f, 0.2f), "test", { "color" });
@@ -358,6 +382,7 @@ void BasicApp::CreateShadersAndUploadBuffers()
 	m_pGBufferPerFrameCB = new UploadBuffer<GBufferPerFrameCB>(m_pDevice.Get(), 1, true);
 	m_pLightPassPerFrameCB = new UploadBuffer<LightPassPerFrameCB>(m_pDevice.Get(), 1, true);
 	m_pPostProcessingPerFrameCB = new UploadBuffer<PostProcessingPerFrameCB>(m_pDevice.Get(), 1, true);
+	m_pSSAOPerFrameCB = new UploadBuffer<SSAOPerFrameCB>(m_pDevice.Get(), 1, true);
 
 	//Populate post processing constant buffer
 	PostProcessingPerFrameCB postProcessingPerFrameCB;
@@ -403,6 +428,7 @@ void BasicApp::CreateShadersAndUploadBuffers()
 	ShaderManager::GetInstance()->CompileShaderPS<VisibleGameObjectCB>(L"Shaders/PixelShaders/LightPassPS.hlsl", "PS_LightPass_Nothing", nullptr, "main", "ps_5_0", visibleCBUploadBuffer);
 	ShaderManager::GetInstance()->CompileShaderPS<VisibleGameObjectCB>(L"Shaders/PixelShaders/LightPassPS.hlsl", "PS_LightPass_ParallaxShadow", parallaxShadow, "main", "ps_5_0", visibleCBUploadBuffer);
 	ShaderManager::GetInstance()->CompileShaderPS<VisibleGameObjectCB>(L"Shaders/PixelShaders/PostProcessingPS.hlsl", "PS_PostProcessing", nullptr, "main", "ps_5_0", visibleCBUploadBuffer);
+	ShaderManager::GetInstance()->CompileShaderPS<VisibleGameObjectCB>(L"Shaders/PixelShaders/SSAOPS.hlsl", "PS_SSAO", nullptr, "main", "ps_5_0", visibleCBUploadBuffer);
 }
 
 void BasicApp::CreateInputDescriptions()
@@ -490,6 +516,11 @@ bool BasicApp::CreateRootSignatures()
 	}
 
 	if (CreatePostProcessingRootSignature() == false)
+	{
+		return false;
+	}
+
+	if (CreateSSAORootSignature() == false)
 	{
 		return false;
 	}
@@ -646,6 +677,58 @@ bool BasicApp::CreatePostProcessingRootSignature()
 	return true;
 }
 
+bool BasicApp::CreateSSAORootSignature()
+{
+	//+1 for rendered screen texture
+	CD3DX12_ROOT_PARAMETER slotRootParameter[4] = {};
+
+	slotRootParameter[0].InitAsConstantBufferView(0, 0U, D3D12_SHADER_VISIBILITY_PIXEL);	//Constant CB
+	slotRootParameter[1].InitAsConstantBufferView(1, 0U, D3D12_SHADER_VISIBILITY_PIXEL);	//Per frame CB
+
+	CD3DX12_DESCRIPTOR_RANGE normalRange;
+	normalRange.Init(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, (UINT)1, 0);
+
+	slotRootParameter[2].InitAsDescriptorTable(1, &normalRange, D3D12_SHADER_VISIBILITY_PIXEL);	//normal texture
+
+	CD3DX12_DESCRIPTOR_RANGE depthRange;
+	depthRange.Init(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, (UINT)1, 1);
+
+	slotRootParameter[3].InitAsDescriptorTable(1, &depthRange, D3D12_SHADER_VISIBILITY_PIXEL);	//Depth texture
+
+	std::array<const CD3DX12_STATIC_SAMPLER_DESC, 6> staticSamplers = GetStaticSamplers();
+
+	CD3DX12_ROOT_SIGNATURE_DESC rootSignatureDesc;
+	rootSignatureDesc.Init((UINT)_countof(slotRootParameter), slotRootParameter, (UINT)staticSamplers.size(), staticSamplers.data(), D3D12_ROOT_SIGNATURE_FLAG_ALLOW_INPUT_ASSEMBLER_INPUT_LAYOUT);
+
+	ComPtr<ID3DBlob> pSignature;
+	ComPtr<ID3DBlob> pError;
+
+	HRESULT hr = D3D12SerializeRootSignature(&rootSignatureDesc, D3D_ROOT_SIGNATURE_VERSION_1, pSignature.GetAddressOf(), pError.GetAddressOf());
+
+	if (FAILED(hr))
+	{
+		if (pError != nullptr)
+		{
+			OutputDebugStringA((char*)pError->GetBufferPointer());
+		}
+
+		LOG_ERROR(tag, L"Failed to create SSAO serialize root signature!");
+
+		return false;
+	}
+
+	hr = m_pDevice->CreateRootSignature(0, pSignature->GetBufferPointer(), pSignature->GetBufferSize(), IID_PPV_ARGS(m_pSSAOSignature.GetAddressOf()));
+
+	if (FAILED(hr))
+	{
+		LOG_ERROR(tag, L"Failed to create SSAO root signature!");
+
+		return false;
+	}
+
+	return true;
+}
+
 bool BasicApp::CreateDescriptorHeaps()
 {
 	D3D12_DESCRIPTOR_HEAP_DESC IMGUIheapDescs = {};
@@ -736,6 +819,9 @@ void BasicApp::PopulateTextureHeap()
 	m_pDevice->CreateShaderResourceView(m_GBuffer.m_pShadow.Get(), &srvDesc, descHandle);
 	descHandle.Offset(1, m_uiCBVSRVDescSize);
 
+	m_pDevice->CreateShaderResourceView(m_GBuffer.m_pOcclusion.Get(), &srvDesc, descHandle);
+	descHandle.Offset(1, m_uiCBVSRVDescSize);
+
 	//Create srv for depth buffer
 	srvDesc.Format = DXGI_FORMAT_R24_UNORM_X8_TYPELESS;
 
@@ -765,45 +851,10 @@ bool BasicApp::CreatePSOs()
 		return false;
 	}
 
-	//Create back buffer PSO's
-	//for (std::unordered_map<std::string, void*>::iterator itA = ShaderManager::GetInstance()->GetShaders()->begin(); itA != ShaderManager::GetInstance()->GetShaders()->end(); ++itA)
-	//{
-	//	if (static_cast<Shader<VisibleGameObjectCB>*>(itA->second)->GetShaderType() != ShaderType::Vertex)
-	//	{
-	//		continue;
-	//	}
-
-	//	for (std::unordered_map<std::string, void*>::iterator itB = ShaderManager::GetInstance()->GetShaders()->begin(); itB != ShaderManager::GetInstance()->GetShaders()->end(); ++itB)
-	//	{
-	//		if (static_cast<Shader<VisibleGameObjectCB>*>(itB->second)->GetShaderType() != ShaderType::Pixel)
-	//		{
-	//			continue;
-	//		}
-
-	//		psoDesc.VS = CD3DX12_SHADER_BYTECODE(ShaderManager::GetInstance()->GetShader<VisibleGameObjectCB>(itA->first)->GetShaderBlob().Get());
-	//		psoDesc.PS = CD3DX12_SHADER_BYTECODE(ShaderManager::GetInstance()->GetShader<VisibleGameObjectCB>(itB->first)->GetShaderBlob().Get());
-
-	//		ppPipelineState = new Microsoft::WRL::ComPtr<ID3D12PipelineState>();
-
-	//		hr = m_pDevice->CreateGraphicsPipelineState(&psoDesc, IID_PPV_ARGS(ppPipelineState->GetAddressOf()));
-
-	//		if (FAILED(hr))
-	//		{
-	//			LOG_ERROR(tag, L"Failed to create the pipeline state object!");
-
-	//			return false;
-	//		}
-
-	//		psoDescription.VSName = itA->first;
-	//		psoDescription.PSName = itB->first;
-
-	//		m_PipelineStates[psoDescription] = ppPipelineState->Get();
-	//	}
-	//}
-
-	//PSODesc desc = { "VS", "PS_ParallaxOcclusion" };
-
-	//m_pPipelineState = m_PipelineStates[desc].Get();
+	if (CreateSSAOPSO() == false)
+	{
+		return false;
+	}
 
 	return true;
 }
@@ -971,6 +1022,48 @@ bool BasicApp::CreatePostProcessingPSO()
 	return true;
 }
 
+bool BasicApp::CreateSSAOPSO()
+{
+	//Initialise constant pipeline desc properties
+	D3D12_GRAPHICS_PIPELINE_STATE_DESC psoDesc = {};
+	psoDesc.InputLayout = { m_ScreenQuadVertexInputLayoutDesc.data(), (UINT)m_ScreenQuadVertexInputLayoutDesc.size() };
+	psoDesc.pRootSignature = m_pSSAOSignature.Get();
+	psoDesc.RasterizerState = CD3DX12_RASTERIZER_DESC(D3D12_DEFAULT);
+	psoDesc.BlendState = CD3DX12_BLEND_DESC(D3D12_DEFAULT);
+	psoDesc.DepthStencilState = CD3DX12_DEPTH_STENCIL_DESC(D3D12_DEFAULT);
+	psoDesc.SampleMask = UINT_MAX;
+	psoDesc.PrimitiveTopologyType = D3D12_PRIMITIVE_TOPOLOGY_TYPE_TRIANGLE;
+	psoDesc.NumRenderTargets = 1;
+	psoDesc.RTVFormats[0] = m_BackBufferFormat;
+	psoDesc.SampleDesc.Count = m_b4xMSAAState ? 4 : 1;
+	psoDesc.SampleDesc.Quality = m_b4xMSAAState ? (m_uiMSAAQuality - 1) : 0;
+	psoDesc.DSVFormat = DXGI_FORMAT_UNKNOWN;
+
+	Microsoft::WRL::ComPtr<ID3D12PipelineState>* ppPipelineState = new Microsoft::WRL::ComPtr<ID3D12PipelineState>();
+
+	PSODesc psoDescription;
+
+	//Create post processing PSO
+	psoDesc.VS = CD3DX12_SHADER_BYTECODE(ShaderManager::GetInstance()->GetShader<VisibleGameObjectCB>("VS_ScreenQuad")->GetShaderBlob().Get());
+	psoDesc.PS = CD3DX12_SHADER_BYTECODE(ShaderManager::GetInstance()->GetShader<VisibleGameObjectCB>("PS_SSAO")->GetShaderBlob().Get());
+
+	HRESULT hr = m_pDevice->CreateGraphicsPipelineState(&psoDesc, IID_PPV_ARGS(ppPipelineState->GetAddressOf()));
+
+	if (FAILED(hr))
+	{
+		LOG_ERROR(tag, L"Failed to create the SSAO pipeline state object!");
+
+		return false;
+	}
+
+	psoDescription.VSName = "VS_ScreenQuad";
+	psoDescription.PSName = "PS_SSAO";
+
+	m_PipelineStates[psoDescription] = ppPipelineState->Get();
+
+	return true;
+}
+
 void BasicApp::InitIMGUI()
 {
 	IMGUI_CHECKVERSION();
@@ -1030,12 +1123,12 @@ void BasicApp::PopulateGBuffer()
 	pResourceBarriers[5] = CD3DX12_RESOURCE_BARRIER::Transition(m_GBuffer.m_pAmbient.Get(), D3D12_RESOURCE_STATE_GENERIC_READ, D3D12_RESOURCE_STATE_RENDER_TARGET);
 	pResourceBarriers[6] = CD3DX12_RESOURCE_BARRIER::Transition(m_GBuffer.m_pShadow.Get(), D3D12_RESOURCE_STATE_GENERIC_READ, D3D12_RESOURCE_STATE_RENDER_TARGET);
 
-	m_pGraphicsCommandList->ResourceBarrier(GBUFFER_NUM, pResourceBarriers);
+	m_pGraphicsCommandList->ResourceBarrier(GBUFFER_NUM - 1, pResourceBarriers);
 
 	delete[] pResourceBarriers;
 
 	//Clear g buffer
-	for (int i = 0; i < GBUFFER_NUM; ++i)
+	for (int i = 0; i < GBUFFER_NUM - 1; ++i)
 	{
 		m_pGraphicsCommandList->ClearRenderTargetView(CD3DX12_CPU_DESCRIPTOR_HANDLE(m_pRTVHeap->GetCPUDescriptorHandleForHeapStart(), s_kuiSwapChainBufferCount + i, m_uiRTVDescSize), GBufferClearColor, 0, nullptr);
 	}
@@ -1050,15 +1143,15 @@ void BasicApp::PopulateGBuffer()
 
 	std::unordered_map<std::string, GameObject*>* pGameObjects = ObjectManager::GetInstance()->GetGameObjects();
 
-	D3D12_CPU_DESCRIPTOR_HANDLE* pRenderTargetDescs = new D3D12_CPU_DESCRIPTOR_HANDLE[GBUFFER_NUM];
+	D3D12_CPU_DESCRIPTOR_HANDLE* pRenderTargetDescs = new D3D12_CPU_DESCRIPTOR_HANDLE[GBUFFER_NUM - 1];
 
-	for (int i = 0; i < GBUFFER_NUM; ++i)
+	for (int i = 0; i < GBUFFER_NUM - 1; ++i)
 	{
 		pRenderTargetDescs[i] = CD3DX12_CPU_DESCRIPTOR_HANDLE(m_pRTVHeap->GetCPUDescriptorHandleForHeapStart(), s_kuiSwapChainBufferCount + i, m_uiRTVDescSize);
 	}
 
 	// Bind the depth buffer
-	m_pGraphicsCommandList->OMSetRenderTargets(GBUFFER_NUM, pRenderTargetDescs, FALSE, &GetDepthStencilView());
+	m_pGraphicsCommandList->OMSetRenderTargets(GBUFFER_NUM - 1, pRenderTargetDescs, FALSE, &GetDepthStencilView());
 
 	ID3D12DescriptorHeap* descriptorHeaps[] = { m_pTextureDescHeap.Get() };
 	m_pGraphicsCommandList->SetDescriptorHeaps(_countof(descriptorHeaps), descriptorHeaps);
@@ -1113,7 +1206,7 @@ void BasicApp::PopulateGBuffer()
 	}
 
 	//transistion g buffer to read state
-	pResourceBarriers = new CD3DX12_RESOURCE_BARRIER[GBUFFER_NUM];
+	pResourceBarriers = new CD3DX12_RESOURCE_BARRIER[GBUFFER_NUM - 1];
 	pResourceBarriers[0] = CD3DX12_RESOURCE_BARRIER::Transition(m_GBuffer.m_pAlbedo.Get(), D3D12_RESOURCE_STATE_RENDER_TARGET, D3D12_RESOURCE_STATE_GENERIC_READ);
 	pResourceBarriers[1] = CD3DX12_RESOURCE_BARRIER::Transition(m_GBuffer.m_pNormal.Get(), D3D12_RESOURCE_STATE_RENDER_TARGET, D3D12_RESOURCE_STATE_GENERIC_READ);
 	pResourceBarriers[2] = CD3DX12_RESOURCE_BARRIER::Transition(m_GBuffer.m_pTangent.Get(), D3D12_RESOURCE_STATE_RENDER_TARGET, D3D12_RESOURCE_STATE_GENERIC_READ);
@@ -1122,7 +1215,54 @@ void BasicApp::PopulateGBuffer()
 	pResourceBarriers[5] = CD3DX12_RESOURCE_BARRIER::Transition(m_GBuffer.m_pAmbient.Get(), D3D12_RESOURCE_STATE_RENDER_TARGET, D3D12_RESOURCE_STATE_GENERIC_READ);
 	pResourceBarriers[6] = CD3DX12_RESOURCE_BARRIER::Transition(m_GBuffer.m_pShadow.Get(), D3D12_RESOURCE_STATE_RENDER_TARGET, D3D12_RESOURCE_STATE_GENERIC_READ);
 
-	m_pGraphicsCommandList->ResourceBarrier(GBUFFER_NUM, pResourceBarriers);
+	m_pGraphicsCommandList->ResourceBarrier(GBUFFER_NUM - 1, pResourceBarriers);
+
+	PIX_ONLY(PIXEndEvent(m_pGraphicsCommandList.Get()));
+}
+
+void BasicApp::CalculateOcclusion()
+{
+	PIX_ONLY(PIXBeginEvent(m_pGraphicsCommandList.Get(), PIX_COLOR(50, 50, 50), "Calculate SSAO"));
+
+	PSODesc lightPassPSODesc = { "VS_ScreenQuad", "PS_SSAO" };
+
+	m_pGraphicsCommandList->SetPipelineState(m_PipelineStates[lightPassPSODesc].Get());
+
+	m_pGraphicsCommandList->SetGraphicsRootSignature(m_pSSAOSignature.Get());
+
+	const float RTVClearColor[] = { 0.0f, 0.0f, 0.0f, 1.0f };
+
+	m_pGraphicsCommandList->ResourceBarrier(1, &CD3DX12_RESOURCE_BARRIER::Transition(m_GBuffer.m_pOcclusion.Get(), D3D12_RESOURCE_STATE_GENERIC_READ, D3D12_RESOURCE_STATE_RENDER_TARGET));
+	m_pGraphicsCommandList->ResourceBarrier(1, &CD3DX12_RESOURCE_BARRIER::Transition(m_pDepthStencilBuffer.Get(), D3D12_RESOURCE_STATE_DEPTH_WRITE, D3D12_RESOURCE_STATE_DEPTH_READ));
+
+	m_pGraphicsCommandList->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLESTRIP);
+
+	m_pGraphicsCommandList->OMSetRenderTargets(1, &CD3DX12_CPU_DESCRIPTOR_HANDLE(m_pRTVHeap->GetCPUDescriptorHandleForHeapStart(), s_kuiSwapChainBufferCount + 7, m_uiRTVDescSize), FALSE, nullptr);
+
+	m_pGraphicsCommandList->ClearRenderTargetView(CD3DX12_CPU_DESCRIPTOR_HANDLE(m_pRTVHeap->GetCPUDescriptorHandleForHeapStart(), s_kuiSwapChainBufferCount + 7, m_uiRTVDescSize), RTVClearColor, 0, nullptr);
+
+	m_pGraphicsCommandList->IASetVertexBuffers(0, 1, &m_ScreenQuadVBView);
+
+	//Bind the necessary constant buffers
+	m_pGraphicsCommandList->SetGraphicsRootConstantBufferView(0, m_pSSAOCB->Get()->GetGPUVirtualAddress());
+	m_pGraphicsCommandList->SetGraphicsRootConstantBufferView(1, m_pSSAOPerFrameCB->Get()->GetGPUVirtualAddress());
+
+	CD3DX12_GPU_DESCRIPTOR_HANDLE textureAddress;
+
+	textureAddress = m_pTextureDescHeap->GetGPUDescriptorHandleForHeapStart();
+	textureAddress.Offset(TextureManager::GetInstance()->GetTextures()->size() + 1, m_uiCBVSRVDescSize);	
+
+	m_pGraphicsCommandList->SetGraphicsRootDescriptorTable(2, textureAddress);	//Bind normal texture
+
+	textureAddress.Offset(GBUFFER_NUM - 1, m_uiCBVSRVDescSize);
+
+	m_pGraphicsCommandList->SetGraphicsRootDescriptorTable(3, textureAddress);	//Bind depth texture
+
+	m_pGraphicsCommandList->DrawInstanced(4, 1, 0, 0);
+
+	//Transition resources back
+	m_pGraphicsCommandList->ResourceBarrier(1, &CD3DX12_RESOURCE_BARRIER::Transition(m_GBuffer.m_pOcclusion.Get(), D3D12_RESOURCE_STATE_RENDER_TARGET, D3D12_RESOURCE_STATE_GENERIC_READ));
+	m_pGraphicsCommandList->ResourceBarrier(1, &CD3DX12_RESOURCE_BARRIER::Transition(m_pDepthStencilBuffer.Get(), D3D12_RESOURCE_STATE_DEPTH_READ, D3D12_RESOURCE_STATE_DEPTH_WRITE));
 
 	PIX_ONLY(PIXEndEvent(m_pGraphicsCommandList.Get()));
 }
@@ -1239,6 +1379,68 @@ void BasicApp::UpdatePostProcessingCB()
 	}
 }
 
+void BasicApp::UpdateSSAOCB()
+{
+	SSAOPerFrameCB perFrameCB;
+
+	XMMATRIX projection = XMLoadFloat4x4(&ObjectManager::GetInstance()->GetActiveCamera()->GetProjectionMatrix());
+	XMMATRIX view = XMLoadFloat4x4(&ObjectManager::GetInstance()->GetActiveCamera()->GetViewMatrix());
+
+	//Transform from NDC to texture space
+	XMMATRIX T(
+		0.5f, 0.0f, 0.0f, 0.0f,
+		0.0f, -0.5f, 0.0f, 0.0f,
+		0.0f, 0.0f, 1.0f, 0.0f,
+		0.5f, 0.5f, 0.0f, 1.0f);
+
+	XMStoreFloat4x4(&perFrameCB.ProjTex, XMMatrixTranspose(projection * T));
+	XMStoreFloat4x4(&perFrameCB.InvProjection, XMMatrixTranspose(XMMatrixInverse(nullptr, projection)));
+	XMStoreFloat4x4(&perFrameCB.View, XMMatrixTranspose(view));
+
+	perFrameCB.NumSamples = 64;
+	perFrameCB.Radius = 0.5f;
+	perFrameCB.ScreenWidth = WindowManager::GetInstance()->GetWindowWidth();
+	perFrameCB.ScreenHeight = WindowManager::GetInstance()->GetWindowHeight();
+
+	m_pSSAOPerFrameCB->CopyData(0, perFrameCB);
+}
+
+void BasicApp::CreateSSAOCB()
+{
+	//Create random noise
+	m_pSSAOCB = new UploadBuffer<ScreenSpaceAOCB>(m_pDevice.Get(), 1, true);
+
+	ScreenSpaceAOCB noiseCB;
+
+	for (int i = 0; i < 16; ++i)
+	{
+		noiseCB.RandomRotations[i] = XMFLOAT4(RandomHelper::RandomFloat(-1, 1), RandomHelper::RandomFloat(-1, 1), 0, 0);
+	}
+
+
+	//Create hemisphere samples
+	XMVECTOR sample;
+
+	float fWeight;
+
+	for (int i = 0; i < 64; ++i)
+	{
+		// z value is only between 0 and 1 so it's always pointing away from the surface
+		sample = XMVectorSet(RandomHelper::RandomFloat(-1, 1), RandomHelper::RandomFloat(-1, 1), RandomHelper::RandomFloat(0, 1), 0.0f);
+		sample = XMVector3Normalize(sample);
+		sample *= RandomHelper::RandomFloat(0, 1);
+
+		//Add a weight so there's more samples near the fragment
+		fWeight = i / 64.0f;
+		fWeight = 0.1f + fWeight * fWeight * (1.0f - 0.1f);
+		sample *= fWeight;
+
+		XMStoreFloat4(&noiseCB.HemisphereSamples[i], sample);
+	}
+
+	m_pSSAOCB->CopyData(0, noiseCB);
+}
+
 void BasicApp::OnKeyDown(void* pObject, int iKeycode)
 {
 	BasicApp* pBasicApp = (BasicApp*)pObject;
@@ -1305,6 +1507,10 @@ void BasicApp::OnKeyDown(void* pObject, int iKeycode)
 
 	case 81: // q
 		pBasicApp->m_bRotateCube = !pBasicApp->m_bRotateCube;
+		break;
+
+	case 82:	//r
+		pBasicApp->m_bEnableAmbientOcclusion = !pBasicApp->m_bEnableAmbientOcclusion;
 		break;
 	}
 }

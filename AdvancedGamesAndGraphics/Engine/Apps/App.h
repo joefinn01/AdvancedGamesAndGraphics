@@ -8,7 +8,7 @@
 #include <DirectX\d3dx12.h>
 #include <dxgi1_4.h>
 
-#define GBUFFER_NUM 7
+#define GBUFFER_NUM 8
 
 class Timer;
 
@@ -23,6 +23,7 @@ struct GBuffer
 		m_pSpecular = nullptr;
 		m_pAmbient = nullptr;
 		m_pShadow = nullptr;
+		m_pOcclusion = nullptr;
 	}
 
 	Microsoft::WRL::ComPtr<ID3D12Resource> m_pAlbedo;
@@ -32,6 +33,7 @@ struct GBuffer
 	Microsoft::WRL::ComPtr<ID3D12Resource> m_pSpecular;
 	Microsoft::WRL::ComPtr<ID3D12Resource> m_pAmbient;
 	Microsoft::WRL::ComPtr<ID3D12Resource> m_pShadow;
+	Microsoft::WRL::ComPtr<ID3D12Resource> m_pOcclusion;
 };
 
 class App

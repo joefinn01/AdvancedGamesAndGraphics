@@ -29,6 +29,25 @@ struct PostProcessingPerFrameCB
 	int BoxBlurNumber;
 };
 
+struct ScreenSpaceAOCB
+{
+	DirectX::XMFLOAT4 RandomRotations[16];
+
+	DirectX::XMFLOAT4 HemisphereSamples[64];
+};
+
+struct SSAOPerFrameCB
+{
+	DirectX::XMFLOAT4X4 View;
+	DirectX::XMFLOAT4X4 InvProjection;
+	DirectX::XMFLOAT4X4 ProjTex;
+
+	int ScreenWidth;
+	int ScreenHeight;
+	int NumSamples;
+	float Radius;
+};
+
 struct LightCB
 {
 	DirectX::XMFLOAT3 Position;

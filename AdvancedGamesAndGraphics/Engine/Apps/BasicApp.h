@@ -77,6 +77,7 @@ protected:
 	bool CreateGBufferRootSignature();
 	bool CreateLightPassRootSignature();
 	bool CreatePostProcessingRootSignature();
+	bool CreateSSAORootSignature();
 
 	bool CreateDescriptorHeaps();
 	void PopulateTextureHeap();
@@ -85,15 +86,20 @@ protected:
 	bool CreateGBufferPSO();
 	bool CreateLightPassPSO();
 	bool CreatePostProcessingPSO();
+	bool CreateSSAOPSO();
 
 	void InitIMGUI();
 	void CreateIMGUIWindow();
 
 	void PopulateGBuffer();
+	void CalculateOcclusion();
 	void DoLightPass();
 	void DoPostProcessing();
 
 	void UpdatePostProcessingCB();
+	void UpdateSSAOCB();
+
+	void CreateSSAOCB();
 
 	static void OnKeyDown(void* pObject, int iKeycode);
 	static void OnKeyHeld(void* pObject, int iKeycode, const Timer& ktimer);
@@ -104,6 +110,7 @@ protected:
 	Microsoft::WRL::ComPtr<ID3D12RootSignature> m_pGBufferSignature;
 	Microsoft::WRL::ComPtr<ID3D12RootSignature> m_pLightSignature;
 	Microsoft::WRL::ComPtr<ID3D12RootSignature> m_pPostProcessingSignature;
+	Microsoft::WRL::ComPtr<ID3D12RootSignature> m_pSSAOSignature;
 
 	std::unordered_map<PSODesc, Microsoft::WRL::ComPtr<ID3D12PipelineState>> m_PipelineStates;
 	ID3D12PipelineState* m_pPipelineState;
@@ -112,6 +119,8 @@ protected:
 	UploadBuffer<GBufferPerFrameCB>* m_pGBufferPerFrameCB = nullptr;
 	UploadBuffer<PostProcessingPerFrameCB>* m_pPostProcessingPerFrameCB = nullptr;
 	UploadBuffer<MaterialCB>* m_pMaterialCB = nullptr;
+	UploadBuffer<ScreenSpaceAOCB>* m_pSSAOCB = nullptr;
+	UploadBuffer<SSAOPerFrameCB>* m_pSSAOPerFrameCB = nullptr;
 
 	Microsoft::WRL::ComPtr<ID3D12DescriptorHeap> m_pIMGUIDescHeap = nullptr;
 	Microsoft::WRL::ComPtr<ID3D12DescriptorHeap> m_pTextureDescHeap = nullptr;
@@ -122,6 +131,7 @@ protected:
 	bool m_bShowDemoWindow = false;
 	bool m_bRotateCube = false;
 	bool m_bEnableBoxBlur = false;
+	bool m_bEnableAmbientOcclusion = false;
 
 	int m_iBoxBlurLevel = 6;
 

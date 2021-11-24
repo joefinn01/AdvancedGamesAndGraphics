@@ -288,6 +288,7 @@
     <ClCompile Include="Engine\Helpers\DebugHelper.cpp" />
     <ClCompile Include="Engine\Helpers\DirectXHelper.cpp" />
     <ClCompile Include="Engine\Helpers\MathHelper.cpp" />
+    <ClCompile Include="Engine\Helpers\RandomHelper.cpp" />
     <ClCompile Include="Engine\include\imgui\imgui.cpp" />
     <ClCompile Include="Engine\include\imgui\imgui_demo.cpp" />
     <ClCompile Include="Engine\include\imgui\imgui_draw.cpp" />
@@ -389,6 +390,16 @@
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='PixRelease|x64'">true</ExcludedFromBuild>
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='PixDebug|x64'">true</ExcludedFromBuild>
     </FxCompile>
+    <FxCompile Include="Shaders\PixelShaders\SSAOPS.hlsl">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='PixRelease|Win32'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='PixDebug|Win32'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='PixRelease|x64'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='PixDebug|x64'">true</ExcludedFromBuild>
+    </FxCompile>
     <FxCompile Include="Shaders\VertexShaders\GBufferVS.hlsl">
       <ShaderType Condition="'$(Configuration)|$(Platform)'=='PixDebug|x64'">Vertex</ShaderType>
       <ShaderType Condition="'$(Configuration)|$(Platform)'=='PixRelease|Win32'">Vertex</ShaderType>
@@ -449,6 +460,7 @@
     <ClInclude Include="Engine\Helpers\DebugHelper.h" />
     <ClInclude Include="Engine\Helpers\DirectXHelper.h" />
     <ClInclude Include="Engine\Helpers\MathHelper.h" />
+    <ClInclude Include="Engine\Helpers\RandomHelper.h" />
     <ClInclude Include="Engine\include\imgui\imconfig.h" />
     <ClInclude Include="Engine\include\imgui\imgui.h" />
     <ClInclude Include="Engine\include\imgui\imgui_impl_dx12.h" />

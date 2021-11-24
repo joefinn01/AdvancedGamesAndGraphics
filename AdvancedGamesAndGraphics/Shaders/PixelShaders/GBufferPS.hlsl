@@ -53,6 +53,7 @@ PS_OUTPUT main(PS_INPUT input)
     
 #if NORMAL_MAPPING || PARALLAX_MAPPING || PARALLAX_OCCLUSION || PARALLAX_SHADOW
     input.TangentW = normalize(input.TangentW);
+    input.NormalW = normalize(input.NormalW);
 
     //Calculate TBN matrix
     float3 n = input.NormalW;
