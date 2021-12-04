@@ -101,7 +101,7 @@ void BasicApp::Update(const Timer& kTimer)
 {
 	App::Update(kTimer);
 
-	UploadBuffer<VisibleGameObjectCB>* pUploadBuffer = ShaderManager::GetInstance()->GetShaderConstantUploadBuffer<VisibleGameObjectCB>("VS");
+	UploadBuffer<VisibleGameObjectCB>* pUploadBuffer = ShaderManager::GetInstance()->GetShaderConstantUploadBuffer<VisibleGameObjectCB>("VS_ScreenQuad");
 
 	UINT uiCount = 0;
 
@@ -416,7 +416,6 @@ void BasicApp::CreateShadersAndUploadBuffers()
 	};
 
 	//Compile shaders
-	ShaderManager::GetInstance()->CompileShaderVS<VisibleGameObjectCB>(L"Shaders/VertexShaders/VertexShader.hlsl", "VS", nullptr, "VSMain", "vs_5_0", visibleCBUploadBuffer);
 	ShaderManager::GetInstance()->CompileShaderVS<VisibleGameObjectCB>(L"Shaders/VertexShaders/ScreenQuadVS.hlsl", "VS_ScreenQuad", nullptr, "main", "vs_5_0", visibleCBUploadBuffer);
 	ShaderManager::GetInstance()->CompileShaderVS<VisibleGameObjectCB>(L"Shaders/VertexShaders/GBufferVS.hlsl", "VS_GBuffer", nullptr, "main", "vs_5_0", visibleCBUploadBuffer);
 
@@ -1158,7 +1157,7 @@ void BasicApp::PopulateGBuffer()
 
 	//Draw the gameobjects
 	UINT uiPerObjByteSize = DirectXHelper::CalculatePaddedConstantBufferSize(sizeof(VisibleGameObjectCB));
-	D3D12_GPU_VIRTUAL_ADDRESS perObjCBAddress = ShaderManager::GetInstance()->GetShaderConstantUploadBuffer<VisibleGameObjectCB>("VS")->Get()->GetGPUVirtualAddress();
+	D3D12_GPU_VIRTUAL_ADDRESS perObjCBAddress = ShaderManager::GetInstance()->GetShaderConstantUploadBuffer<VisibleGameObjectCB>("VS_ScreenQuad")->Get()->GetGPUVirtualAddress();
 
 	UINT uiMatByteSize = DirectXHelper::CalculatePaddedConstantBufferSize(sizeof(MaterialCB));
 	D3D12_GPU_VIRTUAL_ADDRESS matCBAddress;
@@ -1444,9 +1443,6 @@ void BasicApp::CreateSSAOCB()
 void BasicApp::OnKeyDown(void* pObject, int iKeycode)
 {
 	BasicApp* pBasicApp = (BasicApp*)pObject;
-
-	PSODesc psoDesc;
-	psoDesc.VSName = "VS";
 
 	switch (iKeycode)
 	{
