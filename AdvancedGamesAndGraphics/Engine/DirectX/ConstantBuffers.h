@@ -4,14 +4,6 @@
 
 #include <DirectXMath.h>
 
-struct GBufferPerFrameCB
-{
-	DirectX::XMFLOAT4X4 ViewProjection;
-
-	DirectX::XMFLOAT3 EyePosW;
-	float pad;
-};
-
 struct LightPassPerFrameCB
 {
 	DirectX::XMFLOAT4X4 InvViewProjection;
@@ -65,6 +57,16 @@ struct LightCB
 
 	DirectX::XMFLOAT3 Attenuation;
 	float SpotLightAngle;
+};
+
+struct GBufferPerFrameCB
+{
+	DirectX::XMFLOAT4X4 ViewProjection;
+
+	LightCB light;
+
+	DirectX::XMFLOAT3 EyePosW;
+	float pad;
 };
 
 struct VisibleGameObjectCB

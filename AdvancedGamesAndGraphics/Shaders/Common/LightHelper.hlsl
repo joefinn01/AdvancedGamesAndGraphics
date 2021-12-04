@@ -40,7 +40,7 @@ struct Light
     int LightType;
 
     float3 Diffuse;
-    int Enabled;
+    float pad;
 
     float4 Specular;
 
@@ -168,42 +168,4 @@ LightingResult CalculateDirectional(Light light, Material material, float3 norma
 	result.Specular = saturate(result.Specular);
 	
 	return result;
-}
-
-LightingResult CalculateLighting(Light lights[MAX_LIGHTS], Material material, float3 position, float3 normal, float3 viewVector)
-{
-	LightingResult totalResult = InitLight();
-
-	for (int i = 0; i < MAX_LIGHTS; ++i)
-	{
-		LightingResult result = InitLight();
-
-		if (lights[i].Enabled == 1)
-		{
-			switch (lights[i].LightType)
-			{
-			case DIRECTIONAL:
-				result = CalculateDirectional(lights[i], material, normal, viewVector);
-				break;
-
-			case POINT:
-				result = CalculatePoint(lights[i], material, position, normal, viewVector);
-				break;
-
-			case SPOT:
-				result = CalculateSpot(lights[i], material, position, normal, viewVector);
-				break;
-			}
-
-			totalResult.Ambient += result.Ambient;
-			totalResult.Diffuse += result.Diffuse;
-			totalResult.Specular += result.Specular;
-		}
-
-		totalResult.Ambient = saturate(totalResult.Ambient);
-		totalResult.Diffuse = saturate(totalResult.Diffuse);	//Clamp value in range 0 and 1 with saturate
-		totalResult.Specular = saturate(totalResult.Specular);
-	}
-
-	return totalResult;
 }

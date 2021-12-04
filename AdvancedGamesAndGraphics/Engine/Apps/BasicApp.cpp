@@ -138,10 +138,11 @@ void BasicApp::Update(const Timer& kTimer)
 	//Update g buffer per frame CB
 	GBufferPerFrameCB gBufferPerFrameCB;
 
-	XMMATRIX viewProj = XMLoadFloat4x4(&ObjectManager::GetInstance()->GetActiveCamera()->GetViewProjectionMatrix());
-
 	gBufferPerFrameCB.EyePosW = ObjectManager::GetInstance()->GetActiveCamera()->GetPosition();
 
+	gBufferPerFrameCB.light = LightManager::GetInstance()->GetLight("point")->lightCB;
+
+	XMMATRIX viewProj = XMLoadFloat4x4(&ObjectManager::GetInstance()->GetActiveCamera()->GetViewProjectionMatrix());
 	XMStoreFloat4x4(&gBufferPerFrameCB.ViewProjection, XMMatrixTranspose(viewProj));
 
 	m_pGBufferPerFrameCB->CopyData(0, gBufferPerFrameCB);
