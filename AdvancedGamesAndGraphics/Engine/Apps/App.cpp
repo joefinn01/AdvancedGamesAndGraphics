@@ -319,11 +319,18 @@ void App::OnResize()
 		return;
 	}
 
+	D3D12_CLEAR_VALUE occlusionClear;
+	occlusionClear.Format = m_BackBufferFormat;
+	occlusionClear.Color[0] = 1.0f;
+	occlusionClear.Color[1] = 1.0f;
+	occlusionClear.Color[2] = 1.0f;
+	occlusionClear.Color[3] = 1.0f;
+
 	hr = m_pDevice->CreateCommittedResource(&CD3DX12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_DEFAULT),
 		D3D12_HEAP_FLAG_NONE,
 		&texDesc,
 		D3D12_RESOURCE_STATE_COMMON,
-		&gBufferClear,
+		&occlusionClear,
 		IID_PPV_ARGS(&m_GBuffer.m_pOcclusion));
 
 	if (FAILED(hr))

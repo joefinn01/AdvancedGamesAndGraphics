@@ -1230,7 +1230,7 @@ void BasicApp::CalculateOcclusion()
 
 	m_pGraphicsCommandList->SetGraphicsRootSignature(m_pSSAOSignature.Get());
 
-	const float RTVClearColor[] = { 0.0f, 0.0f, 0.0f, 1.0f };
+	const float RTVClearColor[] = { 1.0f, 1.0f, 1.0f, 1.0f };
 
 	m_pGraphicsCommandList->ResourceBarrier(1, &CD3DX12_RESOURCE_BARRIER::Transition(m_GBuffer.m_pOcclusion.Get(), D3D12_RESOURCE_STATE_GENERIC_READ, D3D12_RESOURCE_STATE_RENDER_TARGET));
 	m_pGraphicsCommandList->ResourceBarrier(1, &CD3DX12_RESOURCE_BARRIER::Transition(m_pDepthStencilBuffer.Get(), D3D12_RESOURCE_STATE_DEPTH_WRITE, D3D12_RESOURCE_STATE_DEPTH_READ));
