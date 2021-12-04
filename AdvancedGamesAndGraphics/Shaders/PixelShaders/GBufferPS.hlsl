@@ -75,10 +75,6 @@ PS_OUTPUT main(PS_INPUT input)
 
     float2 uv = input.TexCoords - uvOffset;
 
-    if (uv.x > 1.0 || uv.y > 1.0 || uv.x < 0.0 || uv.y < 0.0)
-    {
-        discard;
-    }
 #elif PARALLAX_OCCLUSION || PARALLAX_SHADOW
     float3 viewVectorW = normalize(EyePosW - input.PosW);
     float3 viewVectorT = mul(viewVectorW, transpose(tbn));
