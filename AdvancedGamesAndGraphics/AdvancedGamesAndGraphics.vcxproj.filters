@@ -128,17 +128,13 @@
     <ClCompile Include="Engine\Managers\InputManager.cpp">
       <Filter>Engine\Managers</Filter>
     </ClCompile>
-    <ClCompile Include="Engine\Helpers\RandomHelper.cpp" />
+    <ClCompile Include="Engine\Helpers\RandomHelper.cpp">
+      <Filter>Engine\Helpers</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <FxCompile Include="Shaders\Common\LightHelper.hlsl">
       <Filter>Shaders\Common</Filter>
-    </FxCompile>
-    <FxCompile Include="Shaders\VertexShaders\VertexShader.hlsl">
-      <Filter>Shaders\VertexShaders</Filter>
-    </FxCompile>
-    <FxCompile Include="Shaders\PixelShaders\PixelShader.hlsl">
-      <Filter>Shaders\PixelShaders</Filter>
     </FxCompile>
     <FxCompile Include="Shaders\Common\Samplers.hlsl">
       <Filter>Shaders\Common</Filter>
@@ -271,7 +267,9 @@
     <ClInclude Include="Engine\DirectX\PixelShader.h">
       <Filter>Engine\DirectX</Filter>
     </ClInclude>
-    <ClInclude Include="Engine\Helpers\RandomHelper.h" />
+    <ClInclude Include="Engine\Helpers\RandomHelper.h">
+      <Filter>Engine\Helpers</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <None Include="packages.config" />
