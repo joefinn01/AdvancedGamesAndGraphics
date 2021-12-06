@@ -1102,6 +1102,12 @@ void BasicApp::CreateIMGUIWindow()
 
 void BasicApp::PopulateGBuffer()
 {
+	/***********************************************
+	MARKING SCHEME: Advanced graphics techniques
+	DESCRIPTION: Deferred rendering
+	***********************************************/
+
+
 	PIX_ONLY(PIXBeginEvent(m_pGraphicsCommandList.Get(), PIX_COLOR(50, 50, 50), "Populate G buffer"));
 
 	PSODesc psoDesc = { "VS_GBuffer", m_sCurrentGBufferPSName };
@@ -1269,6 +1275,11 @@ void BasicApp::CalculateOcclusion()
 
 void BasicApp::DoLightPass()
 {
+	/***********************************************
+	MARKING SCHEME: Special effects pipeline
+	DESCRIPTION: Render to texture
+	***********************************************/
+
 	PIX_ONLY(PIXBeginEvent(m_pGraphicsCommandList.Get(), PIX_COLOR(50, 50, 50), "Render to texture"));
 
 	PSODesc lightPassPSODesc = { "VS_ScreenQuad", m_sCurrentLightPassPSName };
@@ -1332,6 +1343,11 @@ void BasicApp::DoLightPass()
 
 void BasicApp::DoPostProcessing()
 {
+	/***********************************************
+	MARKING SCHEME: Special effects pipeline
+	DESCRIPTION: Render of texture to full screen quad
+	***********************************************/
+
 	PIX_ONLY(PIXBeginEvent(m_pGraphicsCommandList.Get(), PIX_COLOR(50, 50, 50), "Carry out post processing"));
 
 	PSODesc postProcessingPSODesc = { "VS_ScreenQuad", "PS_PostProcessing" };

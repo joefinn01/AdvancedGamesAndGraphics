@@ -68,6 +68,12 @@ PS_OUTPUT main(PS_INPUT input)
 #if NORMAL_MAPPING
     float2 uv = input.TexCoords;
 #elif PARALLAX_MAPPING
+    /***********************************************
+    MARKING SCHEME: parallax Mapping
+    DESCRIPTION: Standard Parallax
+    ***********************************************/
+
+
     float3 viewVectorW = normalize(EyePosW - input.PosW);
     float3 viewVectorT = mul(viewVectorW, transpose(tbn));
 
@@ -76,6 +82,12 @@ PS_OUTPUT main(PS_INPUT input)
     float2 uv = input.TexCoords - uvOffset;
 
 #elif PARALLAX_OCCLUSION || PARALLAX_SHADOW
+    /***********************************************
+    MARKING SCHEME: parallax occlusion
+    DESCRIPTION: Parallax Occlusion
+    ***********************************************/
+
+
     float3 viewVectorW = normalize(EyePosW - input.PosW);
     float3 viewVectorT = mul(viewVectorW, transpose(tbn));
 
@@ -115,7 +127,13 @@ PS_OUTPUT main(PS_INPUT input)
 #endif
 
 #if NORMAL_MAPPING || PARALLAX_MAPPING || PARALLAX_OCCLUSION || PARALLAX_SHADOW
-    //Sample and decompress normal
+    
+    /***********************************************
+    MARKING SCHEME: Normal Mapping
+    DESCRIPTION: Map sampling, normal value decompression, transformation to tangent space
+    ***********************************************/
+
+
     float3 normalT = NormalTex.Sample(SamAnisotropicWrap, uv).xyz;
     normalT *= 2.0f;
     normalT -= 1.0f;
@@ -125,6 +143,13 @@ PS_OUTPUT main(PS_INPUT input)
     float3 bumpedNormalW = mul(normalT, tbn);
 
 #if PARALLAX_SHADOW
+
+    /***********************************************
+    MARKING SCHEME: Self-shadowing parallax mapping
+    DESCRIPTION: Self-shadowing parallax mapping
+    ***********************************************/
+
+
     output.Shadow = float4(0.0f, 0.0f, 0.0f, 0.0f);
 
     float3 lightVecT = mul(normalize(input.PosW - light.Position), transpose(tbn));

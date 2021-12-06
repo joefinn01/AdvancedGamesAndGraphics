@@ -29,6 +29,11 @@ Texture2D DepthTex : register(t1);
 
 float4 main(PS_INPUT input) : SV_TARGET
 {    
+    /***********************************************
+    MARKING SCHEME: Advanced graphics algorithms
+    DESCRIPTION: Screen space ambient occlusion
+    ***********************************************/
+
     float depth = DepthTex.Sample(SamLinearClamp, input.TexCoords);
     
     //Reconstruct position in screen space

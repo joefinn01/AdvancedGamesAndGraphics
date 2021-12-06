@@ -18,6 +18,11 @@ Texture2D CurrentTex : register(t0);
 
 float4 main(PS_INPUT input) : SV_TARGET
 {
+    /***********************************************
+    MARKING SCHEME: Simple screen space effect
+    DESCRIPTION: Box blur
+    ***********************************************/
+
     if(Enabled == 1)
     {
         int iNeighbourCount = 0;
